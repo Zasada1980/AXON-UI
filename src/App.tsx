@@ -215,7 +215,6 @@ interface KiplingDimension {
   insights: string[];
   priority: 'high' | 'medium' | 'low';
   completeness: number;
-  icon: React.ReactNode;
 }
 
 interface AuditAgent {
@@ -231,7 +230,6 @@ interface AuditAgent {
     threshold: number;
   };
   results: string[];
-  icon: React.ReactNode;
 }
 
 interface AuditSession {
@@ -285,6 +283,30 @@ function App() {
   // Get current project data
   const projectData = projects?.find(p => p.id === currentProject);
 
+  // Get icon for dimension
+  const getDimensionIcon = (dimensionId: string) => {
+    switch (dimensionId) {
+      case 'who': return <Users size={20} />;
+      case 'what': return <FileText size={20} />;
+      case 'when': return <Calendar size={20} />;
+      case 'where': return <MapPin size={20} />;
+      case 'why': return <Lightbulb size={20} />;
+      case 'how': return <Gear size={20} />;
+      default: return <FileText size={20} />;
+    }
+  };
+
+  // Get icon for audit agent
+  const getAgentIcon = (agentType: string) => {
+    switch (agentType) {
+      case 'security': return <Shield size={20} />;
+      case 'bias': return <Bug size={20} />;
+      case 'performance': return <ChartLine size={20} />;
+      case 'compliance': return <ListChecks size={20} />;
+      default: return <Robot size={20} />;
+    }
+  };
+
   // Get default audit agents
   const getDefaultAuditAgents = (): AuditAgent[] => [
     {
@@ -299,8 +321,7 @@ function App() {
         scope: 'system',
         threshold: 80
       },
-      results: [],
-      icon: <Shield size={20} />
+      results: []
     },
     {
       id: 'bias-agent',
@@ -314,8 +335,7 @@ function App() {
         scope: 'algorithm',
         threshold: 70
       },
-      results: [],
-      icon: <Bug size={20} />
+      results: []
     },
     {
       id: 'performance-agent',
@@ -329,8 +349,7 @@ function App() {
         scope: 'model',
         threshold: 90
       },
-      results: [],
-      icon: <ChartLine size={20} />
+      results: []
     },
     {
       id: 'compliance-agent',
@@ -344,8 +363,7 @@ function App() {
         scope: 'full',
         threshold: 95
       },
-      results: [],
-      icon: <ListChecks size={20} />
+      results: []
     }
   ];
 
@@ -385,8 +403,7 @@ function App() {
       content: '',
       insights: [],
       priority: 'high',
-      completeness: 0,
-      icon: <Users size={20} />
+      completeness: 0
     },
     {
       id: 'what',
@@ -395,8 +412,7 @@ function App() {
       content: '',
       insights: [],
       priority: 'high',
-      completeness: 0,
-      icon: <FileText size={20} />
+      completeness: 0
     },
     {
       id: 'when',
@@ -405,8 +421,7 @@ function App() {
       content: '',
       insights: [],
       priority: 'medium',
-      completeness: 0,
-      icon: <Calendar size={20} />
+      completeness: 0
     },
     {
       id: 'where',
@@ -415,8 +430,7 @@ function App() {
       content: '',
       insights: [],
       priority: 'medium',
-      completeness: 0,
-      icon: <MapPin size={20} />
+      completeness: 0
     },
     {
       id: 'why',
@@ -425,8 +439,7 @@ function App() {
       content: '',
       insights: [],
       priority: 'high',
-      completeness: 0,
-      icon: <Lightbulb size={20} />
+      completeness: 0
     },
     {
       id: 'how',
@@ -435,8 +448,7 @@ function App() {
       content: '',
       insights: [],
       priority: 'high',
-      completeness: 0,
-      icon: <Gear size={20} />
+      completeness: 0
     }
   ];
 
@@ -1019,7 +1031,7 @@ function App() {
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            {dimension.icon}
+                            {getDimensionIcon(dimension.id)}
                             <CardTitle className="text-lg">{dimension.title}</CardTitle>
                           </div>
                           <Badge variant={dimension.priority === 'high' ? 'default' : 'secondary'}>
@@ -1066,7 +1078,7 @@ function App() {
                     <Card key={dimension.id}>
                       <CardHeader>
                         <div className="flex items-center gap-3">
-                          {dimension.icon}
+                          {getDimensionIcon(dimension.id)}
                           <div>
                             <CardTitle className="text-xl">{dimension.title}</CardTitle>
                             <CardDescription>{dimension.question}</CardDescription>
@@ -1216,7 +1228,7 @@ function App() {
                             <CardContent className="p-4">
                               <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-2">
-                                  {agent.icon}
+                                  {getAgentIcon(agent.type)}
                                   <h4 className="font-medium">{agent.name}</h4>
                                 </div>
                                 <Badge variant={
@@ -1344,7 +1356,7 @@ function App() {
                               <div key={session.id} className="border rounded-lg p-4">
                                 <div className="flex items-center justify-between mb-3">
                                   <div className="flex items-center gap-2">
-                                    {agent?.icon}
+                                    {agent && getAgentIcon(agent.type)}
                                     <span className="font-medium">{agent?.name}</span>
                                     <Badge variant="outline">{session.auditType}</Badge>
                                   </div>
