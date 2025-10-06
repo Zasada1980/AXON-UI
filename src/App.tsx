@@ -131,6 +131,62 @@ const translations: Translations = {
   generateInsights: { en: 'Generate Insights', ru: 'Создать Выводы' },
   generatedInsights: { en: 'Generated Insights', ru: 'Созданные Выводы' },
   
+  // Agent Debate Module
+  agentDebate: { en: 'Agent Debate', ru: 'Дебаты Агентов' },
+  agentDebateDesc: { en: 'Configure and manage multi-agent debate systems', ru: 'Настройка и управление системами дебатов между агентами' },
+  debateRounds: { en: 'Debate Rounds', ru: 'Раунды Дебатов' },
+  agentCount: { en: 'Agent Count', ru: 'Количество Агентов' },
+  debateTask: { en: 'Debate Task', ru: 'Задача Дебатов' },
+  startDebate: { en: 'Start Debate', ru: 'Начать Дебаты' },
+  stopDebate: { en: 'Stop Debate', ru: 'Остановить Дебаты' },
+  debateStatus: { en: 'Debate Status', ru: 'Статус Дебатов' },
+  debateResults: { en: 'Debate Results', ru: 'Результаты Дебатов' },
+  currentRound: { en: 'Current Round', ru: 'Текущий Раунд' },
+  agentResponses: { en: 'Agent Responses', ru: 'Ответы Агентов' },
+  synthesis: { en: 'Synthesis', ru: 'Синтез' },
+  debateTemplate: { en: 'Debate Template', ru: 'Шаблон Дебатов' },
+  argumentQuality: { en: 'Argument Quality', ru: 'Качество Аргументов' },
+  consensusLevel: { en: 'Consensus Level', ru: 'Уровень Консенсуса' },
+  
+  // Executor Module
+  executor: { en: 'Task Executor', ru: 'Исполнитель Задач' },
+  executorDesc: { en: 'Execute tasks and manage AI agent workflows', ru: 'Выполнение задач и управление рабочими процессами ИИ агентов' },
+  taskQueue: { en: 'Task Queue', ru: 'Очередь Задач' },
+  activeTask: { en: 'Active Task', ru: 'Активная Задача' },
+  executeTask: { en: 'Execute Task', ru: 'Выполнить Задачу' },
+  taskStatus: { en: 'Task Status', ru: 'Статус Задачи' },
+  taskHistory: { en: 'Task History', ru: 'История Задач' },
+  createTask: { en: 'Create Task', ru: 'Создать Задачу' },
+  taskType: { en: 'Task Type', ru: 'Тип Задачи' },
+  taskPriority: { en: 'Task Priority', ru: 'Приоритет Задачи' },
+  assignedAgent: { en: 'Assigned Agent', ru: 'Назначенный Агент' },
+  taskResult: { en: 'Task Result', ru: 'Результат Задачи' },
+  executionTime: { en: 'Execution Time', ru: 'Время Выполнения' },
+  pending: { en: 'Pending', ru: 'Ожидает' },
+  executing: { en: 'Executing', ru: 'Выполняется' },
+  
+  // Task types
+  analysisTask: { en: 'Analysis Task', ru: 'Задача Анализа' },
+  researchTask: { en: 'Research Task', ru: 'Задача Исследования' },
+  debateTaskType: { en: 'Debate Task', ru: 'Задача Дебатов' },
+  reportTask: { en: 'Report Task', ru: 'Задача Отчета' },
+  
+  // Agent Templates
+  debateAgent1: { en: 'Debate Agent 1', ru: 'Агент Дебатов 1' },
+  debateAgent2: { en: 'Debate Agent 2', ru: 'Агент Дебатов 2' },
+  moderatorAgent: { en: 'Moderator Agent', ru: 'Агент Модератор' },
+  synthesizerAgent: { en: 'Synthesizer Agent', ru: 'Агент Синтеза' },
+  
+  // Additional statuses and labels
+  consensus: { en: 'Consensus', ru: 'Консенсус' },
+  disagreement: { en: 'Disagreement', ru: 'Разногласие' },
+  needsReview: { en: 'Needs Review', ru: 'Требует Проверки' },
+  round: { en: 'Round', ru: 'Раунд' },
+  argument: { en: 'Argument', ru: 'Аргумент' },
+  counterArgument: { en: 'Counter-Argument', ru: 'Контраргумент' },
+  evidence: { en: 'Evidence', ru: 'Доказательство' },
+  conclusion: { en: 'Conclusion', ru: 'Заключение' },
+  
   // IKR sections
   intelligence: { en: 'Intelligence Collection & Assessment', ru: 'Сбор и Оценка Разведданных' },
   intelligenceDesc: { en: 'Document the intelligence gathering process and raw information collected', ru: 'Документируйте процесс сбора разведданных и собранную исходную информацию' },
@@ -314,6 +370,66 @@ interface AuditSession {
   findings: number;
 }
 
+interface DebateAgent {
+  id: string;
+  name: string;
+  role: 'debater' | 'moderator' | 'synthesizer';
+  template: string;
+  model: string;
+  systemPrompt: string;
+}
+
+interface DebateRound {
+  id: string;
+  roundNumber: number;
+  responses: {
+    agentId: string;
+    response: string;
+    timestamp: string;
+    quality: number;
+  }[];
+  synthesis?: string;
+}
+
+interface DebateSession {
+  id: string;
+  title: string;
+  task: string;
+  agents: DebateAgent[];
+  rounds: DebateRound[];
+  maxRounds: number;
+  currentRound: number;
+  status: 'setup' | 'running' | 'completed' | 'stopped';
+  startTime?: string;
+  endTime?: string;
+  finalSynthesis?: string;
+  consensusLevel: number;
+}
+
+interface TaskExecution {
+  id: string;
+  title: string;
+  description: string;
+  type: 'analysis' | 'research' | 'debate' | 'report';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  assignedAgent?: string;
+  status: 'pending' | 'executing' | 'completed' | 'failed';
+  createdAt: string;
+  startedAt?: string;
+  completedAt?: string;
+  result?: string;
+  executionTime?: number;
+  dependencies?: string[];
+}
+
+interface ExecutorSettings {
+  maxConcurrentTasks: number;
+  defaultTimeout: number;
+  retryAttempts: number;
+  enableAutoRetry: boolean;
+  logLevel: 'debug' | 'info' | 'warn' | 'error';
+}
+
 interface AnalysisProject {
   id: string;
   title: string;
@@ -332,6 +448,9 @@ interface AnalysisProject {
   colorSettings?: ModuleColorSettings;
   chatSessions: ChatSession[];
   currentChatSession?: string;
+  debate: DebateSession[];
+  tasks: TaskExecution[];
+  executorSettings?: ExecutorSettings;
 }
 
 interface ModuleColorSettings {
@@ -360,6 +479,18 @@ interface ModuleColorSettings {
     background: string;
   };
   chat: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+  };
+  debate: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+  };
+  executor: {
     primary: string;
     secondary: string;
     accent: string;
@@ -471,6 +602,18 @@ function App() {
       secondary: 'oklch(45% 0.12 300)',
       accent: 'oklch(75% 0.25 260)',
       background: 'oklch(20% 0.03 280)'
+    },
+    debate: {
+      primary: 'oklch(63% 0.19 120)',
+      secondary: 'oklch(43% 0.13 140)',
+      accent: 'oklch(73% 0.23 100)',
+      background: 'oklch(18% 0.025 120)'
+    },
+    executor: {
+      primary: 'oklch(61% 0.18 60)',
+      secondary: 'oklch(41% 0.12 80)',
+      accent: 'oklch(71% 0.22 40)',
+      background: 'oklch(17% 0.027 60)'
     }
   });
   const getDefaultAuditAgents = (): AuditAgent[] => [
@@ -560,15 +703,24 @@ function App() {
   const ensureAuditFunctionality = (proj: AnalysisProject | undefined): AnalysisProject | undefined => {
     if (!proj) return proj;
     
-    if (!proj.auditAgents || !proj.auditSessions || !proj.chatSessions) {
-      // Update project with audit and chat functionality
+    if (!proj.auditAgents || !proj.auditSessions || !proj.chatSessions || !proj.debate || !proj.tasks) {
+      // Update project with all missing functionality
       const updatedProject = {
         ...proj,
         auditAgents: proj.auditAgents || getDefaultAuditAgents(),
         auditSessions: proj.auditSessions || [],
         colorSettings: proj.colorSettings || getDefaultColorSettings(),
         chatSessions: proj.chatSessions || [],
-        currentChatSession: proj.currentChatSession || undefined
+        currentChatSession: proj.currentChatSession || undefined,
+        debate: proj.debate || [],
+        tasks: proj.tasks || [],
+        executorSettings: proj.executorSettings || {
+          maxConcurrentTasks: 3,
+          defaultTimeout: 300000,
+          retryAttempts: 2,
+          enableAutoRetry: true,
+          logLevel: 'info'
+        }
       };
       
       // Update the projects array
@@ -698,7 +850,16 @@ function App() {
       auditSessions: [],
       colorSettings: getDefaultColorSettings(),
       chatSessions: [],
-      currentChatSession: undefined
+      currentChatSession: undefined,
+      debate: [],
+      tasks: [],
+      executorSettings: {
+        maxConcurrentTasks: 3,
+        defaultTimeout: 300000,
+        retryAttempts: 2,
+        enableAutoRetry: true,
+        logLevel: 'info'
+      }
     };
 
     setProjects(current => [...(current || []), newProject]);
@@ -844,6 +1005,22 @@ function App() {
           root.style.setProperty('--module-secondary', settings.chat.secondary);
           root.style.setProperty('--module-accent', settings.chat.accent);
           root.style.setProperty('--module-background', settings.chat.background);
+        }
+        break;
+      case 'debate':
+        if (settings.debate) {
+          root.style.setProperty('--module-primary', settings.debate.primary);
+          root.style.setProperty('--module-secondary', settings.debate.secondary);
+          root.style.setProperty('--module-accent', settings.debate.accent);
+          root.style.setProperty('--module-background', settings.debate.background);
+        }
+        break;
+      case 'executor':
+        if (settings.executor) {
+          root.style.setProperty('--module-primary', settings.executor.primary);
+          root.style.setProperty('--module-secondary', settings.executor.secondary);
+          root.style.setProperty('--module-accent', settings.executor.accent);
+          root.style.setProperty('--module-background', settings.executor.background);
         }
         break;
     }
@@ -1655,11 +1832,13 @@ Respond naturally and helpfully.`;
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-8">
                 <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
                 <TabsTrigger value="kipling">{t('kipling')}</TabsTrigger>
                 <TabsTrigger value="ikr">{t('ikr')}</TabsTrigger>
                 <TabsTrigger value="audit">{t('aiAudit')}</TabsTrigger>
+                <TabsTrigger value="debate">{t('agentDebate')}</TabsTrigger>
+                <TabsTrigger value="executor">{t('executor')}</TabsTrigger>
                 <TabsTrigger value="chat">{t('chat')}</TabsTrigger>
                 <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
               </TabsList>
@@ -2095,7 +2274,420 @@ Respond naturally and helpfully.`;
                 </div>
               </TabsContent>
 
-              {/* AI Chat Tab */}
+              {/* Agent Debate Tab */}
+              <TabsContent value="debate" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users size={24} className="text-primary" />
+                      {t('agentDebate')}
+                    </CardTitle>
+                    <CardDescription>
+                      {t('agentDebateDesc')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {/* Debate Configuration */}
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <Card>
+                          <CardContent className="p-4">
+                            <h4 className="font-medium mb-2">{t('debateRounds')}</h4>
+                            <Select defaultValue="3">
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="3">3 {t('round').toLowerCase()}s</SelectItem>
+                                <SelectItem value="5">5 {t('round').toLowerCase()}s</SelectItem>
+                                <SelectItem value="7">7 {t('round').toLowerCase()}s</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardContent className="p-4">
+                            <h4 className="font-medium mb-2">{t('agentCount')}</h4>
+                            <Select defaultValue="2">
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="2">2 {t('debateAgent1').toLowerCase()}s</SelectItem>
+                                <SelectItem value="3">3 {t('debateAgent1').toLowerCase()}s</SelectItem>
+                                <SelectItem value="4">4 {t('debateAgent1').toLowerCase()}s</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardContent className="p-4">
+                            <h4 className="font-medium mb-2">{t('consensusLevel')}</h4>
+                            <div className="flex items-center gap-2">
+                              <Progress value={75} className="flex-1" />
+                              <span className="text-sm text-muted-foreground">75%</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Debate Task Input */}
+                      <div>
+                        <Label htmlFor="debate-task">{t('debateTask')}</Label>
+                        <Textarea
+                          id="debate-task"
+                          placeholder="Enter the topic or question for agents to debate..."
+                          rows={3}
+                          className="mt-2"
+                        />
+                      </div>
+
+                      {/* Agent Templates */}
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <Robot size={20} />
+                              {t('debateAgent1')}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              <div>
+                                <Label>Role: Advocate</Label>
+                                <Badge variant="secondary" className="ml-2">Pro-position</Badge>
+                              </div>
+                              <div>
+                                <Label>Model</Label>
+                                <Select defaultValue="gpt-4o-mini">
+                                  <SelectTrigger className="mt-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                                    <SelectItem value="claude-3">Claude-3</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <Robot size={20} />
+                              {t('debateAgent2')}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              <div>
+                                <Label>Role: Critic</Label>
+                                <Badge variant="outline" className="ml-2">Counter-position</Badge>
+                              </div>
+                              <div>
+                                <Label>Model</Label>
+                                <Select defaultValue="claude-3">
+                                  <SelectTrigger className="mt-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                                    <SelectItem value="claude-3">Claude-3</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Control Buttons */}
+                      <div className="flex items-center gap-3">
+                        <Button>
+                          <Play size={16} className="mr-2" />
+                          {t('startDebate')}
+                        </Button>
+                        <Button variant="outline">
+                          <Pause size={16} className="mr-2" />
+                          {t('stopDebate')}
+                        </Button>
+                        <Badge variant="secondary" className="ml-auto">
+                          {t('debateStatus')}: {t('idle')}
+                        </Badge>
+                      </div>
+
+                      {/* Debate Results */}
+                      <Separator />
+                      
+                      <div>
+                        <h4 className="font-medium mb-4 flex items-center gap-2">
+                          <ListChecks size={20} />
+                          {t('debateResults')}
+                        </h4>
+                        
+                        <div className="space-y-4">
+                          <Card className="bg-muted/50">
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <Badge>{t('round')} 1</Badge>
+                                  <span className="text-sm text-muted-foreground">2 min ago</span>
+                                </div>
+                                <Badge variant="secondary">{t('completed')}</Badge>
+                              </div>
+                              
+                              <div className="space-y-3">
+                                <div className="border-l-2 border-primary pl-3">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Robot size={14} />
+                                    <span className="text-sm font-medium">Agent Pro</span>
+                                    <Badge variant="outline" className="text-xs">Quality: 85%</Badge>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">
+                                    Initial argument presenting evidence supporting the position...
+                                  </p>
+                                </div>
+                                
+                                <div className="border-l-2 border-secondary pl-3">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Robot size={14} />
+                                    <span className="text-sm font-medium">Agent Counter</span>
+                                    <Badge variant="outline" className="text-xs">Quality: 78%</Badge>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">
+                                    Counter-argument challenging the initial position with alternative evidence...
+                                  </p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Task Executor Tab */}
+              <TabsContent value="executor" className="space-y-6">
+                <div className="grid gap-6 lg:grid-cols-3">
+                  {/* Task Queue */}
+                  <div className="lg:col-span-2">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <ListChecks size={24} className="text-primary" />
+                          {t('taskQueue')}
+                        </CardTitle>
+                        <CardDescription>
+                          {t('executorDesc')}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {/* Active Task */}
+                          <div className="border rounded-lg p-4 bg-muted/20">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <span className="font-medium">{t('activeTask')}</span>
+                              </div>
+                              <Badge variant="default">{t('executing')}</Badge>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <h5 className="font-medium">Analysis Task: Market Research</h5>
+                              <p className="text-sm text-muted-foreground">
+                                Analyzing market trends for Q4 projections using multiple data sources
+                              </p>
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                <span>Agent: Research-Agent-01</span>
+                                <span>Started: 5 min ago</span>
+                                <span>Priority: High</span>
+                              </div>
+                              <Progress value={65} className="h-1" />
+                            </div>
+                          </div>
+
+                          {/* Pending Tasks */}
+                          <div className="space-y-3">
+                            <h4 className="font-medium">{t('pending')} ({3})</h4>
+                            
+                            {[1, 2, 3].map(i => (
+                              <Card key={i} className="hover:shadow-md transition-shadow">
+                                <CardContent className="p-4">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h5 className="font-medium">Task {i + 1}: Data Synthesis</h5>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant={i === 1 ? "default" : "outline"}>
+                                        {i === 1 ? t('high') : i === 2 ? t('medium') : t('low')}
+                                      </Badge>
+                                      <Button size="sm" variant="outline">
+                                        <Play size={14} className="mr-1" />
+                                        {t('executeTask')}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground mb-2">
+                                    Synthesize findings from Kipling analysis into actionable insights
+                                  </p>
+                                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                    <span>Type: {t('analysisTask')}</span>
+                                    <span>Agent: Unassigned</span>
+                                    <span>Created: {i} hours ago</span>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Task Controls & Settings */}
+                  <div className="space-y-6">
+                    {/* Create Task */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">{t('createTask')}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="task-title">Title</Label>
+                            <Input id="task-title" placeholder="Task title..." />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="task-type">{t('taskType')}</Label>
+                            <Select>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select type..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="analysis">{t('analysisTask')}</SelectItem>
+                                <SelectItem value="research">{t('researchTask')}</SelectItem>
+                                <SelectItem value="debate">{t('debateTaskType')}</SelectItem>
+                                <SelectItem value="report">{t('reportTask')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="task-priority">{t('taskPriority')}</Label>
+                            <Select>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select priority..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="urgent">Urgent</SelectItem>
+                                <SelectItem value="high">{t('high')}</SelectItem>
+                                <SelectItem value="medium">{t('medium')}</SelectItem>
+                                <SelectItem value="low">{t('low')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="task-agent">{t('assignedAgent')}</Label>
+                            <Select>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Auto-assign" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="auto">Auto-assign</SelectItem>
+                                <SelectItem value="research-01">Research Agent 01</SelectItem>
+                                <SelectItem value="analysis-01">Analysis Agent 01</SelectItem>
+                                <SelectItem value="synthesis-01">Synthesis Agent 01</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <Button className="w-full">
+                            <Plus size={16} className="mr-2" />
+                            {t('createTask')}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Executor Settings */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Gear size={20} />
+                          Executor Settings
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div>
+                            <Label>Max Concurrent Tasks: 3</Label>
+                            <Input type="range" min="1" max="10" defaultValue="3" className="mt-2" />
+                          </div>
+                          
+                          <div>
+                            <Label>Default Timeout: 5 min</Label>
+                            <Select defaultValue="300">
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="300">5 minutes</SelectItem>
+                                <SelectItem value="600">10 minutes</SelectItem>
+                                <SelectItem value="1800">30 minutes</SelectItem>
+                                <SelectItem value="3600">1 hour</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <Label>Auto-retry failed tasks</Label>
+                            <Button variant="outline" size="sm">
+                              <CheckCircle size={14} className="mr-1" />
+                              Enabled
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Task Statistics */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">{t('taskHistory')}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Completed Today</span>
+                            <Badge variant="secondary">7</Badge>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">In Queue</span>
+                            <Badge variant="outline">3</Badge>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Failed</span>
+                            <Badge variant="destructive">1</Badge>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Avg. Time</span>
+                            <span className="text-sm text-muted-foreground">8.3 min</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </TabsContent>
               <TabsContent value="chat" className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -2592,6 +3184,292 @@ Respond naturally and helpfully.`;
                     <Separator />
 
                     {/* Chat Module Colors */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg flex items-center gap-2">
+                        <ChatCircle size={20} />
+                        {t('chatModule')}
+                      </h4>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="chat-primary">{t('primaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="chat-primary"
+                              type="color"
+                              value={project.colorSettings?.chat?.primary?.includes('oklch')
+                                ? '#a855f7'
+                                : project.colorSettings?.chat?.primary || '#a855f7'
+                              }
+                              onChange={(e) => updateColorSettings('chat', 'primary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.chat?.primary || 'oklch(65% 0.2 280)'}
+                              onChange={(e) => updateColorSettings('chat', 'primary', e.target.value)}
+                              placeholder="oklch(65% 0.2 280)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="chat-secondary">{t('secondaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="chat-secondary"
+                              type="color"
+                              value={project.colorSettings?.chat?.secondary?.includes('oklch')
+                                ? '#7c3aed'
+                                : project.colorSettings?.chat?.secondary || '#7c3aed'
+                              }
+                              onChange={(e) => updateColorSettings('chat', 'secondary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.chat?.secondary || 'oklch(45% 0.12 300)'}
+                              onChange={(e) => updateColorSettings('chat', 'secondary', e.target.value)}
+                              placeholder="oklch(45% 0.12 300)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="chat-accent">{t('accentColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="chat-accent"
+                              type="color"
+                              value={project.colorSettings?.chat?.accent?.includes('oklch')
+                                ? '#c084fc'
+                                : project.colorSettings?.chat?.accent || '#c084fc'
+                              }
+                              onChange={(e) => updateColorSettings('chat', 'accent', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.chat?.accent || 'oklch(75% 0.25 260)'}
+                              onChange={(e) => updateColorSettings('chat', 'accent', e.target.value)}
+                              placeholder="oklch(75% 0.25 260)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="chat-background">{t('backgroundColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="chat-background"
+                              type="color"
+                              value={project.colorSettings?.chat?.background?.includes('oklch')
+                                ? '#581c87'
+                                : project.colorSettings?.chat?.background || '#581c87'
+                              }
+                              onChange={(e) => updateColorSettings('chat', 'background', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.chat?.background || 'oklch(20% 0.03 280)'}
+                              onChange={(e) => updateColorSettings('chat', 'background', e.target.value)}
+                              placeholder="oklch(20% 0.03 280)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Debate Module Colors */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg flex items-center gap-2">
+                        <Users size={20} />
+                        {t('agentDebate')}
+                      </h4>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="debate-primary">{t('primaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="debate-primary"
+                              type="color"
+                              value={project.colorSettings?.debate?.primary?.includes('oklch')
+                                ? '#10b981'
+                                : project.colorSettings?.debate?.primary || '#10b981'
+                              }
+                              onChange={(e) => updateColorSettings('debate', 'primary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.debate?.primary || 'oklch(63% 0.19 120)'}
+                              onChange={(e) => updateColorSettings('debate', 'primary', e.target.value)}
+                              placeholder="oklch(63% 0.19 120)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="debate-secondary">{t('secondaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="debate-secondary"
+                              type="color"
+                              value={project.colorSettings?.debate?.secondary?.includes('oklch')
+                                ? '#059669'
+                                : project.colorSettings?.debate?.secondary || '#059669'
+                              }
+                              onChange={(e) => updateColorSettings('debate', 'secondary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.debate?.secondary || 'oklch(43% 0.13 140)'}
+                              onChange={(e) => updateColorSettings('debate', 'secondary', e.target.value)}
+                              placeholder="oklch(43% 0.13 140)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="debate-accent">{t('accentColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="debate-accent"
+                              type="color"
+                              value={project.colorSettings?.debate?.accent?.includes('oklch')
+                                ? '#34d399'
+                                : project.colorSettings?.debate?.accent || '#34d399'
+                              }
+                              onChange={(e) => updateColorSettings('debate', 'accent', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.debate?.accent || 'oklch(73% 0.23 100)'}
+                              onChange={(e) => updateColorSettings('debate', 'accent', e.target.value)}
+                              placeholder="oklch(73% 0.23 100)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="debate-background">{t('backgroundColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="debate-background"
+                              type="color"
+                              value={project.colorSettings?.debate?.background?.includes('oklch')
+                                ? '#064e3b'
+                                : project.colorSettings?.debate?.background || '#064e3b'
+                              }
+                              onChange={(e) => updateColorSettings('debate', 'background', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.debate?.background || 'oklch(18% 0.025 120)'}
+                              onChange={(e) => updateColorSettings('debate', 'background', e.target.value)}
+                              placeholder="oklch(18% 0.025 120)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Executor Module Colors */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg flex items-center gap-2">
+                        <ListChecks size={20} />
+                        {t('executor')}
+                      </h4>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="executor-primary">{t('primaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="executor-primary"
+                              type="color"
+                              value={project.colorSettings?.executor?.primary?.includes('oklch')
+                                ? '#f59e0b'
+                                : project.colorSettings?.executor?.primary || '#f59e0b'
+                              }
+                              onChange={(e) => updateColorSettings('executor', 'primary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.executor?.primary || 'oklch(61% 0.18 60)'}
+                              onChange={(e) => updateColorSettings('executor', 'primary', e.target.value)}
+                              placeholder="oklch(61% 0.18 60)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="executor-secondary">{t('secondaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="executor-secondary"
+                              type="color"
+                              value={project.colorSettings?.executor?.secondary?.includes('oklch')
+                                ? '#d97706'
+                                : project.colorSettings?.executor?.secondary || '#d97706'
+                              }
+                              onChange={(e) => updateColorSettings('executor', 'secondary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.executor?.secondary || 'oklch(41% 0.12 80)'}
+                              onChange={(e) => updateColorSettings('executor', 'secondary', e.target.value)}
+                              placeholder="oklch(41% 0.12 80)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="executor-accent">{t('accentColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="executor-accent"
+                              type="color"
+                              value={project.colorSettings?.executor?.accent?.includes('oklch')
+                                ? '#fbbf24'
+                                : project.colorSettings?.executor?.accent || '#fbbf24'
+                              }
+                              onChange={(e) => updateColorSettings('executor', 'accent', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.executor?.accent || 'oklch(71% 0.22 40)'}
+                              onChange={(e) => updateColorSettings('executor', 'accent', e.target.value)}
+                              placeholder="oklch(71% 0.22 40)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="executor-background">{t('backgroundColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="executor-background"
+                              type="color"
+                              value={project.colorSettings?.executor?.background?.includes('oklch')
+                                ? '#92400e'
+                                : project.colorSettings?.executor?.background || '#92400e'
+                              }
+                              onChange={(e) => updateColorSettings('executor', 'background', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.executor?.background || 'oklch(17% 0.027 60)'}
+                              onChange={(e) => updateColorSettings('executor', 'background', e.target.value)}
+                              placeholder="oklch(17% 0.027 60)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
                     <div className="space-y-4">
                       <h4 className="font-medium text-lg flex items-center gap-2">
                         <ChatCircle size={20} />
