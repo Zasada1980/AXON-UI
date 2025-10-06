@@ -2087,7 +2087,7 @@ Respond naturally and helpfully.`;
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-15">
+              <TabsList className="grid w-full grid-cols-8 lg:grid-cols-16">
                 <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
                 <TabsTrigger value="kipling">{t('kipling')}</TabsTrigger>
                 <TabsTrigger value="ikr">{t('ikr')}</TabsTrigger>

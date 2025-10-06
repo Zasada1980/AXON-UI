@@ -1,126 +1,221 @@
-# AXON Intelligence Analysis Platform - Product Requirements Document
+# AXON Intelligence Analysis Platform - PRD
 
 ## Core Purpose & Success
 
-**Mission Statement**: AXON is a comprehensive intelligence analysis platform that empowers analysts to conduct thorough, structured analysis using the IKR directive, Kipling protocol framework, AI audit capabilities, system diagnostics, and automated recovery for systematic verification, quality assurance, and operational resilience.
+**Mission Statement**: AXON is a comprehensive intelligence analysis platform that enables systematic analysis using the IKR directive (Intelligence-Knowledge-Reasoning) and Kipling protocol (Who, What, When, Where, Why, How), enhanced with AI-powered audit capabilities and automated workflow management.
 
-**Success Indicators**: 
-- Analysts can complete comprehensive analysis projects with clear structure and methodology
-- Generated insights lead to actionable intelligence and informed decision-making
-- Analysis completeness tracking ensures thorough coverage of all analytical dimensions
-- AI audit systems provide reliable verification and quality control of intelligence processes
-- System diagnostics and auto-recovery maintain operational stability and minimize downtime
-- Step-by-step task execution ensures systematic problem resolution with micro-command granularity
+**Success Indicators**:
+- Users can complete comprehensive intelligence analysis projects with >80% completeness
+- AI audit agents identify and resolve system issues automatically
+- Micro-task execution reduces manual workload by >60%
+- Real-time system health monitoring maintains >95% uptime
+- Multi-language support serves both English and Russian users effectively
 
-**Experience Qualities**: Professional, Methodical, Insightful, Secure, Resilient, Self-Healing
+**Experience Qualities**: 
+1. **Professional** - Enterprise-grade analysis capabilities with military/intelligence precision
+2. **Intelligent** - AI-powered automation and insights generation
+3. **Resilient** - Self-healing systems with comprehensive error recovery
 
 ## Project Classification & Approach
 
-**Complexity Level**: Complex Application - Advanced functionality with structured analysis frameworks, persistent data management, AI-powered insight generation, specialized audit capabilities, system monitoring, and automated recovery systems
+**Complexity Level**: Complex Application (advanced functionality, multi-agent systems, comprehensive state management)
 
-**Primary User Activity**: Creating, Auditing & Maintaining - Users actively create structured analysis projects, develop content across multiple analytical dimensions, generate insights for strategic decision-making, conduct systematic audits of AI systems, monitor system health, and execute automated maintenance tasks
+**Primary User Activity**: Creating (systematic intelligence analysis with AI assistance)
 
 ## Essential Features
 
-### Structured Analysis Framework
-- **IKR Directive Implementation**: Three-tier analysis structure (Intelligence, Knowledge, Reasoning) that guides users through systematic intelligence processing
-- **Kipling Protocol Integration**: Six-dimension analysis framework (Who, What, When, Where, Why, How) ensuring comprehensive coverage of analytical aspects
-- **Progress Tracking**: Real-time completeness metrics showing analysis progress across all dimensions
+### Core Analysis Framework
+- **Kipling Protocol Implementation**: Six-dimensional analysis framework (Who, What, When, Where, Why, How)
+- **IKR Directive Support**: Three-stage process (Intelligence gathering, Knowledge synthesis, Reasoning)
+- **Project Management**: Multi-project workspace with completion tracking and export capabilities
 
-### AI Audit System
-- **Multi-Agent Architecture**: Four specialized audit agents (Security, Bias Detection, Performance, Compliance) each designed for specific audit domains
-- **Configurable Parameters**: Adjustable sensitivity levels, analysis depth, audit scope, and alert thresholds for each agent
-- **Audit Session Management**: Real-time monitoring of audit processes with start/stop controls and status tracking
-- **Comprehensive Reporting**: Detailed audit results with findings categorization, severity assessment, and recommendations
+### AI-Powered Automation
+- **Multi-Agent Audit System**: Security, bias detection, performance, and compliance agents
+- **Automated Task Execution**: Step-by-step micro-task breakdown and execution
+- **Intelligent Chat Assistant**: Context-aware AI helper with voice input support
+- **Agent Debate System**: Multi-agent collaborative analysis and decision-making
 
-### Agent Memory & Learning System
-- **Debate Memory Backup**: Each debate agent maintains persistent memory for collecting and storing correct decision information
-- **Log Collection System**: Automated collection and storage of all debate logs, audit results, and agent decisions with comprehensive tracking
-- **Memory File Creation**: Automated creation of curated memory files from collected logs using AI-driven filtering and organization
-- **Audit-Driven Curation**: AI audit agents automatically review, edit, and filter memory files, retaining only relevant and accurate information
-- **Project-Specific Knowledge Base**: Individual memory databases maintained per project, allowing agents to build project-specific expertise
-- **Silent Verification Pipeline**: Two-cycle automated debate verification system runs silently before memory file creation to ensure information quality
-- **Structured Journal Format**: All agent interactions stored in structured journal format with timestamps, context, and relevance scoring
-- **Memory Learning Integration**: Agents continuously learn from their memory files to improve future decision-making and analysis quality
+### System Resilience & Recovery
+- **Real-time Diagnostics**: Continuous system health monitoring with automated issue detection
+- **Auto-Recovery Mechanisms**: Self-healing capabilities with repair action execution
+- **Error Monitoring**: Comprehensive error tracking with intelligent resolution suggestions
+- **Checkpoint System**: State preservation and rollback capabilities
 
-### System Diagnostics & Recovery
-- **Real-time System Monitoring**: Continuous monitoring of system components including memory, performance, storage, network, security, and uptime metrics
-- **Automated Issue Detection**: Intelligent identification of system failures, performance degradation, and operational anomalies
-- **Micro-Task Execution**: Step-by-step problem resolution using small, atomic commands with progress tracking and retry mechanisms
-- **Auto-Recovery System**: Self-healing capabilities that automatically detect, diagnose, and repair system issues without human intervention
-- **Component Health Management**: Individual monitoring and repair of system components with configurable auto-repair settings
+### Advanced Workflow Management
+- **Micro-Task Executor**: Complex task breakdown into manageable micro-operations
+- **Integration Management**: Seamless component integration with testing capabilities
+- **E2E Testing System**: Automated end-to-end testing with issue detection
+- **Advanced Analytics**: Performance metrics and usage analytics
 
-### Task Execution Engine
-- **Step-by-Step Processing**: Break down complex tasks into micro-commands for precise execution control
-- **Execution Speed Control**: Adjustable execution speeds (slow, normal, fast) for different operational requirements
-- **Progress Visualization**: Real-time progress tracking for each step with estimated and actual execution times
-- **Retry Mechanisms**: Configurable auto-retry with maximum attempt limits for failed operations
-- **Execution Logging**: Comprehensive logging of all execution steps with timestamps and results
-
-### Project Management
-- **Multi-Project Support**: Create, manage, and switch between multiple analysis projects with persistent state
-- **Automatic Saving**: All content automatically preserved with last-modified timestamps
-- **Export Capabilities**: Generate comprehensive JSON reports containing all analysis data, insights, audit results, and system diagnostics
-
-### AI-Powered Insights
-- **Context-Aware Analysis**: Generate relevant insights based on content within each analytical dimension
-- **Strategic Recommendations**: AI-generated actionable intelligence aligned with the IKR directive
-- **Quality Feedback**: Continuous guidance on analysis depth and completeness
+### Memory & Knowledge Management
+- **Agent Memory System**: Persistent agent knowledge and learning capabilities
+- **Debate Log Management**: Conversation history and insight extraction
+- **Project Integration Journal**: Development progress tracking and documentation
+- **Notification System**: Smart alerts and workflow notifications
 
 ## Design Direction
 
 ### Visual Tone & Identity
-**Emotional Response**: Professional confidence, analytical clarity, intellectual precision, security assurance, operational resilience
-**Design Personality**: Serious and sophisticated, conveying expertise and reliability in intelligence analysis, AI verification, and system management
-**Visual Metaphors**: Clean geometric forms, structured layouts, systematic organization, security-focused elements, and health monitoring dashboards reflecting methodical analysis, audit processes, and system resilience
-**Simplicity Spectrum**: Structured complexity - rich functionality organized in clear, logical hierarchies with specialized interfaces for audit, diagnostics, and recovery operations
+**Emotional Response**: The interface should evoke confidence, precision, and technological sophistication. Users should feel empowered and in control of complex analysis processes.
+
+**Design Personality**: **Cyberpunk Professional** - Combining the sleek, high-tech aesthetics of cyberpunk with the reliability and clarity required for professional intelligence analysis.
+
+**Visual Metaphors**: 
+- Terminal/command interfaces for technical precision
+- Neural network patterns for AI capabilities
+- Military/tactical design elements for analysis framework
+- Glowing accents and data visualization for technological advancement
+
+**Simplicity Spectrum**: **Rich Interface** - The complexity of the domain requires a feature-rich interface, but organized with clear information hierarchy and progressive disclosure.
 
 ### Color Strategy
-**Color Scheme Type**: Analogous with strategic accents, security indicators, and health status colors
-**Primary Color**: Deep blue (oklch(45% 0.15 248)) - conveying trust, intelligence, and analytical depth
-**Secondary Colors**: Slate gray variations for supporting elements and hierarchy
-**Accent Color**: Orange (oklch(65% 0.18 45)) - drawing attention to insights, key findings, and calls-to-action
-**System Status Colors**: 
-- Green for healthy/successful operations
-- Yellow/Orange for warnings and degraded performance
-- Red for critical issues and failures
-- Blue for executing/in-progress operations
-**Color Psychology**: Blue establishes credibility and analytical focus, orange highlights important discoveries, while status colors provide immediate operational awareness
+**Color Scheme Type**: Custom cyberpunk palette with module-specific variations
+
+**Primary Color**: `oklch(55% 0.2 200)` - Bright cyan conveying technological precision and intelligence analysis
+**Secondary Colors**: Dark blue-grays `oklch(35% 0.1 220)` for supporting elements
+**Accent Color**: `oklch(65% 0.25 180)` - Vibrant cyan for highlights and active states
+
+**Color Psychology**: 
+- Cyan conveys technological advancement, clarity of thought, and precision
+- Dark backgrounds reduce eye strain during long analysis sessions
+- Module-specific color variations help users navigate complex workflows
+- High contrast ensures accessibility and professional appearance
+
+**Module Color Differentiation**:
+- Overview: Cyan-blue (core platform identity)
+- Kipling: Purple-blue (analytical thinking)
+- IKR: Green (knowledge and growth)
+- Audit: Orange-red (security and alerts)
+- Chat: Purple (communication and AI)
+- Debate: Green (collaboration)
+- Executor: Yellow-orange (action and execution)
+- Memory: Purple-pink (storage and recall)
 
 ### Typography System
-**Font Pairing Strategy**: Single font family (Inter) with strategic weight and size variations
-**Typographic Hierarchy**: Clear distinction between project titles, dimension headers, content areas, insights, audit results, system diagnostics, and execution logs
-**Font Personality**: Inter's modern, legible characteristics support professional analysis work, technical audit reporting, and system monitoring interfaces
-**Typography Consistency**: Consistent scaling and spacing creating visual rhythm throughout the interface including audit modules, diagnostic panels, and recovery interfaces
+**Font Pairing Strategy**: Single font family approach with Inter for all text elements
+**Primary Font**: Inter - Clean, highly legible sans-serif optimized for UI applications
+**Font Personality**: Modern, technical precision with excellent readability across all weights
 
-### Component Selection & Customization
-**Primary Actions**: Prominent buttons for project creation, insight generation, audit execution, system scanning, and recovery initiation
-**Content Organization**: Card-based layout for analytical dimensions, audit agents, system components, and task execution with clear progress indicators
-**Specialized Interfaces**: 
-- Audit agent configuration and management panels
-- System health monitoring dashboards
-- Step-by-step execution progress displays
-- Auto-recovery status and control interfaces
-**Form Design**: Professional styling for content entry, agent configuration, and system settings
-**Navigation**: Enhanced tab-based organization including Overview, Kipling Protocol, IKR Directive, AI Audit, Agent Debate, Task Executor, System Diagnostics, Chat, and Settings
-**Progress Visualization**: Multi-level progress tracking for analysis completion, audit execution, task processing, and system recovery
-
-### System Monitoring Interface Design
-**Health Dashboards**: Visual representation of system component health with real-time metrics
-**Component Management**: Individual component cards with health status, auto-repair toggles, and manual repair triggers
-**Execution Tracking**: Step-by-step progress visualization with command-level granularity
-**Recovery Controls**: Clear interfaces for initiating, monitoring, and controlling automated recovery processes
-**Logging Interface**: Comprehensive execution logs with filtering and search capabilities
+**Typographic Hierarchy**:
+- Headlines: Inter Bold (24-32px) for section titles
+- Subheadings: Inter Semibold (18-20px) for card titles
+- Body: Inter Regular (14-16px) for content and descriptions
+- Captions: Inter Medium (12-13px) for metadata and labels
+- Code: Monaco/Menlo (monospace) for terminal elements
 
 ### Visual Hierarchy & Layout
-**Attention Direction**: Project headers establish context, tab navigation provides structure, component cards organize functionality, status indicators provide immediate operational awareness
-**Grid System**: Responsive grid adapting from multiple columns (including diagnostics and recovery) on desktop to single column on mobile
-**Content Density**: Balanced information presentation avoiding overwhelming complexity while providing comprehensive tools including audit capabilities, system monitoring, and recovery management
+**Grid System**: 12-column responsive grid with consistent 1.5rem gap spacing
+**Content Density**: High information density organized through clear sectioning and progressive disclosure
+**Module Organization**: Tab-based navigation with contextual content areas
+
+### Component Design Philosophy
+**Cyberpunk Elements**: 
+- Glowing borders on interactive elements
+- Terminal-style backgrounds for technical components
+- Animated state transitions with realistic physics
+- Subtle particle effects for data processing states
+
+**Professional Reliability**:
+- Clear visual feedback for all interactions
+- Consistent iconography using Phosphor Icons
+- Accessibility-compliant contrast ratios
+- Responsive design for various screen sizes
+
+### Animations & Interactions
+**Purposeful Movement**: 
+- Smooth transitions between analysis phases
+- Loading states that communicate progress
+- Hover effects that reveal additional functionality
+- Success animations for completed tasks
+
+**Performance Considerations**:
+- Hardware-accelerated CSS animations
+- Reduced motion support for accessibility
+- Efficient re-rendering for real-time updates
+
+## Technical Implementation
+
+### Architecture
+- **Frontend**: React with TypeScript for type safety
+- **State Management**: React hooks with persistent storage via useKV
+- **Styling**: Tailwind CSS with custom cyberpunk theme
+- **Component Library**: shadcn/ui v4 for consistent UI elements
+- **Icons**: Phosphor Icons for comprehensive iconography
+
+### Data Persistence
+- **Project Data**: Persistent storage using Spark's KV system
+- **User Preferences**: Language, color settings, notification preferences
+- **System State**: Health metrics, task queues, agent configurations
+- **Memory Systems**: Agent learning data and conversation history
+
+### AI Integration
+- **LLM Framework**: Spark's global LLM API with multi-provider support
+- **Agent Architecture**: Configurable AI agents with specialized capabilities
+- **Context Management**: Intelligent context passing for relevant AI responses
+- **Memory Persistence**: Long-term agent memory and learning systems
+
+### Accessibility & Internationalization
+- **Language Support**: Full English and Russian localization
+- **Accessibility**: WCAG AA compliance with keyboard navigation
+- **Responsive Design**: Mobile-friendly interface adaptation
+- **Theme Customization**: Per-module color customization capabilities
+
+## Edge Cases & Problem Scenarios
+
+### Technical Challenges
+- **Large Project Management**: Handling projects with extensive analysis data
+- **Concurrent Task Execution**: Managing multiple simultaneous agent operations
+- **Network Connectivity**: Offline capability and graceful degradation
+- **Memory Constraints**: Efficient handling of large conversation histories
+
+### User Experience Challenges
+- **Complexity Management**: Progressive disclosure for new users
+- **Context Switching**: Maintaining state across multiple analysis projects
+- **Error Recovery**: Clear guidance when automated systems fail
+- **Performance Optimization**: Smooth experience with resource-intensive operations
+
+### System Resilience
+- **Agent Failures**: Graceful handling of AI agent timeouts or errors
+- **Data Corruption**: Automatic backup and recovery mechanisms
+- **Performance Degradation**: Automated optimization and alerts
+- **Security Concerns**: Audit trail and access control measures
 
 ## Implementation Considerations
-**Scalability Needs**: Support for multiple concurrent analysis projects, audit sessions, and system monitoring tasks with efficient resource management
-**Critical Features**: Persistent storage, reliable auto-save, consistent AI-powered insight generation, robust audit session management, real-time system monitoring, and automated recovery capabilities
-**Security Requirements**: Secure audit agent configuration storage, system diagnostics data protection, and audit result preservation
-**Performance Requirements**: Real-time system monitoring without impacting analysis performance, efficient task execution, and responsive recovery operations
-**Reliability Requirements**: Self-healing capabilities, robust error handling, and graceful degradation during system issues
-**Success Metrics**: Project completion rates, insight generation frequency, audit execution success rates, system uptime, recovery success rates, and export usage patterns
+
+### Scalability Needs
+- **Project Volume**: Support for hundreds of analysis projects
+- **Concurrent Users**: Multi-user collaboration capabilities (future)
+- **Data Growth**: Efficient storage and retrieval of historical data
+- **Feature Expansion**: Modular architecture for new capabilities
+
+### Testing Focus
+- **Integration Testing**: Component interaction verification
+- **Performance Testing**: Load testing for resource-intensive operations
+- **Accessibility Testing**: Screen reader and keyboard navigation
+- **Cross-browser Testing**: Compatibility across modern browsers
+
+### Critical Success Factors
+- **User Adoption**: Intuitive workflow for intelligence professionals
+- **System Reliability**: 99%+ uptime with automated recovery
+- **Performance**: Sub-second response times for common operations
+- **Data Integrity**: Zero data loss with comprehensive backup systems
+
+## Reflection
+
+**Unique Approach**: AXON combines traditional intelligence analysis methodologies with cutting-edge AI automation, creating a hybrid human-AI analysis platform that maintains professional rigor while leveraging technological advancement.
+
+**Key Differentiators**:
+- Systematic methodology implementation (IKR + Kipling)
+- Self-healing system architecture
+- Multi-agent AI collaboration
+- Comprehensive workflow automation
+- Professional cyberpunk aesthetic
+
+**Success Metrics**:
+- Analysis completion rate >80%
+- System uptime >99%
+- User productivity increase >60%
+- Error resolution time <5 minutes
+- User satisfaction >4.5/5
+
+This PRD establishes AXON as a next-generation intelligence analysis platform that bridges traditional analytical rigor with modern AI capabilities, wrapped in a distinctive cyberpunk professional interface that conveys both technological sophistication and operational reliability.

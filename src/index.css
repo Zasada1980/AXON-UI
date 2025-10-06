@@ -205,9 +205,162 @@
   --color-module-background: var(--executor-background, oklch(17% 0.027 60));
 }
 
+.module-memory {
+  --color-module-primary: var(--memory-primary, oklch(59% 0.19 320));
+  --color-module-secondary: var(--memory-secondary, oklch(39% 0.13 340));
+  --color-module-accent: var(--memory-accent, oklch(69% 0.23 300));
+  --color-module-background: var(--memory-background, oklch(18% 0.026 320));
+}
+
+.module-diagnostics {
+  --color-module-primary: var(--diagnostics-primary, oklch(58% 0.18 45));
+  --color-module-secondary: var(--diagnostics-secondary, oklch(38% 0.12 65));
+  --color-module-accent: var(--diagnostics-accent, oklch(68% 0.22 25));
+  --color-module-background: var(--diagnostics-background, oklch(17% 0.025 45));
+}
+
+.module-journal {
+  --color-module-primary: var(--journal-primary, oklch(56% 0.19 270));
+  --color-module-secondary: var(--journal-secondary, oklch(36% 0.13 290));
+  --color-module-accent: var(--journal-accent, oklch(66% 0.23 250));
+  --color-module-background: var(--journal-background, oklch(16% 0.027 270));
+}
+
+.module-microtasks {
+  --color-module-primary: var(--microtasks-primary, oklch(60% 0.18 90));
+  --color-module-secondary: var(--microtasks-secondary, oklch(40% 0.12 110));
+  --color-module-accent: var(--microtasks-accent, oklch(70% 0.22 70));
+  --color-module-background: var(--microtasks-background, oklch(18% 0.025 90));
+}
+
+.module-integration {
+  --color-module-primary: var(--integration-primary, oklch(57% 0.19 195));
+  --color-module-secondary: var(--integration-secondary, oklch(37% 0.13 215));
+  --color-module-accent: var(--integration-accent, oklch(67% 0.23 175));
+  --color-module-background: var(--integration-background, oklch(17% 0.026 195));
+}
+
+.module-testing {
+  --color-module-primary: var(--testing-primary, oklch(59% 0.18 165));
+  --color-module-secondary: var(--testing-secondary, oklch(39% 0.12 185));
+  --color-module-accent: var(--testing-accent, oklch(69% 0.22 145));
+  --color-module-background: var(--testing-background, oklch(18% 0.025 165));
+}
+
+.module-analytics {
+  --color-module-primary: var(--analytics-primary, oklch(61% 0.17 325));
+  --color-module-secondary: var(--analytics-secondary, oklch(41% 0.11 345));
+  --color-module-accent: var(--analytics-accent, oklch(71% 0.21 305));
+  --color-module-background: var(--analytics-background, oklch(19% 0.024 325));
+}
+
+.module-notifications {
+  --color-module-primary: var(--notifications-primary, oklch(54% 0.2 210));
+  --color-module-secondary: var(--notifications-secondary, oklch(34% 0.14 230));
+  --color-module-accent: var(--notifications-accent, oklch(64% 0.24 190));
+  --color-module-background: var(--notifications-background, oklch(16% 0.028 210));
+}
+
+.module-settings {
+  --color-module-primary: var(--settings-primary, oklch(52% 0.15 0));
+  --color-module-secondary: var(--settings-secondary, oklch(32% 0.10 20));
+  --color-module-accent: var(--settings-accent, oklch(62% 0.20 340));
+  --color-module-background: var(--settings-background, oklch(15% 0.020 0));
+}
+
 @media (max-width: 1024px) {
   .analysis-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
+}
+
+/* Enhanced animations and transitions */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Notification styles */
+.notification-enter {
+  animation: notificationEnter 0.3s ease-out;
+}
+
+@keyframes notificationEnter {
+  from { 
+    opacity: 0; 
+    transform: translateX(100%); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0); 
+  }
+}
+
+/* Micro-task progress indicator */
+.progress-pulse::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  animation: progressShimmer 1.5s infinite;
+}
+
+@keyframes progressShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Status indicators */
+.status-indicator {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-indicator.running::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  animation: statusPulse 1s infinite;
+}
+
+@keyframes statusPulse {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+/* Module-specific hover effects */
+.module-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--color-module-accent, var(--color-border));
+}
+
+.module-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -8px var(--color-module-accent, var(--color-border)) / 0.3;
+  border-color: var(--color-module-primary, var(--color-border));
 }
