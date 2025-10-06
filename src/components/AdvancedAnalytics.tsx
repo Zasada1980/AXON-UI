@@ -150,8 +150,8 @@ export default function AdvancedAnalytics({
 }: AdvancedAnalyticsProps) {
   const t = useTranslation(language);
   
-  // Persistent storage
-  const [analyticsData, setAnalyticsData] = useKV<AnalyticsData>(`analytics-${projectId}`, {
+  // Default data structure
+  const defaultAnalyticsData: AnalyticsData = {
     velocity: [],
     quality: {
       testCoverage: 75,
@@ -173,7 +173,10 @@ export default function AdvancedAnalytics({
       qualityTrend: -2.1,
       productivityTrend: 15.3
     }
-  });
+  };
+  
+  // Persistent storage
+  const [analyticsData, setAnalyticsData] = useKV<AnalyticsData>(`analytics-${projectId}`, defaultAnalyticsData);
   
   // UI state
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter'>('month');
@@ -244,10 +247,11 @@ export default function AdvancedAnalytics({
   
   // Initialize with sample data if not exists
   useEffect(() => {
-    if (!analyticsData?.velocity?.length) {
-      setAnalyticsData(generateSampleData());
+    if (!analyticsData || !analyticsData.velocity || !Array.isArray(analyticsData.velocity) || analyticsData.velocity.length === 0) {
+      const sampleData = generateSampleData();
+      setAnalyticsData(sampleData);
     }
-  }, []);
+  }, [analyticsData, setAnalyticsData]);
   
   // Refresh analytics data
   const refreshData = async () => {
@@ -265,6 +269,11 @@ export default function AdvancedAnalytics({
   
   // Generate detailed report
   const generateReport = () => {
+    if (!analyticsData) {
+      toast.error('No analytics data available');
+      return;
+    }
+    
     const report = {
       timestamp: new Date().toISOString(),
       projectId,
@@ -302,7 +311,12 @@ export default function AdvancedAnalytics({
   
   // Export raw data
   const exportData = () => {
-    const csvData = analyticsData?.velocity?.map(v => 
+    if (!analyticsData?.velocity || !Array.isArray(analyticsData.velocity)) {
+      toast.error('No velocity data available to export');
+      return;
+    }
+    
+    const csvData = analyticsData.velocity.map(v => 
       `${v.period},${v.tasksCompleted},${v.storyPoints},${v.avgTaskTime},${v.blockers}`
     ).join('\n');
     
@@ -326,11 +340,33 @@ export default function AdvancedAnalytics({
     return <div className="w-4 h-4" />; // placeholder for stable
   };
   
-  // Get recent velocity metrics
-  const recentVelocity = analyticsData?.velocity?.slice(-4) || [];
-  const avgVelocity = recentVelocity.reduce((sum, v) => sum + v.tasksCompleted, 0) / Math.max(recentVelocity.length, 1);
-  const avgStoryPoints = recentVelocity.reduce((sum, v) => sum + v.storyPoints, 0) / Math.max(recentVelocity.length, 1);
+  // Safely get recent velocity metrics
+  const getRecentVelocity = () => {
+    if (!analyticsData?.velocity || !Array.isArray(analyticsData.velocity)) {
+      return [];
+    }
+    return analyticsData.velocity.slice(-4);
+  };
   
+  const recentVelocity = getRecentVelocity();
+  const avgVelocity = recentVelocity.length > 0 ? recentVelocity.reduce((sum, v) => sum + v.tasksCompleted, 0) / recentVelocity.length : 0;
+  const avgStoryPoints = recentVelocity.length > 0 ? recentVelocity.reduce((sum, v) => sum + v.storyPoints, 0) / recentVelocity.length : 0;
+  
+  // Safety check for analytics data
+  if (!analyticsData) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-muted-foreground">Loading analytics data...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -486,7 +522,7 @@ export default function AdvancedAnalytics({
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {recentVelocity.map((v, index) => (
+                      {Array.isArray(recentVelocity) && recentVelocity.map((v, index) => (
                         <div key={v.period} className="flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium">Week {index + 1}</p>

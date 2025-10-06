@@ -196,7 +196,7 @@ const ErrorMonitoring: React.FC<ErrorMonitoringProps> = ({
   };
 
   const getHealthScore = () => {
-    if (!metrics || metrics.length === 0) return 100;
+    if (!metrics || !Array.isArray(metrics) || metrics.length === 0) return 100;
     
     const scores = metrics.map(metric => {
       if (metric.status === 'good') return 100;

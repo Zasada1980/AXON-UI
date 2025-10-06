@@ -488,7 +488,7 @@ const AutoRecovery: React.FC<AutoRecoveryProps> = ({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {components.map((component) => (
+                {Array.isArray(components) && components.map((component) => (
                   <div key={component.id} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
@@ -544,7 +544,7 @@ const AutoRecovery: React.FC<AutoRecoveryProps> = ({
                       <div className="space-y-2">
                         <h5 className="text-sm font-medium text-red-600">{t('issues')}:</h5>
                         <ul className="text-sm space-y-1">
-                          {component.issues.map((issue, index) => (
+                          {Array.isArray(component.issues) && component.issues.map((issue, index) => (
                             <li key={index} className="flex items-center gap-2">
                               <Warning size={12} className="text-red-500" />
                               <span>{issue}</span>
@@ -559,7 +559,7 @@ const AutoRecovery: React.FC<AutoRecoveryProps> = ({
                       <div className="mt-3 pt-3 border-t">
                         <h5 className="text-sm font-medium text-blue-600">{t('repairs')}:</h5>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {component.repairs.map((repair, index) => (
+                          {Array.isArray(component.repairs) && component.repairs.map((repair, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
                               {repair}
                             </Badge>
@@ -592,7 +592,7 @@ const AutoRecovery: React.FC<AutoRecoveryProps> = ({
               ) : (
                 <ScrollArea className="h-96">
                   <div className="space-y-3">
-                    {repairActions.slice().reverse().map((action) => (
+                    {Array.isArray(repairActions) && repairActions.slice().reverse().map((action) => (
                       <div key={action.id} className="border rounded-lg p-3">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-medium text-sm">{action.action}</span>

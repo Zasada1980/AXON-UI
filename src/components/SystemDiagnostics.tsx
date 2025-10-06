@@ -390,7 +390,7 @@ const SystemDiagnostics: React.FC<SystemDiagnosticsProps> = ({
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
-            {Object.entries(metrics).map(([key, value]) => (
+            {metrics && Object.entries(metrics).map(([key, value]) => (
               <div key={key} className="space-y-2">
                 <div className="flex items-center gap-2">
                   {getMetricIcon(key)}
@@ -438,7 +438,7 @@ const SystemDiagnostics: React.FC<SystemDiagnosticsProps> = ({
             ) : (
               <ScrollArea className="h-64">
                 <div className="space-y-3">
-                  {issues.map((issue) => (
+                  {Array.isArray(issues) && issues.map((issue) => (
                     <div key={issue.id} className="border rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -489,7 +489,7 @@ const SystemDiagnostics: React.FC<SystemDiagnosticsProps> = ({
             ) : (
               <ScrollArea className="h-64">
                 <div className="space-y-3">
-                  {microTasks.map((task) => (
+                  {Array.isArray(microTasks) && microTasks.map((task) => (
                     <div key={task.id} className="border rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-medium text-sm">{task.title}</span>
