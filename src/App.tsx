@@ -13,6 +13,7 @@ import DebateLogManager from './components/DebateLogManager';
 import AgentJournalManager from './components/AgentJournalManager';
 import NavigationGuide from './components/NavigationGuide';
 import ProjectIntegrationJournal from './components/ProjectIntegrationJournal';
+import FileUploadManager from './components/FileUploadManager';
 import MicroTaskExecutor from './components/MicroTaskExecutor';
 import UIIntegrationManager from './components/UIIntegrationManager';
 import E2ETestingSystem from './components/E2ETestingSystem';
@@ -2087,7 +2088,7 @@ Respond naturally and helpfully.`;
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-8 lg:grid-cols-16">
+              <TabsList className="grid w-full grid-cols-8 lg:grid-cols-17">
                 <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
                 <TabsTrigger value="kipling">{t('kipling')}</TabsTrigger>
                 <TabsTrigger value="ikr">{t('ikr')}</TabsTrigger>
@@ -2095,6 +2096,7 @@ Respond naturally and helpfully.`;
                 <TabsTrigger value="debate">{t('agentDebate')}</TabsTrigger>
                 <TabsTrigger value="executor">{t('executor')}</TabsTrigger>
                 <TabsTrigger value="memory">{t('agentMemory')}</TabsTrigger>
+                <TabsTrigger value="files">{t('fileManagement')}</TabsTrigger>
                 <TabsTrigger value="diagnostics">{t('diagnostics')}</TabsTrigger>
                 <TabsTrigger value="chat">{t('chat')}</TabsTrigger>
                 <TabsTrigger value="journal">Journal</TabsTrigger>
@@ -2790,6 +2792,20 @@ Respond naturally and helpfully.`;
                     }}
                   />
                 </div>
+              </TabsContent>
+
+              {/* File Management Tab */}
+              <TabsContent value="files" className="space-y-6">
+                <FileUploadManager
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onFileUploaded={(file) => {
+                    toast.success(`File uploaded: ${file.name}`);
+                  }}
+                  onFileAnalyzed={(analysis) => {
+                    toast.success(`File analysis completed: ${analysis.analysisType}`);
+                  }}
+                />
               </TabsContent>
 
               {/* System Diagnostics Tab */}
