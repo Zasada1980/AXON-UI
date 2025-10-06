@@ -41,7 +41,9 @@ import {
   ListChecks,
   Bug,
   SecurityCamera,
-  Question
+  Question,
+  Key,
+  CloudArrowUp
 } from '@phosphor-icons/react';
 
 // Declare global spark object
@@ -197,7 +199,29 @@ const translations: Translations = {
   findings: { en: 'Findings', ru: 'Находки' },
   instructions: { en: 'Instructions', ru: 'Инструкции' },
   userGuide: { en: 'User Guide', ru: 'Руководство пользователя' },
-  howToUse: { en: 'How to use AXON platform', ru: 'Как использовать платформу АКСОН' }
+  howToUse: { en: 'How to use AXON platform', ru: 'Как использовать платформу АКСОН' },
+  
+  // API Configuration
+  apiConfiguration: { en: 'API Configuration', ru: 'Настройка API' },
+  cloudProvider: { en: 'Cloud Provider', ru: 'Облачный Провайдер' },
+  apiKey: { en: 'API Key', ru: 'API Ключ' },
+  apiKeyPlaceholder: { en: 'Enter your API key', ru: 'Введите ваш API ключ' },
+  endpoint: { en: 'Custom Endpoint', ru: 'Пользовательская Конечная Точка' },
+  endpointPlaceholder: { en: 'Optional custom endpoint URL', ru: 'Опциональный URL конечной точки' },
+  model: { en: 'Model', ru: 'Модель' },
+  modelPlaceholder: { en: 'Optional model name', ru: 'Опциональное название модели' },
+  saveApiConfig: { en: 'Save API Configuration', ru: 'Сохранить Настройки API' },
+  apiConfigSaved: { en: 'API configuration saved', ru: 'Настройки API сохранены' },
+  testConnection: { en: 'Test Connection', ru: 'Проверить Соединение' },
+  connectionSuccessful: { en: 'Connection successful', ru: 'Соединение успешно' },
+  connectionFailed: { en: 'Connection failed', ru: 'Соединение не удалось' },
+  
+  // Providers
+  openai: { en: 'OpenAI', ru: 'OpenAI' },
+  anthropic: { en: 'Anthropic', ru: 'Anthropic' },
+  google: { en: 'Google AI', ru: 'Google AI' },
+  azure: { en: 'Azure OpenAI', ru: 'Azure OpenAI' },
+  local: { en: 'Local/Custom', ru: 'Локальный/Пользовательский' }
 };
 
 const useTranslation = (language: Language) => {
@@ -228,6 +252,12 @@ interface AuditAgent {
     depth: number;
     scope: string;
     threshold: number;
+  };
+  apiConfig: {
+    provider: 'openai' | 'anthropic' | 'google' | 'azure' | 'local';
+    apiKey: string;
+    endpoint?: string;
+    model?: string;
   };
   results: string[];
 }
@@ -277,6 +307,7 @@ function App() {
   const [newProjectDescription, setNewProjectDescription] = useState('');
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [isConfiguringAgent, setIsConfiguringAgent] = useState(false);
+  const [isConfiguringApi, setIsConfiguringApi] = useState(false);
   const [currentAuditSession, setCurrentAuditSession] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState(false);
 
@@ -321,6 +352,12 @@ function App() {
         scope: 'system',
         threshold: 80
       },
+      apiConfig: {
+        provider: 'openai',
+        apiKey: '',
+        endpoint: '',
+        model: 'gpt-4o-mini'
+      },
       results: []
     },
     {
@@ -334,6 +371,12 @@ function App() {
         depth: 70,
         scope: 'algorithm',
         threshold: 70
+      },
+      apiConfig: {
+        provider: 'anthropic',
+        apiKey: '',
+        endpoint: '',
+        model: 'claude-3-haiku'
       },
       results: []
     },
@@ -349,6 +392,12 @@ function App() {
         scope: 'model',
         threshold: 90
       },
+      apiConfig: {
+        provider: 'google',
+        apiKey: '',
+        endpoint: '',
+        model: 'gemini-pro'
+      },
       results: []
     },
     {
@@ -362,6 +411,12 @@ function App() {
         depth: 90,
         scope: 'full',
         threshold: 95
+      },
+      apiConfig: {
+        provider: 'azure',
+        apiKey: '',
+        endpoint: '',
+        model: 'gpt-4'
       },
       results: []
     }
@@ -380,6 +435,36 @@ function App() {
       };
       
       // Update the projects array
+      setProjects(current => 
+        (current || []).map(p => 
+          p.id === proj.id ? updatedProject : p
+        )
+      );
+      
+      return updatedProject;
+    }
+    
+    // Ensure existing agents have API config (backward compatibility)
+    if (proj.auditAgents.some(agent => !agent.apiConfig)) {
+      const updatedProject = {
+        ...proj,
+        auditAgents: proj.auditAgents.map((agent, index) => {
+          if (!agent.apiConfig) {
+            const defaultAgents = getDefaultAuditAgents();
+            return {
+              ...agent,
+              apiConfig: defaultAgents[index]?.apiConfig || {
+                provider: 'openai',
+                apiKey: '',
+                endpoint: '',
+                model: 'gpt-4o-mini'
+              }
+            };
+          }
+          return agent;
+        })
+      };
+      
       setProjects(current => 
         (current || []).map(p => 
           p.id === proj.id ? updatedProject : p
@@ -548,9 +633,57 @@ function App() {
     toast.success(t('agentConfigured'));
   };
 
+  // Update API configuration for agent
+  const updateApiConfig = (agentId: string, apiConfig: Partial<AuditAgent['apiConfig']>) => {
+    if (!project) return;
+
+    setProjects(current => 
+      (current || []).map(p => 
+        p.id === project.id 
+          ? {
+              ...p,
+              lastModified: new Date().toISOString(),
+              auditAgents: p.auditAgents.map(agent => 
+                agent.id === agentId 
+                  ? { ...agent, apiConfig: { ...agent.apiConfig, ...apiConfig } }
+                  : agent
+              )
+            }
+          : p
+      )
+    );
+    toast.success(t('apiConfigSaved'));
+  };
+
+  // Test API connection
+  const testApiConnection = async (agentId: string) => {
+    if (!project) return;
+    
+    const agent = project.auditAgents.find(a => a.id === agentId);
+    if (!agent || !agent.apiConfig.apiKey) {
+      toast.error(t('connectionFailed'));
+      return;
+    }
+
+    try {
+      // Simulate API test with the configured provider
+      const testPrompt = spark.llmPrompt`Test connection for ${agent.apiConfig.provider} with model ${agent.apiConfig.model || 'default'}`;
+      await spark.llm(testPrompt, 'gpt-4o-mini');
+      toast.success(t('connectionSuccessful'));
+    } catch (error) {
+      toast.error(t('connectionFailed'));
+    }
+  };
+
   // Start audit session
   const startAuditSession = async (agentId: string, auditType: string) => {
     if (!project) return;
+
+    const agent = project.auditAgents.find(a => a.id === agentId);
+    if (!agent?.apiConfig.apiKey) {
+      toast.error('API key required for this agent');
+      return;
+    }
 
     const sessionId = `session-${Date.now()}`;
     const newSession: AuditSession = {
@@ -570,10 +703,10 @@ function App() {
           ? {
               ...p,
               auditSessions: [...p.auditSessions, newSession],
-              auditAgents: p.auditAgents.map(agent => 
-                agent.id === agentId 
-                  ? { ...agent, status: 'running' }
-                  : agent
+              auditAgents: p.auditAgents.map(a => 
+                a.id === agentId 
+                  ? { ...a, status: 'running' }
+                  : a
               )
             }
           : p
@@ -586,8 +719,7 @@ function App() {
     // Simulate audit process
     setTimeout(async () => {
       try {
-        const agent = project.auditAgents.find(a => a.id === agentId);
-        const prompt = spark.llmPrompt`Perform a ${auditType} audit simulation for ${agent?.name}. Generate 3-5 realistic audit findings based on the audit type. Return as JSON with a single property "findings" containing an array of finding strings.`;
+        const prompt = spark.llmPrompt`Perform a ${auditType} audit simulation for ${agent.name} using ${agent.apiConfig.provider} provider. Generate 3-5 realistic audit findings based on the audit type. Return as JSON with a single property "findings" containing an array of finding strings.`;
         
         const response = await spark.llm(prompt, 'gpt-4o-mini', true);
         const result = JSON.parse(response);
@@ -609,10 +741,10 @@ function App() {
                         }
                       : session
                   ),
-                  auditAgents: p.auditAgents.map(agent => 
-                    agent.id === agentId 
-                      ? { ...agent, status: 'completed', results: result.findings || [] }
-                      : agent
+                  auditAgents: p.auditAgents.map(a => 
+                    a.id === agentId 
+                      ? { ...a, status: 'completed', results: result.findings || [] }
+                      : a
                   )
                 }
               : p
@@ -630,10 +762,10 @@ function App() {
                       ? { ...session, status: 'failed', endTime: new Date().toISOString() }
                       : session
                   ),
-                  auditAgents: p.auditAgents.map(agent => 
-                    agent.id === agentId 
-                      ? { ...agent, status: 'failed' }
-                      : agent
+                  auditAgents: p.auditAgents.map(a => 
+                    a.id === agentId 
+                      ? { ...a, status: 'failed' }
+                      : a
                   )
                 }
               : p
@@ -788,7 +920,16 @@ function App() {
                           <h4 className="font-medium">Настройка агентов аудита</h4>
                           <ol className="list-decimal pl-6 space-y-1">
                             <li><strong>Выбор агента</strong>: Кликните на карточку агента в разделе "Аудит ИИ"</li>
+                            <li><strong>Настройка API</strong>: Нажмите кнопку "API" для настройки подключения к облачному провайдеру</li>
                             <li><strong>Конфигурация</strong>: Нажмите кнопку "Настроить" для открытия панели настроек</li>
+                            <li><strong>Параметры API</strong>:
+                              <ul className="list-disc pl-6 mt-2 space-y-1">
+                                <li>Облачный провайдер (OpenAI, Anthropic, Google AI, Azure, Локальный)</li>
+                                <li>API ключ для выбранного провайдера</li>
+                                <li>Пользовательская конечная точка (опционально)</li>
+                                <li>Название модели (опционально)</li>
+                              </ul>
+                            </li>
                             <li><strong>Параметры настройки</strong>:
                               <ul className="list-disc pl-6 mt-2 space-y-1">
                                 <li>Уровень чувствительности (0-100%)</li>
@@ -843,7 +984,16 @@ function App() {
                           <h4 className="font-medium">Configuring Audit Agents</h4>
                           <ol className="list-decimal pl-6 space-y-1">
                             <li><strong>Select Agent</strong>: Click on the agent card in the "AI Audit" section</li>
+                            <li><strong>API Setup</strong>: Click the "API" button to configure cloud provider connection</li>
                             <li><strong>Configuration</strong>: Click the "Configure" button to open settings panel</li>
+                            <li><strong>API Parameters</strong>:
+                              <ul className="list-disc pl-6 mt-2 space-y-1">
+                                <li>Cloud Provider (OpenAI, Anthropic, Google AI, Azure, Local/Custom)</li>
+                                <li>API key for the selected provider</li>
+                                <li>Custom endpoint URL (optional)</li>
+                                <li>Model name (optional)</li>
+                              </ul>
+                            </li>
                             <li><strong>Configuration Parameters</strong>:
                               <ul className="list-disc pl-6 mt-2 space-y-1">
                                 <li>Sensitivity Level (0-100%)</li>
@@ -1240,19 +1390,48 @@ function App() {
                                 </Badge>
                               </div>
                               <p className="text-sm text-muted-foreground mb-3">{agent.description}</p>
+                              <div className="mb-3">
+                                <div className="flex items-center gap-2 text-xs">
+                                  <Badge variant={agent.apiConfig.apiKey ? 'secondary' : 'outline'} className="text-xs">
+                                    {agent.apiConfig.provider.toUpperCase()}
+                                  </Badge>
+                                  {agent.apiConfig.apiKey ? (
+                                    <div className="flex items-center gap-1 text-green-600">
+                                      <CheckCircle size={12} />
+                                      <span>API {t('configure').toLowerCase()}</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1 text-orange-600">
+                                      <Warning size={12} />
+                                      <span>API {t('configure').toLowerCase()}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                               <div className="flex items-center justify-between">
                                 <div className="text-xs text-muted-foreground">
                                   {agent.results.length} {t('auditResults').toLowerCase()}
                                 </div>
-                                <Button size="sm" variant="outline" 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSelectedAgent(agent.id);
-                                          setIsConfiguringAgent(true);
-                                        }}>
-                                  <Gear size={14} className="mr-1" />
-                                  {t('configure')}
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                  <Button size="sm" variant="outline" 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedAgent(agent.id);
+                                            setIsConfiguringApi(true);
+                                          }}>
+                                    <Key size={14} className="mr-1" />
+                                    API
+                                  </Button>
+                                  <Button size="sm" variant="outline" 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedAgent(agent.id);
+                                            setIsConfiguringAgent(true);
+                                          }}>
+                                    <Gear size={14} className="mr-1" />
+                                    {t('configure')}
+                                  </Button>
+                                </div>
                               </div>
                             </CardContent>
                           </Card>
@@ -1273,9 +1452,28 @@ function App() {
                       <CardContent>
                         <div className="space-y-4">
                           <div className="grid gap-3 md:grid-cols-2">
+                            {!project.auditAgents.find(a => a.id === selectedAgent)?.apiConfig.apiKey && (
+                              <div className="col-span-2 p-3 bg-orange-50 border border-orange-200 rounded-lg mb-4">
+                                <div className="flex items-center gap-2 text-orange-800">
+                                  <Warning size={16} />
+                                  <span className="text-sm font-medium">
+                                    {currentLanguage === 'ru' ? 'Требуется настройка API ключа' : 'API key configuration required'}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-orange-700 mt-1">
+                                  {currentLanguage === 'ru' 
+                                    ? 'Нажмите кнопку "API" для настройки подключения к облачному провайдеру.'
+                                    : 'Click the "API" button to configure cloud provider connection.'
+                                  }
+                                </p>
+                              </div>
+                            )}
                             <Button 
                               onClick={() => startAuditSession(selectedAgent, t('fullAudit'))}
-                              disabled={project.auditAgents.find(a => a.id === selectedAgent)?.status === 'running'}
+                              disabled={
+                                project.auditAgents.find(a => a.id === selectedAgent)?.status === 'running' ||
+                                !project.auditAgents.find(a => a.id === selectedAgent)?.apiConfig.apiKey
+                              }
                               className="h-16"
                             >
                               <div className="text-center">
@@ -1285,7 +1483,10 @@ function App() {
                             </Button>
                             <Button 
                               onClick={() => startAuditSession(selectedAgent, t('quickScan'))}
-                              disabled={project.auditAgents.find(a => a.id === selectedAgent)?.status === 'running'}
+                              disabled={
+                                project.auditAgents.find(a => a.id === selectedAgent)?.status === 'running' ||
+                                !project.auditAgents.find(a => a.id === selectedAgent)?.apiConfig.apiKey
+                              }
                               variant="outline"
                               className="h-16"
                             >
@@ -1296,7 +1497,10 @@ function App() {
                             </Button>
                             <Button 
                               onClick={() => startAuditSession(selectedAgent, t('biasAudit'))}
-                              disabled={project.auditAgents.find(a => a.id === selectedAgent)?.status === 'running'}
+                              disabled={
+                                project.auditAgents.find(a => a.id === selectedAgent)?.status === 'running' ||
+                                !project.auditAgents.find(a => a.id === selectedAgent)?.apiConfig.apiKey
+                              }
                               variant="outline"
                               className="h-16"
                             >
@@ -1307,7 +1511,10 @@ function App() {
                             </Button>
                             <Button 
                               onClick={() => startAuditSession(selectedAgent, t('performanceAudit'))}
-                              disabled={project.auditAgents.find(a => a.id === selectedAgent)?.status === 'running'}
+                              disabled={
+                                project.auditAgents.find(a => a.id === selectedAgent)?.status === 'running' ||
+                                !project.auditAgents.find(a => a.id === selectedAgent)?.apiConfig.apiKey
+                              }
                               variant="outline"
                               className="h-16"
                             >
@@ -1458,6 +1665,122 @@ function App() {
                           <SelectItem value="full">Full</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* API Configuration Dialog */}
+            <Dialog open={isConfiguringApi} onOpenChange={setIsConfiguringApi}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Key size={20} />
+                    {t('apiConfiguration')}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {selectedAgent && project.auditAgents.find(a => a.id === selectedAgent)?.name}
+                  </DialogDescription>
+                </DialogHeader>
+                {selectedAgent && project.auditAgents.find(a => a.id === selectedAgent) && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="provider">{t('cloudProvider')}</Label>
+                      <Select 
+                        value={project.auditAgents.find(a => a.id === selectedAgent)!.apiConfig.provider} 
+                        onValueChange={(value: 'openai' | 'anthropic' | 'google' | 'azure' | 'local') => 
+                          updateApiConfig(selectedAgent, { provider: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="openai">
+                            <div className="flex items-center gap-2">
+                              <CloudArrowUp size={16} />
+                              {t('openai')}
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="anthropic">
+                            <div className="flex items-center gap-2">
+                              <CloudArrowUp size={16} />
+                              {t('anthropic')}
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="google">
+                            <div className="flex items-center gap-2">
+                              <CloudArrowUp size={16} />
+                              {t('google')}
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="azure">
+                            <div className="flex items-center gap-2">
+                              <CloudArrowUp size={16} />
+                              {t('azure')}
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="local">
+                            <div className="flex items-center gap-2">
+                              <Gear size={16} />
+                              {t('local')}
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="apiKey">{t('apiKey')}</Label>
+                      <Input
+                        id="apiKey"
+                        type="password"
+                        value={project.auditAgents.find(a => a.id === selectedAgent)!.apiConfig.apiKey}
+                        onChange={(e) => updateApiConfig(selectedAgent, { apiKey: e.target.value })}
+                        placeholder={t('apiKeyPlaceholder')}
+                        className="mt-2"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="endpoint">{t('endpoint')}</Label>
+                      <Input
+                        id="endpoint"
+                        value={project.auditAgents.find(a => a.id === selectedAgent)!.apiConfig.endpoint || ''}
+                        onChange={(e) => updateApiConfig(selectedAgent, { endpoint: e.target.value })}
+                        placeholder={t('endpointPlaceholder')}
+                        className="mt-2"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="model">{t('model')}</Label>
+                      <Input
+                        id="model"
+                        value={project.auditAgents.find(a => a.id === selectedAgent)!.apiConfig.model || ''}
+                        onChange={(e) => updateApiConfig(selectedAgent, { model: e.target.value })}
+                        placeholder={t('modelPlaceholder')}
+                        className="mt-2"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center gap-2 pt-4">
+                      <Button 
+                        onClick={() => testApiConnection(selectedAgent)}
+                        variant="outline"
+                        size="sm"
+                        disabled={!project.auditAgents.find(a => a.id === selectedAgent)!.apiConfig.apiKey}
+                      >
+                        <Shield size={16} className="mr-2" />
+                        {t('testConnection')}
+                      </Button>
+                      <Button 
+                        onClick={() => setIsConfiguringApi(false)}
+                        size="sm"
+                      >
+                        {t('saveApiConfig')}
+                      </Button>
                     </div>
                   </div>
                 )}
