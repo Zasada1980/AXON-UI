@@ -245,16 +245,22 @@ const VersionControlSystem: React.FC<VersionControlSystemProps> = ({
 
     try {
       // Simulate gathering changes
-      const changes = [
+      const changes: Array<{
+        type: 'create' | 'update' | 'delete' | 'rename';
+        path: string;
+        before?: any;
+        after?: any;
+        size: number;
+      }> = [
         {
-          type: 'update' as const,
+          type: 'update',
           path: 'src/App.tsx',
           before: { content: 'old content' },
           after: { content: 'new content' },
           size: 1234
         },
         {
-          type: 'create' as const,
+          type: 'create',
           path: 'src/components/NewComponent.tsx',
           after: { content: 'new component content' },
           size: 567
