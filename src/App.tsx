@@ -285,33 +285,6 @@ function App() {
   // Get current project data
   const projectData = projects?.find(p => p.id === currentProject);
 
-  // Ensure project has audit functionality (backward compatibility)
-  const ensureAuditFunctionality = (proj: AnalysisProject | undefined): AnalysisProject | undefined => {
-    if (!proj) return proj;
-    
-    if (!proj.auditAgents || !proj.auditSessions) {
-      // Update project with audit functionality
-      const updatedProject = {
-        ...proj,
-        auditAgents: proj.auditAgents || getDefaultAuditAgents(),
-        auditSessions: proj.auditSessions || []
-      };
-      
-      // Update the projects array
-      setProjects(current => 
-        (current || []).map(p => 
-          p.id === proj.id ? updatedProject : p
-        )
-      );
-      
-      return updatedProject;
-    }
-    
-    return proj;
-  };
-
-  const project = ensureAuditFunctionality(projectData);
-
   // Get default audit agents
   const getDefaultAuditAgents = (): AuditAgent[] => [
     {
@@ -375,6 +348,33 @@ function App() {
       icon: <ListChecks size={20} />
     }
   ];
+
+  // Ensure project has audit functionality (backward compatibility)
+  const ensureAuditFunctionality = (proj: AnalysisProject | undefined): AnalysisProject | undefined => {
+    if (!proj) return proj;
+    
+    if (!proj.auditAgents || !proj.auditSessions) {
+      // Update project with audit functionality
+      const updatedProject = {
+        ...proj,
+        auditAgents: proj.auditAgents || getDefaultAuditAgents(),
+        auditSessions: proj.auditSessions || []
+      };
+      
+      // Update the projects array
+      setProjects(current => 
+        (current || []).map(p => 
+          p.id === proj.id ? updatedProject : p
+        )
+      );
+      
+      return updatedProject;
+    }
+    
+    return proj;
+  };
+
+  const project = ensureAuditFunctionality(projectData);
 
   // Initialize default Kipling dimensions with translations
   const getDefaultDimensions = (lang: Language): KiplingDimension[] => [
