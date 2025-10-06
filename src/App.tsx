@@ -327,7 +327,49 @@ const translations: Translations = {
   anthropic: { en: 'Anthropic', ru: 'Anthropic' },
   google: { en: 'Google AI', ru: 'Google AI' },
   azure: { en: 'Azure OpenAI', ru: 'Azure OpenAI' },
-  local: { en: 'Local/Custom', ru: 'Локальный/Пользовательский' }
+  local: { en: 'Local/Custom', ru: 'Локальный/Пользовательский' },
+  
+  // File Management
+  fileManagement: { en: 'File Management', ru: 'Управление Файлами' },
+  uploadFiles: { en: 'Upload Files', ru: 'Загрузить Файлы' },
+  uploadFile: { en: 'Upload File', ru: 'Загрузить Файл' },
+  fileLibrary: { en: 'File Library', ru: 'Библиотека Файлов' },
+  selectFiles: { en: 'Select Files', ru: 'Выбрать Файлы' },
+  dragDropFiles: { en: 'Drag and drop files here, or click to select', ru: 'Перетащите файлы сюда или нажмите для выбора' },
+  supportedFormats: { en: 'Supported formats', ru: 'Поддерживаемые форматы' },
+  fileUploaded: { en: 'File uploaded successfully', ru: 'Файл успешно загружен' },
+  fileUploadFailed: { en: 'File upload failed', ru: 'Ошибка загрузки файла' },
+  fileName: { en: 'File Name', ru: 'Имя Файла' },
+  fileSize: { en: 'File Size', ru: 'Размер Файла' },
+  fileType: { en: 'File Type', ru: 'Тип Файла' },
+  uploadedAt: { en: 'Uploaded', ru: 'Загружен' },
+  fileCategory: { en: 'Category', ru: 'Категория' },
+  fileDescription: { en: 'Description', ru: 'Описание' },
+  fileTags: { en: 'Tags', ru: 'Теги' },
+  addTags: { en: 'Add tags...', ru: 'Добавить теги...' },
+  analyzeFile: { en: 'Analyze File', ru: 'Анализировать Файл' },
+  fileAnalysis: { en: 'File Analysis', ru: 'Анализ Файла' },
+  removeFile: { en: 'Remove File', ru: 'Удалить Файл' },
+  downloadFile: { en: 'Download File', ru: 'Скачать Файл' },
+  previewFile: { en: 'Preview File', ru: 'Предпросмотр Файла' },
+  
+  // File Categories
+  document: { en: 'Document', ru: 'Документ' },
+  image: { en: 'Image', ru: 'Изображение' },
+  data: { en: 'Data', ru: 'Данные' },
+  media: { en: 'Media', ru: 'Медиа' },
+  other: { en: 'Other', ru: 'Другое' },
+  
+  // File Analysis
+  contentAnalysis: { en: 'Content Analysis', ru: 'Анализ Содержания' },
+  structureAnalysis: { en: 'Structure Analysis', ru: 'Анализ Структуры' },
+  securityAnalysis: { en: 'Security Analysis', ru: 'Анализ Безопасности' },
+  metadataAnalysis: { en: 'Metadata Analysis', ru: 'Анализ Метаданных' },
+  analysisResults: { en: 'Analysis Results', ru: 'Результаты Анализа' },
+  confidence: { en: 'Confidence', ru: 'Достоверность' },
+  noFilesUploaded: { en: 'No files uploaded yet', ru: 'Файлы еще не загружены' },
+  fileAnalysisStarted: { en: 'File analysis started', ru: 'Анализ файла начат' },
+  fileAnalysisCompleted: { en: 'File analysis completed', ru: 'Анализ файла завершен' }
 };
 
 const useTranslation = (language: Language) => {
@@ -439,6 +481,30 @@ interface ExecutorSettings {
   logLevel: 'debug' | 'info' | 'warn' | 'error';
 }
 
+interface ProjectFile {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  uploadedAt: string;
+  content?: string; // For text files
+  dataUrl?: string; // For binary files as base64
+  category: 'document' | 'image' | 'data' | 'media' | 'other';
+  description?: string;
+  tags: string[];
+  analysisNotes?: string;
+}
+
+interface FileAnalysisResult {
+  fileId: string;
+  agentId: string;
+  analysisType: 'content' | 'structure' | 'security' | 'metadata';
+  results: string[];
+  insights: string[];
+  timestamp: string;
+  confidence: number;
+}
+
 interface AnalysisProject {
   id: string;
   title: string;
@@ -460,6 +526,8 @@ interface AnalysisProject {
   debate: DebateSession[];
   tasks: TaskExecution[];
   executorSettings?: ExecutorSettings;
+  files: ProjectFile[];
+  fileAnalyses: FileAnalysisResult[];
 }
 
 interface ModuleColorSettings {
@@ -712,7 +780,7 @@ function App() {
   const ensureAuditFunctionality = (proj: AnalysisProject | undefined): AnalysisProject | undefined => {
     if (!proj) return proj;
     
-    if (!proj.auditAgents || !proj.auditSessions || !proj.chatSessions || !proj.debate || !proj.tasks) {
+    if (!proj.auditAgents || !proj.auditSessions || !proj.chatSessions || !proj.debate || !proj.tasks || !proj.files || !proj.fileAnalyses) {
       // Update project with all missing functionality
       const updatedProject = {
         ...proj,
@@ -729,7 +797,9 @@ function App() {
           retryAttempts: 2,
           enableAutoRetry: true,
           logLevel: 'info'
-        }
+        },
+        files: proj.files || [],
+        fileAnalyses: proj.fileAnalyses || []
       };
       
       // Update the projects array
@@ -868,7 +938,9 @@ function App() {
         retryAttempts: 2,
         enableAutoRetry: true,
         logLevel: 'info'
-      }
+      },
+      files: [],
+      fileAnalyses: []
     };
 
     setProjects(current => [...(current || []), newProject]);
