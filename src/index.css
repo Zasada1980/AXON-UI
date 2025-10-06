@@ -268,6 +268,68 @@
   --color-module-background: var(--settings-background, oklch(15% 0.020 0));
 }
 
+.module-ui-audit {
+  --color-module-primary: var(--ui-audit-primary, oklch(58% 0.20 280));
+  --color-module-secondary: var(--ui-audit-secondary, oklch(38% 0.14 300));
+  --color-module-accent: var(--ui-audit-accent, oklch(68% 0.24 260));
+  --color-module-background: var(--ui-audit-background, oklch(17% 0.028 280));
+}
+
+/* UI Audit specific styles */
+.ui-audit-metric-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, var(--color-module-background) 0%, oklch(19% 0.025 280) 100%);
+  border: 1px solid var(--color-module-accent);
+}
+
+.ui-audit-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -8px var(--color-module-accent) / 0.4;
+  border-color: var(--color-module-primary);
+}
+
+.ui-audit-suggestion {
+  position: relative;
+  overflow: hidden;
+}
+
+.ui-audit-suggestion::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-module-accent), transparent);
+  animation: suggestionShimmer 3s infinite;
+}
+
+@keyframes suggestionShimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.priority-indicator {
+  position: relative;
+}
+
+.priority-indicator::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 6px;
+  height: 6px;
+  background: var(--color-module-accent);
+  border-radius: 50%;
+  animation: priorityPulse 2s infinite;
+}
+
+@keyframes priorityPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.2); }
+}
+
 @media (max-width: 1024px) {
   .analysis-grid {
     grid-template-columns: 1fr;

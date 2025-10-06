@@ -11,6 +11,7 @@ import IntegrationTest from './components/IntegrationTest';
 import AgentMemoryManager from './components/AgentMemoryManager';
 import DebateLogManager from './components/DebateLogManager';
 import AgentJournalManager from './components/AgentJournalManager';
+import UIEvolutionAudit from './components/UIEvolutionAudit';
 import NavigationGuide from './components/NavigationGuide';
 import ProjectIntegrationJournal from './components/ProjectIntegrationJournal';
 import FileUploadManager from './components/FileUploadManager';
@@ -293,6 +294,10 @@ const translations: Translations = {
   userGuide: { en: 'User Guide', ru: 'Руководство пользователя' },
   howToUse: { en: 'How to use AXON platform', ru: 'Как использовать платформу АКСОН' },
   diagnostics: { en: 'System Diagnostics & Recovery', ru: 'Диагностика и Восстановление Системы' },
+  
+  // UI Evolution Audit
+  uiAudit: { en: 'UI Evolution Audit', ru: 'Аудит Эволюции UI' },
+  uiAuditDesc: { en: 'Analyze and evolve user interface', ru: 'Анализ и эволюция пользовательского интерфейса' },
   
   // Agent Memory System
   agentMemory: { en: 'Agent Memory', ru: 'Память Агентов' },
@@ -2749,6 +2754,10 @@ Return as JSON with property "recommendations" containing array of recommendatio
                       <Gear size={14} />
                       Version
                     </TabsTrigger>
+                    <TabsTrigger value="ui-audit" className="flex items-center gap-2">
+                      <Eye size={14} />
+                      {t('uiAudit')}
+                    </TabsTrigger>
                     <TabsTrigger value="settings" className="flex items-center gap-2">
                       <Gear size={14} />
                       {t('settings')}
@@ -4007,6 +4016,20 @@ Return as JSON with property "recommendations" containing array of recommendatio
                   }}
                   onBranchCreated={(branch) => {
                     toast.success(`Branch created: ${branch.name}`);
+                  }}
+                />
+              </TabsContent>
+              
+              {/* UI Evolution Audit Tab */}
+              <TabsContent value="ui-audit" className="space-y-6">
+                <UIEvolutionAudit
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onAuditCompleted={(session) => {
+                    toast.success(`UI audit completed with score: ${session.overallScore}%`);
+                  }}
+                  onSuggestionImplemented={(suggestion) => {
+                    toast.success(`UI suggestion implemented: ${suggestion.title}`);
                   }}
                 />
               </TabsContent>
