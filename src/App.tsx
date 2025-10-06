@@ -23,6 +23,8 @@ import AdvancedSearchFilter from './components/AdvancedSearchFilter';
 import AutoBackupSystem from './components/AutoBackupSystem';
 import ExternalAPIIntegrator from './components/ExternalAPIIntegrator';
 import VersionControlSystem from './components/VersionControlSystem';
+import LocalAgentExecutor from './components/LocalAgentExecutor';
+import GlobalProjectSettings from './components/GlobalProjectSettings';
 import NotificationSystem, { 
   notifyTaskCompleted, 
   notifyBlockerDetected, 
@@ -2758,6 +2760,14 @@ Return as JSON with property "recommendations" containing array of recommendatio
                       <Eye size={14} />
                       {t('uiAudit')}
                     </TabsTrigger>
+                    <TabsTrigger value="local-executor" className="flex items-center gap-2">
+                      <Robot size={14} />
+                      Executor
+                    </TabsTrigger>
+                    <TabsTrigger value="global-settings" className="flex items-center gap-2">
+                      <Gear size={14} />
+                      Global Settings
+                    </TabsTrigger>
                     <TabsTrigger value="settings" className="flex items-center gap-2">
                       <Gear size={14} />
                       {t('settings')}
@@ -4030,6 +4040,46 @@ Return as JSON with property "recommendations" containing array of recommendatio
                   }}
                   onSuggestionImplemented={(suggestion) => {
                     toast.success(`UI suggestion implemented: ${suggestion.title}`);
+                  }}
+                />
+              </TabsContent>
+
+              {/* Local Agent Executor Tab */}
+              <TabsContent value="local-executor" className="space-y-6">
+                <LocalAgentExecutor
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onTaskExecuted={(task) => {
+                    notifyTaskCompleted(`Task executed: ${task.title}`, project.id);
+                  }}
+                  onTaskFailed={(task, error) => {
+                    notifyBlockerDetected(`Task failed: ${task.title} - ${error}`, project.id);
+                  }}
+                  onTaskApproved={(task) => {
+                    toast.success(currentLanguage === 'ru' ? `Задача одобрена: ${task.title}` : `Task approved: ${task.title}`);
+                  }}
+                  onTaskRollback={(task) => {
+                    toast.info(currentLanguage === 'ru' ? `Задача откачена: ${task.title}` : `Task rolled back: ${task.title}`);
+                  }}
+                />
+              </TabsContent>
+
+              {/* Global Project Settings Tab */}
+              <TabsContent value="global-settings" className="space-y-6">
+                <GlobalProjectSettings
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onSettingsChanged={(settings) => {
+                    toast.success(currentLanguage === 'ru' ? 'Настройки проекта обновлены' : 'Project settings updated');
+                  }}
+                  onAgentTemplateCreated={(template) => {
+                    toast.success(currentLanguage === 'ru' ? `Шаблон агента создан: ${template.name}` : `Agent template created: ${template.name}`);
+                  }}
+                  onKnowledgeBaseUpdated={(kb) => {
+                    toast.success(currentLanguage === 'ru' ? `База знаний обновлена: ${kb.name}` : `Knowledge base updated: ${kb.name}`);
+                  }}
+                  onAnalyticsReportGenerated={(report) => {
+                    toast.success(currentLanguage === 'ru' ? `Отчёт аналитики создан: ${report.title}` : `Analytics report generated: ${report.title}`);
                   }}
                 />
               </TabsContent>
