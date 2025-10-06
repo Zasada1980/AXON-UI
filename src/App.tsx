@@ -3,6 +3,11 @@ import { useKV } from '@github/spark/hooks';
 import SystemDiagnostics from './components/SystemDiagnostics';
 import StepByStepExecutor from './components/StepByStepExecutor';
 import AutoRecovery from './components/AutoRecovery';
+import ErrorMonitoring from './components/ErrorMonitoring';
+import StepByStepRecovery from './components/StepByStepRecovery';
+import CheckpointSystem from './components/CheckpointSystem';
+import TaskManagementSystem from './components/TaskManagementSystem';
+import IntegrationTest from './components/IntegrationTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -260,12 +265,12 @@ const translations: Translations = {
   agentConfigured: { en: 'Agent configured successfully', ru: 'Агент успешно настроен' },
   
   // Additional translations
-  started: { en: 'Started', ru: 'Начато' },
+  started: { en: 'Started', ru: 'Начало' },
   findings: { en: 'Findings', ru: 'Находки' },
   instructions: { en: 'Instructions', ru: 'Инструкции' },
   userGuide: { en: 'User Guide', ru: 'Руководство пользователя' },
   howToUse: { en: 'How to use AXON platform', ru: 'Как использовать платформу АКСОН' },
-  diagnostics: { en: 'Diagnostics', ru: 'Диагностика' },
+  diagnostics: { en: 'System Diagnostics & Recovery', ru: 'Диагностика и Восстановление Системы' },
   
   // Settings tab
   settings: { en: 'Settings', ru: 'Настройки' },
@@ -2503,6 +2508,57 @@ Respond naturally and helpfully.`;
                     onTaskCompleted={(task) => {
                       toast.success(`Task completed: ${task.title}`);
                     }}
+                  />
+                  
+                  <Separator />
+                  
+                  <ErrorMonitoring
+                    language={currentLanguage}
+                    onErrorDetected={(error) => {
+                      toast.error(`Error detected: ${error.message}`);
+                    }}
+                  />
+                  
+                  <Separator />
+                  
+                  <StepByStepRecovery
+                    language={currentLanguage}
+                    onStepCompleted={(step) => {
+                      toast.success(`Recovery step completed: ${step.title}`);
+                    }}
+                    onSessionCompleted={(session) => {
+                      toast.success(`Recovery session completed: ${session.name}`);
+                    }}
+                  />
+                  
+                  <Separator />
+                  
+                  <CheckpointSystem
+                    language={currentLanguage}
+                    onCheckpointCreated={(checkpoint) => {
+                      toast.success(`Checkpoint created: ${checkpoint.name}`);
+                    }}
+                    onCheckpointRestored={(checkpoint) => {
+                      toast.success(`System restored from: ${checkpoint.name}`);
+                    }}
+                  />
+                  
+                  <Separator />
+                  
+                  <TaskManagementSystem
+                    language={currentLanguage}
+                    onTaskCompleted={(task) => {
+                      toast.success(`Task completed: ${task.name}`);
+                    }}
+                    onQueueCompleted={(queue) => {
+                      toast.success(`All tasks completed in queue: ${queue.name}`);
+                    }}
+                  />
+                  
+                  <Separator />
+                  
+                  <IntegrationTest
+                    language={currentLanguage}
                   />
                   
                   <Separator />
