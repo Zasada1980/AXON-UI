@@ -184,6 +184,13 @@
   --color-module-background: var(--audit-background, oklch(19% 0.022 15));
 }
 
+.module-chat {
+  --color-module-primary: var(--chat-primary, oklch(65% 0.2 280));
+  --color-module-secondary: var(--chat-secondary, oklch(45% 0.12 300));
+  --color-module-accent: var(--chat-accent, oklch(75% 0.25 260));
+  --color-module-background: var(--chat-background, oklch(20% 0.03 280));
+}
+
 @media (max-width: 1024px) {
   .analysis-grid {
     grid-template-columns: 1fr;

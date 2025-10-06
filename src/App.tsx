@@ -43,7 +43,12 @@ import {
   SecurityCamera,
   Question,
   Key,
-  CloudArrowUp
+  CloudArrowUp,
+  ChatCircle,
+  PaperPlaneTilt,
+  Microphone,
+  MicrophoneSlash,
+  Headphones
 } from '@phosphor-icons/react';
 
 // Declare global spark object
@@ -98,6 +103,7 @@ const translations: Translations = {
   kipling: { en: 'Kipling Protocol', ru: 'Протокол Киплинга' },
   ikr: { en: 'IKR Directive', ru: 'Директива IKR' },
   aiAudit: { en: 'AI Audit', ru: 'Аудит ИИ' },
+  chat: { en: 'AI Chat', ru: 'ИИ Чат' },
   
   // Kipling dimensions
   who: { en: 'Who', ru: 'Кто' },
@@ -219,6 +225,23 @@ const translations: Translations = {
   colorApplied: { en: 'Color settings applied', ru: 'Настройки цвета применены' },
   colorsReset: { en: 'Colors reset to default', ru: 'Цвета сброшены к умолчанию' },
   
+  // Chat Module
+  chatModule: { en: 'AI Chat Assistant', ru: 'Помощник ИИ Чат' },
+  chatDesc: { en: 'Interact with AI to analyze your project data', ru: 'Взаимодействуйте с ИИ для анализа данных проекта' },
+  chatPlaceholder: { en: 'Ask about your analysis...', ru: 'Спросите о вашем анализе...' },
+  sendMessage: { en: 'Send Message', ru: 'Отправить Сообщение' },
+  clearChat: { en: 'Clear Chat', ru: 'Очистить Чат' },
+  chatHistory: { en: 'Chat History', ru: 'История Чата' },
+  contextualHelp: { en: 'Contextual Help', ru: 'Контекстная Помощь' },
+  analysisContext: { en: 'Analysis Context', ru: 'Контекст Анализа' },
+  moduleIntegration: { en: 'Module Integration', ru: 'Интеграция Модулей' },
+  voiceInput: { en: 'Voice Input', ru: 'Голосовой Ввод' },
+  stopRecording: { en: 'Stop Recording', ru: 'Остановить Запись' },
+  startRecording: { en: 'Start Recording', ru: 'Начать Запись' },
+  processingVoice: { en: 'Processing voice...', ru: 'Обработка голоса...' },
+  voiceNotSupported: { en: 'Voice input not supported', ru: 'Голосовой ввод не поддерживается' },
+  chatWelcome: { en: 'Hello! I can help you analyze your project. Ask me about your Kipling dimensions, IKR directive, or audit results.', ru: 'Привет! Я могу помочь вам проанализировать ваш проект. Спросите меня о ваших измерениях Киплинга, директиве IKR или результатах аудита.' },
+  
   // API Configuration
   apiConfiguration: { en: 'API Configuration', ru: 'Настройка API' },
   cloudProvider: { en: 'Cloud Provider', ru: 'Облачный Провайдер' },
@@ -307,6 +330,8 @@ interface AnalysisProject {
   auditAgents: AuditAgent[];
   auditSessions: AuditSession[];
   colorSettings?: ModuleColorSettings;
+  chatSessions: ChatSession[];
+  currentChatSession?: string;
 }
 
 interface ModuleColorSettings {
@@ -334,6 +359,30 @@ interface ModuleColorSettings {
     accent: string;
     background: string;
   };
+  chat: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+  };
+}
+
+interface ChatMessage {
+  id: string;
+  type: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+  context?: {
+    module: string;
+    data?: any;
+  };
+}
+
+interface ChatSession {
+  id: string;
+  messages: ChatMessage[];
+  createdAt: string;
+  lastActive: string;
 }
 
 function App() {
@@ -357,6 +406,12 @@ function App() {
   const [currentAuditSession, setCurrentAuditSession] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState(false);
   const [tempColorSettings, setTempColorSettings] = useState<ModuleColorSettings | null>(null);
+  
+  // Chat UI state
+  const [chatInput, setChatInput] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
   // Get current project data
   const projectData = projects?.find(p => p.id === currentProject);
@@ -410,6 +465,12 @@ function App() {
       secondary: 'oklch(42% 0.13 35)',
       accent: 'oklch(72% 0.21 350)',
       background: 'oklch(19% 0.022 15)'
+    },
+    chat: {
+      primary: 'oklch(65% 0.2 280)',
+      secondary: 'oklch(45% 0.12 300)',
+      accent: 'oklch(75% 0.25 260)',
+      background: 'oklch(20% 0.03 280)'
     }
   });
   const getDefaultAuditAgents = (): AuditAgent[] => [
@@ -499,13 +560,15 @@ function App() {
   const ensureAuditFunctionality = (proj: AnalysisProject | undefined): AnalysisProject | undefined => {
     if (!proj) return proj;
     
-    if (!proj.auditAgents || !proj.auditSessions) {
-      // Update project with audit functionality
+    if (!proj.auditAgents || !proj.auditSessions || !proj.chatSessions) {
+      // Update project with audit and chat functionality
       const updatedProject = {
         ...proj,
         auditAgents: proj.auditAgents || getDefaultAuditAgents(),
         auditSessions: proj.auditSessions || [],
-        colorSettings: proj.colorSettings || getDefaultColorSettings()
+        colorSettings: proj.colorSettings || getDefaultColorSettings(),
+        chatSessions: proj.chatSessions || [],
+        currentChatSession: proj.currentChatSession || undefined
       };
       
       // Update the projects array
@@ -633,7 +696,9 @@ function App() {
       },
       auditAgents: getDefaultAuditAgents(),
       auditSessions: [],
-      colorSettings: getDefaultColorSettings()
+      colorSettings: getDefaultColorSettings(),
+      chatSessions: [],
+      currentChatSession: undefined
     };
 
     setProjects(current => [...(current || []), newProject]);
@@ -765,6 +830,12 @@ function App() {
         root.style.setProperty('--module-accent', settings.audit.accent);
         root.style.setProperty('--module-background', settings.audit.background);
         break;
+      case 'chat':
+        root.style.setProperty('--module-primary', settings.chat.primary);
+        root.style.setProperty('--module-secondary', settings.chat.secondary);
+        root.style.setProperty('--module-accent', settings.chat.accent);
+        root.style.setProperty('--module-background', settings.chat.background);
+        break;
     }
     
     toast.success(t('colorApplied'));
@@ -776,6 +847,250 @@ function App() {
       applyColorSettings();
     }
   }, [activeTab, project?.colorSettings]);
+
+  // Chat functions
+  const createChatSession = (): ChatSession => {
+    const sessionId = `chat-${Date.now()}`;
+    return {
+      id: sessionId,
+      messages: [{
+        id: `msg-${Date.now()}`,
+        type: 'system',
+        content: t('chatWelcome'),
+        timestamp: new Date().toISOString()
+      }],
+      createdAt: new Date().toISOString(),
+      lastActive: new Date().toISOString()
+    };
+  };
+
+  const getCurrentChatSession = (): ChatSession => {
+    if (!project) return createChatSession();
+    
+    const currentSessionId = project.currentChatSession;
+    let currentSession = project.chatSessions.find(s => s.id === currentSessionId);
+    
+    if (!currentSession) {
+      currentSession = createChatSession();
+      setProjects(current => 
+        (current || []).map(p => 
+          p.id === project.id 
+            ? {
+                ...p,
+                chatSessions: [...p.chatSessions, currentSession!],
+                currentChatSession: currentSession!.id,
+                lastModified: new Date().toISOString()
+              }
+            : p
+        )
+      );
+    }
+    
+    return currentSession;
+  };
+
+  const addChatMessage = async (content: string, type: 'user' | 'assistant' = 'user', context?: any) => {
+    if (!project) return;
+
+    const currentSession = getCurrentChatSession();
+    const newMessage: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      type,
+      content,
+      timestamp: new Date().toISOString(),
+      context
+    };
+
+    // Update the chat session with new message
+    setProjects(current => 
+      (current || []).map(p => 
+        p.id === project.id 
+          ? {
+              ...p,
+              chatSessions: p.chatSessions.map(session =>
+                session.id === currentSession.id
+                  ? {
+                      ...session,
+                      messages: [...session.messages, newMessage],
+                      lastActive: new Date().toISOString()
+                    }
+                  : session
+              ),
+              lastModified: new Date().toISOString()
+            }
+          : p
+      )
+    );
+
+    // If it's a user message, generate AI response
+    if (type === 'user') {
+      setIsChatLoading(true);
+      try {
+        await generateChatResponse(content, currentSession);
+      } catch (error) {
+        console.error('Error generating chat response:', error);
+        toast.error('Failed to generate response');
+      } finally {
+        setIsChatLoading(false);
+      }
+    }
+  };
+
+  const generateChatResponse = async (userMessage: string, session: ChatSession) => {
+    if (!project) return;
+
+    // Build context from current project data
+    const projectContext = {
+      title: project.title,
+      description: project.description,
+      completeness: calculateCompleteness(project),
+      dimensions: project.dimensions.map(d => ({
+        dimension: d.title,
+        content: d.content,
+        insights: d.insights,
+        priority: d.priority,
+        completeness: d.completeness
+      })),
+      ikrDirective: project.ikrDirective,
+      auditResults: project.auditSessions.filter(s => s.status === 'completed').map(s => ({
+        type: s.auditType,
+        findings: s.results,
+        timestamp: s.endTime
+      })),
+      activeModule: activeTab
+    };
+
+    const chatHistory = session.messages.slice(-5).map(m => `${m.type}: ${m.content}`).join('\n');
+
+    const prompt = spark.llmPrompt`You are an AI assistant specialized in intelligence analysis using the AXON platform. The platform uses the IKR directive (Intelligence-Knowledge-Reasoning) and Kipling protocol (Who, What, When, Where, Why, How).
+
+Current project context: ${JSON.stringify(projectContext, null, 2)}
+
+Recent chat history:
+${chatHistory}
+
+User message: ${userMessage}
+
+Please provide a helpful, contextual response that:
+1. References specific data from the user's project when relevant
+2. Suggests actionable insights or next steps
+3. Helps the user understand their analysis better
+4. If asked about specific modules, provide detailed information from that module
+5. Keep responses concise but informative
+
+Respond naturally and helpfully.`;
+
+    try {
+      const response = await spark.llm(prompt, 'gpt-4o-mini');
+      
+      const aiMessage: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        type: 'assistant',
+        content: response,
+        timestamp: new Date().toISOString(),
+        context: { module: activeTab, data: projectContext }
+      };
+
+      // Add AI response to chat
+      setProjects(current => 
+        (current || []).map(p => 
+          p.id === project.id 
+            ? {
+                ...p,
+                chatSessions: p.chatSessions.map(chatSession =>
+                  chatSession.id === session.id
+                    ? {
+                        ...chatSession,
+                        messages: [...chatSession.messages, aiMessage],
+                        lastActive: new Date().toISOString()
+                      }
+                    : chatSession
+                ),
+                lastModified: new Date().toISOString()
+              }
+            : p
+        )
+      );
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      toast.error('Failed to generate AI response');
+    }
+  };
+
+  const clearChat = () => {
+    if (!project) return;
+
+    const newSession = createChatSession();
+    setProjects(current => 
+      (current || []).map(p => 
+        p.id === project.id 
+          ? {
+              ...p,
+              chatSessions: [...p.chatSessions, newSession],
+              currentChatSession: newSession.id,
+              lastModified: new Date().toISOString()
+            }
+          : p
+      )
+    );
+    
+    toast.success('Chat cleared');
+  };
+
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || isChatLoading) return;
+    
+    const message = chatInput.trim();
+    setChatInput('');
+    await addChatMessage(message, 'user');
+  };
+
+  // Voice recording functions
+  const startVoiceRecording = async () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error(t('voiceNotSupported'));
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          // Here you would typically convert audio to text using a speech recognition service
+          // For now, we'll simulate voice input
+          toast.info(t('processingVoice'));
+          setTimeout(() => {
+            setChatInput('Voice input simulated - ask about my analysis');
+          }, 1000);
+        }
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      
+      // Auto-stop after 30 seconds
+      setTimeout(() => {
+        if (recorder.state === 'recording') {
+          stopVoiceRecording();
+        }
+      }, 30000);
+      
+    } catch (error) {
+      toast.error('Failed to access microphone');
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      setMediaRecorder(null);
+    }
+    setIsRecording(false);
+  };
   const updateAgentSettings = (agentId: string, settings: Partial<AuditAgent['settings']>) => {
     if (!project) return;
 
@@ -1330,11 +1645,12 @@ function App() {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
                 <TabsTrigger value="kipling">{t('kipling')}</TabsTrigger>
                 <TabsTrigger value="ikr">{t('ikr')}</TabsTrigger>
                 <TabsTrigger value="audit">{t('aiAudit')}</TabsTrigger>
+                <TabsTrigger value="chat">{t('chat')}</TabsTrigger>
                 <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
               </TabsList>
 
@@ -1769,6 +2085,201 @@ function App() {
                 </div>
               </TabsContent>
 
+              {/* AI Chat Tab */}
+              <TabsContent value="chat" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ChatCircle size={24} className="text-primary" />
+                      {t('chatModule')}
+                    </CardTitle>
+                    <CardDescription>
+                      {t('chatDesc')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Chat Messages */}
+                      <ScrollArea className="h-96 w-full border rounded-lg p-4 bg-muted/20">
+                        <div className="space-y-4">
+                          {getCurrentChatSession().messages.map((message) => (
+                            <div
+                              key={message.id}
+                              className={`flex ${
+                                message.type === 'user' ? 'justify-end' : 'justify-start'
+                              }`}
+                            >
+                              <div
+                                className={`max-w-[80%] rounded-lg p-3 ${
+                                  message.type === 'user'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : message.type === 'system'
+                                    ? 'bg-muted text-muted-foreground border'
+                                    : 'bg-card border border-border'
+                                }`}
+                              >
+                                <div className="text-sm">{message.content}</div>
+                                <div className="text-xs opacity-60 mt-1">
+                                  {new Date(message.timestamp).toLocaleTimeString()}
+                                  {message.context && (
+                                    <span className="ml-2">
+                                      • {message.context.module}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          
+                          {isChatLoading && (
+                            <div className="flex justify-start">
+                              <div className="bg-card border border-border rounded-lg p-3 max-w-[80%]">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                                  <span className="text-sm text-muted-foreground ml-2">
+                                    {currentLanguage === 'ru' ? 'ИИ печатает...' : 'AI is typing...'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </ScrollArea>
+
+                      {/* Chat Input */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 relative">
+                          <Input
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            placeholder={t('chatPlaceholder')}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                              }
+                            }}
+                            disabled={isChatLoading}
+                            className="pr-12"
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="absolute right-1 top-1 h-8 w-8 p-0"
+                            onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                            disabled={isChatLoading}
+                          >
+                            {isRecording ? (
+                              <MicrophoneSlash size={16} className="text-destructive" />
+                            ) : (
+                              <Microphone size={16} />
+                            )}
+                          </Button>
+                        </div>
+                        <Button
+                          onClick={handleSendMessage}
+                          disabled={!chatInput.trim() || isChatLoading}
+                          size="sm"
+                        >
+                          <PaperPlaneTilt size={16} className="mr-2" />
+                          {t('sendMessage')}
+                        </Button>
+                        <Button
+                          onClick={clearChat}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {t('clearChat')}
+                        </Button>
+                      </div>
+
+                      {/* Contextual Actions */}
+                      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const context = `Current project: ${project?.title}. Completion: ${calculateCompleteness(project!)}%`;
+                            setChatInput(`Analyze my project progress: ${context}`);
+                          }}
+                        >
+                          <ChartLine size={16} className="mr-2" />
+                          {currentLanguage === 'ru' ? 'Анализ прогресса' : 'Analyze Progress'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const incomplete = project?.dimensions.filter(d => d.completeness < 50) || [];
+                            setChatInput(`Help me complete these dimensions: ${incomplete.map(d => d.title).join(', ')}`);
+                          }}
+                        >
+                          <Target size={16} className="mr-2" />
+                          {currentLanguage === 'ru' ? 'Помощь с измерениями' : 'Help with Dimensions'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setChatInput('Generate insights from my IKR directive analysis');
+                          }}
+                        >
+                          <Lightbulb size={16} className="mr-2" />
+                          {currentLanguage === 'ru' ? 'Идеи IKR' : 'IKR Insights'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const auditResults = project?.auditSessions.filter(s => s.status === 'completed') || [];
+                            setChatInput(`Summarize my audit findings: ${auditResults.length} completed audits`);
+                          }}
+                        >
+                          <Shield size={16} className="mr-2" />
+                          {currentLanguage === 'ru' ? 'Сводка аудита' : 'Audit Summary'}
+                        </Button>
+                      </div>
+
+                      {/* Context Information */}
+                      <Card className="bg-muted/50">
+                        <CardContent className="p-4">
+                          <h4 className="font-medium mb-2 flex items-center gap-2">
+                            <Brain size={16} />
+                            {t('analysisContext')}
+                          </h4>
+                          <div className="grid gap-2 text-sm">
+                            <div className="flex items-center justify-between">
+                              <span>{currentLanguage === 'ru' ? 'Активный модуль:' : 'Active Module:'}</span>
+                              <Badge variant="secondary">{activeTab}</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>{currentLanguage === 'ru' ? 'Завершенность проекта:' : 'Project Completion:'}</span>
+                              <Badge variant={calculateCompleteness(project!) > 50 ? 'default' : 'outline'}>
+                                {calculateCompleteness(project!)}%
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>{currentLanguage === 'ru' ? 'Измерения Киплинга:' : 'Kipling Dimensions:'}</span>
+                              <span className="text-muted-foreground">
+                                {project?.dimensions.filter(d => d.content.length > 0).length || 0} / {project?.dimensions.length || 0}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>{currentLanguage === 'ru' ? 'Аудиты ИИ:' : 'AI Audits:'}</span>
+                              <span className="text-muted-foreground">
+                                {project?.auditSessions.filter(s => s.status === 'completed').length || 0} {currentLanguage === 'ru' ? 'завершено' : 'completed'}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
               {/* Settings Tab */}
               <TabsContent value="settings" className="space-y-6">
                 <Card>
@@ -2061,6 +2572,102 @@ function App() {
                               value={project.colorSettings?.ikr.background || 'oklch(17% 0.028 160)'}
                               onChange={(e) => updateColorSettings('ikr', 'background', e.target.value)}
                               placeholder="oklch(17% 0.028 160)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Chat Module Colors */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg flex items-center gap-2">
+                        <ChatCircle size={20} />
+                        {t('chatModule')}
+                      </h4>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="chat-primary">{t('primaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="chat-primary"
+                              type="color"
+                              value={project.colorSettings?.chat.primary.includes('oklch')
+                                ? '#a855f7'
+                                : project.colorSettings?.chat.primary || '#a855f7'
+                              }
+                              onChange={(e) => updateColorSettings('chat', 'primary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.chat.primary || 'oklch(65% 0.2 280)'}
+                              onChange={(e) => updateColorSettings('chat', 'primary', e.target.value)}
+                              placeholder="oklch(65% 0.2 280)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="chat-secondary">{t('secondaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="chat-secondary"
+                              type="color"
+                              value={project.colorSettings?.chat.secondary.includes('oklch')
+                                ? '#7c3aed'
+                                : project.colorSettings?.chat.secondary || '#7c3aed'
+                              }
+                              onChange={(e) => updateColorSettings('chat', 'secondary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.chat.secondary || 'oklch(45% 0.12 300)'}
+                              onChange={(e) => updateColorSettings('chat', 'secondary', e.target.value)}
+                              placeholder="oklch(45% 0.12 300)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="chat-accent">{t('accentColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="chat-accent"
+                              type="color"
+                              value={project.colorSettings?.chat.accent.includes('oklch')
+                                ? '#c084fc'
+                                : project.colorSettings?.chat.accent || '#c084fc'
+                              }
+                              onChange={(e) => updateColorSettings('chat', 'accent', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.chat.accent || 'oklch(75% 0.25 260)'}
+                              onChange={(e) => updateColorSettings('chat', 'accent', e.target.value)}
+                              placeholder="oklch(75% 0.25 260)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="chat-background">{t('backgroundColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="chat-background"
+                              type="color"
+                              value={project.colorSettings?.chat.background.includes('oklch')
+                                ? '#581c87'
+                                : project.colorSettings?.chat.background || '#581c87'
+                              }
+                              onChange={(e) => updateColorSettings('chat', 'background', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.chat.background || 'oklch(20% 0.03 280)'}
+                              onChange={(e) => updateColorSettings('chat', 'background', e.target.value)}
+                              placeholder="oklch(20% 0.03 280)"
                               className="flex-1"
                             />
                           </div>
