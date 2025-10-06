@@ -369,7 +369,42 @@ const translations: Translations = {
   confidence: { en: 'Confidence', ru: 'Достоверность' },
   noFilesUploaded: { en: 'No files uploaded yet', ru: 'Файлы еще не загружены' },
   fileAnalysisStarted: { en: 'File analysis started', ru: 'Анализ файла начат' },
-  fileAnalysisCompleted: { en: 'File analysis completed', ru: 'Анализ файла завершен' }
+  fileAnalysisCompleted: { en: 'File analysis completed', ru: 'Анализ файла завершен' },
+
+  // Help System Navigation
+  helpSystem: { en: 'Help System', ru: 'Система Помощи' },
+  quickStart: { en: 'Quick Start', ru: 'Быстрый Старт' },
+  tutorialMode: { en: 'Tutorial Mode', ru: 'Режим Обучения' },
+  searchHelp: { en: 'Search Help', ru: 'Поиск Помощи' },
+  searchPlaceholder: { en: 'Search instructions...', ru: 'Поиск инструкций...' },
+  categories: { en: 'Categories', ru: 'Категории' },
+  basicUsage: { en: 'Basic Usage', ru: 'Базовое Использование' },
+  advancedFeatures: { en: 'Advanced Features', ru: 'Расширенные Возможности' },
+  troubleshooting: { en: 'Troubleshooting', ru: 'Решение Проблем' },
+  stepByStep: { en: 'Step by Step', ru: 'Пошагово' },
+  previousStep: { en: 'Previous Step', ru: 'Предыдущий Шаг' },
+  nextStep: { en: 'Next Step', ru: 'Следующий Шаг' },
+  finishTutorial: { en: 'Finish Tutorial', ru: 'Завершить Обучение' },
+  
+  // Help Categories
+  gettingStarted: { en: 'Getting Started', ru: 'Начало Работы' },
+  projectManagement: { en: 'Project Management', ru: 'Управление Проектами' },
+  analysisTools: { en: 'Analysis Tools', ru: 'Инструменты Анализа' },
+  aiFeatures: { en: 'AI Features', ru: 'Возможности ИИ' },
+  systemSettings: { en: 'System Settings', ru: 'Настройки Системы' },
+  
+  // Navigation
+  backToHelp: { en: 'Back to Help', ru: 'Назад к Помощи' },
+  relatedTopics: { en: 'Related Topics', ru: 'Связанные Темы' },
+  helpfulTips: { en: 'Helpful Tips', ru: 'Полезные Советы' },
+  commonIssues: { en: 'Common Issues', ru: 'Частые Проблемы' },
+  
+  // Tutorial Steps
+  step: { en: 'Step', ru: 'Шаг' },
+  of: { en: 'of', ru: 'из' },
+  tutorialCompleted: { en: 'Completed', ru: 'Завершено' },
+  inProgress: { en: 'In Progress', ru: 'В Процессе' },
+  notStarted: { en: 'Not Started', ru: 'Не Начато' }
 };
 
 const useTranslation = (language: Language) => {
@@ -377,6 +412,39 @@ const useTranslation = (language: Language) => {
     return translations[key]?.[language] || key;
   };
 };
+
+// Type definitions for instructions and help system
+interface InstructionSection {
+  id: string;
+  title: string;
+  description: string;
+  steps: InstructionStep[];
+  tips?: string[];
+  troubleshooting?: TroubleshootingItem[];
+  relatedSections?: string[];
+}
+
+interface InstructionStep {
+  id: string;
+  title: string;
+  description: string;
+  action?: string;
+  example?: string;
+  warning?: string;
+}
+
+interface TroubleshootingItem {
+  problem: string;
+  solution: string;
+  severity: 'low' | 'medium' | 'high';
+}
+
+interface HelpCategory {
+  id: string;
+  title: string;
+  icon: string;
+  sections: InstructionSection[];
+}
 
 // Type definitions for analysis structure
 interface KiplingDimension {
@@ -693,6 +761,190 @@ function App() {
       background: 'oklch(17% 0.027 60)'
     }
   });
+
+  // Generate comprehensive help documentation
+  const generateHelpDocumentation = (language: Language): HelpCategory[] => [
+    {
+      id: 'getting-started',
+      title: t('gettingStarted'),
+      icon: 'play',
+      sections: [
+        {
+          id: 'first-steps',
+          title: language === 'ru' ? 'Первые шаги' : 'First Steps',
+          description: language === 'ru' 
+            ? 'Как начать работу с платформой АКСОН' 
+            : 'How to get started with the AXON platform',
+          steps: [
+            {
+              id: 'create-project',
+              title: language === 'ru' ? 'Создание проекта' : 'Creating a Project',
+              description: language === 'ru' 
+                ? 'Нажмите кнопку "Новый Анализ" в правом верхнем углу' 
+                : 'Click the "New Analysis" button in the top right corner',
+              action: 'button_click',
+              example: language === 'ru' 
+                ? 'Пример: "Анализ кибербезопасности компании"' 
+                : 'Example: "Company cybersecurity analysis"'
+            },
+            {
+              id: 'add-title-description',
+              title: language === 'ru' ? 'Добавление названия и описания' : 'Adding Title and Description',
+              description: language === 'ru' 
+                ? 'Введите осмысленное название и краткое описание анализа' 
+                : 'Enter a meaningful title and brief description of the analysis',
+              example: language === 'ru' 
+                ? 'Название: "Аудит ИТ-инфраструктуры"\nОписание: "Комплексный анализ безопасности системы"' 
+                : 'Title: "IT Infrastructure Audit"\nDescription: "Comprehensive system security analysis"'
+            }
+          ],
+          tips: [
+            language === 'ru' 
+              ? 'Используйте описательные названия для легкого поиска проектов' 
+              : 'Use descriptive names for easy project searching',
+            language === 'ru' 
+              ? 'Описание поможет вам вспомнить цель анализа через время' 
+              : 'Description will help you remember the analysis purpose later'
+          ]
+        }
+      ]
+    },
+    {
+      id: 'analysis-tools',
+      title: t('analysisTools'),
+      icon: 'chart',
+      sections: [
+        {
+          id: 'kipling-protocol',
+          title: language === 'ru' ? 'Протокол Киплинга' : 'Kipling Protocol',
+          description: language === 'ru' 
+            ? 'Систематический анализ по методу 6 вопросов' 
+            : 'Systematic analysis using the 6 questions method',
+          steps: [
+            {
+              id: 'understand-dimensions',
+              title: language === 'ru' ? 'Понимание измерений' : 'Understanding Dimensions',
+              description: language === 'ru' 
+                ? 'Изучите каждое измерение: Кто, Что, Когда, Где, Почему, Как' 
+                : 'Study each dimension: Who, What, When, Where, Why, How',
+              action: 'navigate',
+              example: language === 'ru' 
+                ? 'Кто: участники, заинтересованные стороны\nЧто: основные события и проблемы' 
+                : 'Who: participants, stakeholders\nWhat: main events and issues'
+            },
+            {
+              id: 'fill-content',
+              title: language === 'ru' ? 'Заполнение содержания' : 'Filling Content',
+              description: language === 'ru' 
+                ? 'Добавьте детальную информацию в каждое измерение' 
+                : 'Add detailed information to each dimension',
+              warning: language === 'ru' 
+                ? 'Не оставляйте измерения пустыми - это снизит качество анализа' 
+                : 'Do not leave dimensions empty - this will reduce analysis quality'
+            },
+            {
+              id: 'generate-insights',
+              title: language === 'ru' ? 'Генерация выводов' : 'Generating Insights',
+              description: language === 'ru' 
+                ? 'Используйте кнопку "Создать Выводы" для получения рекомендаций ИИ' 
+                : 'Use the "Generate Insights" button to get AI recommendations',
+              action: 'button_click'
+            }
+          ],
+          relatedSections: ['ikr-directive', 'ai-features']
+        },
+        {
+          id: 'ikr-directive',
+          title: language === 'ru' ? 'Директива IKR' : 'IKR Directive',
+          description: language === 'ru' 
+            ? 'Трёхэтапный процесс: Разведка-Знания-Рассуждения' 
+            : 'Three-stage process: Intelligence-Knowledge-Reasoning',
+          steps: [
+            {
+              id: 'intelligence-collection',
+              title: language === 'ru' ? 'Сбор разведданных' : 'Intelligence Collection',
+              description: language === 'ru' 
+                ? 'Документируйте процесс сбора информации и источники' 
+                : 'Document the information gathering process and sources',
+              example: language === 'ru' 
+                ? 'Источники: открытые данные, интервью, документы\nМетоды: анализ трафика, опросы, наблюдение' 
+                : 'Sources: open data, interviews, documents\nMethods: traffic analysis, surveys, observation'
+            },
+            {
+              id: 'knowledge-synthesis',
+              title: language === 'ru' ? 'Синтез знаний' : 'Knowledge Synthesis',
+              description: language === 'ru' 
+                ? 'Объединяйте данные в связанные паттерны и взаимосвязи' 
+                : 'Combine data into connected patterns and relationships'
+            },
+            {
+              id: 'strategic-reasoning',
+              title: language === 'ru' ? 'Стратегические рассуждения' : 'Strategic Reasoning',
+              description: language === 'ru' 
+                ? 'Формулируйте выводы и рекомендации на основе анализа' 
+                : 'Formulate conclusions and recommendations based on analysis'
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'ai-features',
+      title: t('aiFeatures'),
+      icon: 'robot',
+      sections: [
+        {
+          id: 'audit-agents',
+          title: language === 'ru' ? 'Агенты аудита' : 'Audit Agents',
+          description: language === 'ru' 
+            ? 'Настройка и использование ИИ-агентов для аудита' 
+            : 'Setting up and using AI agents for auditing',
+          steps: [
+            {
+              id: 'select-agent-type',
+              title: language === 'ru' ? 'Выбор типа агента' : 'Selecting Agent Type',
+              description: language === 'ru' 
+                ? 'Выберите подходящий тип агента: Безопасность, Предвзятость, Производительность, Соответствие' 
+                : 'Choose appropriate agent type: Security, Bias, Performance, Compliance'
+            },
+            {
+              id: 'configure-api',
+              title: language === 'ru' ? 'Настройка API' : 'API Configuration',
+              description: language === 'ru' 
+                ? 'Нажмите кнопку "API" и введите ключ облачного провайдера' 
+                : 'Click "API" button and enter cloud provider key',
+              warning: language === 'ru' 
+                ? 'Без API ключа агент не сможет работать' 
+                : 'Agent cannot work without API key'
+            },
+            {
+              id: 'adjust-settings',
+              title: language === 'ru' ? 'Настройка параметров' : 'Adjusting Settings',
+              description: language === 'ru' 
+                ? 'Используйте кнопку "Настроить" для изменения чувствительности и глубины анализа' 
+                : 'Use "Configure" button to adjust sensitivity and analysis depth'
+            }
+          ],
+          troubleshooting: [
+            {
+              problem: language === 'ru' ? 'Аудит не запускается' : 'Audit does not start',
+              solution: language === 'ru' 
+                ? 'Проверьте настройку API ключа и подключение к интернету' 
+                : 'Check API key setup and internet connection',
+              severity: 'high'
+            },
+            {
+              problem: language === 'ru' ? 'Медленная работа агента' : 'Slow agent performance',
+              solution: language === 'ru' 
+                ? 'Уменьшите глубину анализа или выберите более быструю модель' 
+                : 'Reduce analysis depth or choose faster model',
+              severity: 'medium'
+            }
+          ]
+        }
+      ]
+    }
+  ];
   const getDefaultAuditAgents = (): AuditAgent[] => [
     {
       id: 'security-agent',
