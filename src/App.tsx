@@ -1177,7 +1177,7 @@ function App() {
               <TabsContent value="overview" className="space-y-6">
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {project.dimensions.map(dimension => (
-                    <Card key={dimension.id} className="kipling-dimension">
+                    <Card key={dimension.id} className="kipling-dimension cyber-border">
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -1373,7 +1373,7 @@ function App() {
                     <CardContent>
                       <div className="grid gap-4 md:grid-cols-2">
                         {project.auditAgents.map(agent => (
-                          <Card key={agent.id} className={`cursor-pointer transition-all ${selectedAgent === agent.id ? 'ring-2 ring-primary' : ''}`}
+                          <Card key={agent.id} className={`cursor-pointer transition-all cyber-border ${selectedAgent === agent.id ? 'ring-2 ring-primary glow-cyan' : ''}`}
                                 onClick={() => setSelectedAgent(agent.id)}>
                             <CardContent className="p-4">
                               <div className="flex items-center justify-between mb-3">
@@ -1396,12 +1396,12 @@ function App() {
                                     {agent.apiConfig.provider.toUpperCase()}
                                   </Badge>
                                   {agent.apiConfig.apiKey ? (
-                                    <div className="flex items-center gap-1 text-green-600">
+                                    <div className="flex items-center gap-1 text-accent">
                                       <CheckCircle size={12} />
                                       <span>API {t('configure').toLowerCase()}</span>
                                     </div>
                                   ) : (
-                                    <div className="flex items-center gap-1 text-orange-600">
+                                    <div className="flex items-center gap-1 text-destructive">
                                       <Warning size={12} />
                                       <span>API {t('configure').toLowerCase()}</span>
                                     </div>
@@ -1453,14 +1453,14 @@ function App() {
                         <div className="space-y-4">
                           <div className="grid gap-3 md:grid-cols-2">
                             {!project.auditAgents.find(a => a.id === selectedAgent)?.apiConfig.apiKey && (
-                              <div className="col-span-2 p-3 bg-orange-50 border border-orange-200 rounded-lg mb-4">
-                                <div className="flex items-center gap-2 text-orange-800">
+                              <div className="col-span-2 p-3 bg-muted border border-destructive rounded-lg mb-4 audit-terminal">
+                                <div className="flex items-center gap-2 text-destructive">
                                   <Warning size={16} />
                                   <span className="text-sm font-medium">
                                     {currentLanguage === 'ru' ? 'Требуется настройка API ключа' : 'API key configuration required'}
                                   </span>
                                 </div>
-                                <p className="text-xs text-orange-700 mt-1">
+                                <p className="text-xs text-muted-foreground mt-1">
                                   {currentLanguage === 'ru' 
                                     ? 'Нажмите кнопку "API" для настройки подключения к облачному провайдеру.'
                                     : 'Click the "API" button to configure cloud provider connection.'
@@ -1526,9 +1526,9 @@ function App() {
                           </div>
 
                           {currentAuditSession && (
-                            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                            <div className="flex items-center justify-between p-4 bg-muted rounded-lg audit-terminal cyber-border">
                               <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
                                 <span className="text-sm font-medium">{t('auditStatus')}: {t('running')}</span>
                               </div>
                               <Button 
@@ -1560,7 +1560,7 @@ function App() {
                           {project.auditSessions.slice().reverse().map(session => {
                             const agent = project.auditAgents.find(a => a.id === session.agentId);
                             return (
-                              <div key={session.id} className="border rounded-lg p-4">
+                              <div key={session.id} className="border rounded-lg p-4 audit-terminal cyber-border">
                                 <div className="flex items-center justify-between mb-3">
                                   <div className="flex items-center gap-2">
                                     {agent && getAgentIcon(agent.type)}
@@ -1587,7 +1587,7 @@ function App() {
                                     <ul className="space-y-1">
                                       {session.results.map((result, i) => (
                                         <li key={i} className="flex items-start gap-2 text-sm">
-                                          <Warning size={14} className="text-orange-500 mt-0.5 flex-shrink-0" />
+                                          <Warning size={14} className="text-accent mt-0.5 flex-shrink-0" />
                                           <span>{result}</span>
                                         </li>
                                       ))}

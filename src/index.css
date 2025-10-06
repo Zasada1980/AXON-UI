@@ -8,34 +8,34 @@
 }
 
 :root {
-  /* Base colors that define the core visual identity */
-  --background: oklch(99% 0.002 247);  /* Pure white with subtle blue undertone */
-  --foreground: oklch(25% 0.015 248);  /* Dark slate for main text */
+  /* Base colors that define the core visual identity - Dark cyberpunk theme */
+  --background: oklch(12% 0.02 220);  /* Very dark blue-gray background */
+  --foreground: oklch(85% 0.05 180);  /* Light cyan-tinted text */
 
-  --card: oklch(97% 0.005 247);  /* Light gray card background */
-  --card-foreground: oklch(25% 0.015 248);  /* Dark slate for card text */
-  --popover: oklch(99% 0.002 247);  /* White popover background */
-  --popover-foreground: oklch(25% 0.015 248);  /* Dark slate for popover text */
+  --card: oklch(16% 0.03 220);  /* Slightly lighter dark card background */
+  --card-foreground: oklch(82% 0.05 180);  /* Light cyan text on cards */
+  --popover: oklch(14% 0.025 220);  /* Dark popover background */
+  --popover-foreground: oklch(85% 0.05 180);  /* Light cyan popover text */
 
-  /* Action colors for interactive elements */
-  --primary: oklch(45% 0.15 248);  /* Deep blue for primary actions */
-  --primary-foreground: oklch(99% 0.002 247);  /* White text on primary */
-  --secondary: oklch(55% 0.05 248);  /* Slate gray for secondary actions */
-  --secondary-foreground: oklch(99% 0.002 247);  /* White text on secondary */
-  --accent: oklch(65% 0.18 45);  /* Orange accent for highlights */
-  --accent-foreground: oklch(99% 0.002 247);  /* White text on accent */
+  /* Action colors for interactive elements - Cyberpunk cyan/blue theme */
+  --primary: oklch(55% 0.2 200);  /* Bright cyan for primary actions */
+  --primary-foreground: oklch(10% 0.02 220);  /* Dark text on primary */
+  --secondary: oklch(35% 0.1 220);  /* Dark blue-gray for secondary actions */
+  --secondary-foreground: oklch(80% 0.05 180);  /* Light cyan text on secondary */
+  --accent: oklch(65% 0.25 180);  /* Bright cyan accent for highlights */
+  --accent-foreground: oklch(10% 0.02 220);  /* Dark text on accent */
   --destructive: oklch(55% 0.2 15);  /* Red for destructive actions */
-  --destructive-foreground: oklch(99% 0.002 247);  /* White text on destructive */
+  --destructive-foreground: oklch(95% 0.005 180);  /* Light text on destructive */
 
   /* Supporting UI colors */
-  --muted: oklch(95% 0.005 247);  /* Muted background color */
-  --muted-foreground: oklch(45% 0.01 248);  /* Muted text color */
-  --border: oklch(90% 0.005 247);  /* Border color */
-  --input: oklch(90% 0.005 247);  /* Input border color */
-  --ring: oklch(45% 0.15 248);  /* Focus ring color (same as primary) */
+  --muted: oklch(18% 0.025 220);  /* Muted dark background */
+  --muted-foreground: oklch(55% 0.08 180);  /* Muted cyan text */
+  --border: oklch(25% 0.05 200);  /* Cyan-tinted border */
+  --input: oklch(20% 0.03 220);  /* Dark input background */
+  --ring: oklch(55% 0.2 200);  /* Cyan focus ring */
 
   /* Border radius for consistent shape language */
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 }
 
 /* Map CSS variables to Tailwind's theme system */
@@ -72,7 +72,7 @@
   --font-family-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* Professional analysis interface styles */
+/* Professional analysis interface styles - Dark cyberpunk theme */
 .analysis-grid {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
@@ -81,20 +81,65 @@
 }
 
 .kipling-dimension {
-  transition: all 0.2s ease-in-out;
+  transition: all 0.3s ease-in-out;
+  border: 1px solid oklch(25% 0.05 200);
+  background: linear-gradient(135deg, oklch(16% 0.03 220) 0%, oklch(18% 0.025 220) 100%);
 }
 
 .kipling-dimension:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 35px -8px oklch(55% 0.2 200 / 0.3);
+  border-color: oklch(55% 0.2 200);
 }
 
 .analysis-connection {
-  opacity: 0.6;
-  transition: opacity 0.2s ease-in-out;
+  opacity: 0.4;
+  transition: opacity 0.3s ease-in-out;
 }
 
 .analysis-connection:hover {
+  opacity: 0.8;
+}
+
+/* Terminal-like styling for audit results */
+.audit-terminal {
+  background: oklch(8% 0.015 220);
+  border: 1px solid oklch(25% 0.05 200);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  color: oklch(65% 0.25 180);
+}
+
+/* Glowing effect for active states */
+.glow-cyan {
+  box-shadow: 0 0 20px oklch(55% 0.2 200 / 0.5);
+}
+
+/* Animated border effect */
+.cyber-border {
+  position: relative;
+  border: 1px solid oklch(25% 0.05 200);
+}
+
+.cyber-border::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: linear-gradient(45deg, 
+    oklch(55% 0.2 200), 
+    transparent, 
+    oklch(65% 0.25 180), 
+    transparent
+  );
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.cyber-border:hover::before {
   opacity: 1;
 }
 
