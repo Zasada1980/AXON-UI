@@ -1395,65 +1395,60 @@ function App() {
                     {selectedAgent && project.auditAgents.find(a => a.id === selectedAgent)?.description}
                   </DialogDescription>
                 </DialogHeader>
-                {selectedAgent && (() => {
-                  const agent = project.auditAgents.find(a => a.id === selectedAgent);
-                  if (!agent) return null;
-                  
-                  return (
-                    <div className="space-y-4">
-                      <div>
-                        <Label>{t('sensitivity')}: {agent.settings.sensitivity}%</Label>
-                        <Input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={agent.settings.sensitivity}
-                          onChange={(e) => updateAgentSettings(selectedAgent, { sensitivity: parseInt(e.target.value) })}
-                          className="mt-2"
-                        />
-                      </div>
-                      <div>
-                        <Label>{t('depth')}: {agent.settings.depth}%</Label>
-                        <Input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={agent.settings.depth}
-                          onChange={(e) => updateAgentSettings(selectedAgent, { depth: parseInt(e.target.value) })}
-                          className="mt-2"
-                        />
-                      </div>
-                      <div>
-                        <Label>{t('threshold')}: {agent.settings.threshold}%</Label>
-                        <Input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={agent.settings.threshold}
-                          onChange={(e) => updateAgentSettings(selectedAgent, { threshold: parseInt(e.target.value) })}
-                          className="mt-2"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="scope">{t('scope')}</Label>
-                        <Select 
-                          value={agent.settings.scope} 
-                          onValueChange={(value) => updateAgentSettings(selectedAgent, { scope: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="system">System</SelectItem>
-                            <SelectItem value="algorithm">Algorithm</SelectItem>
-                            <SelectItem value="model">Model</SelectItem>
-                            <SelectItem value="full">Full</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                {selectedAgent && project.auditAgents.find(a => a.id === selectedAgent) && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label>{t('sensitivity')}: {project.auditAgents.find(a => a.id === selectedAgent)!.settings.sensitivity}%</Label>
+                      <Input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={project.auditAgents.find(a => a.id === selectedAgent)!.settings.sensitivity}
+                        onChange={(e) => updateAgentSettings(selectedAgent, { sensitivity: parseInt(e.target.value) })}
+                        className="mt-2"
+                      />
                     </div>
-                  );
-                })()}
+                    <div>
+                      <Label>{t('depth')}: {project.auditAgents.find(a => a.id === selectedAgent)!.settings.depth}%</Label>
+                      <Input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={project.auditAgents.find(a => a.id === selectedAgent)!.settings.depth}
+                        onChange={(e) => updateAgentSettings(selectedAgent, { depth: parseInt(e.target.value) })}
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label>{t('threshold')}: {project.auditAgents.find(a => a.id === selectedAgent)!.settings.threshold}%</Label>
+                      <Input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={project.auditAgents.find(a => a.id === selectedAgent)!.settings.threshold}
+                        onChange={(e) => updateAgentSettings(selectedAgent, { threshold: parseInt(e.target.value) })}
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="scope">{t('scope')}</Label>
+                      <Select 
+                        value={project.auditAgents.find(a => a.id === selectedAgent)!.settings.scope} 
+                        onValueChange={(value) => updateAgentSettings(selectedAgent, { scope: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="system">System</SelectItem>
+                          <SelectItem value="algorithm">Algorithm</SelectItem>
+                          <SelectItem value="model">Model</SelectItem>
+                          <SelectItem value="full">Full</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
               </DialogContent>
             </Dialog>
 
