@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
   Brain,
@@ -29,7 +30,8 @@ import {
   ArrowRight,
   CheckCircle,
   Warning,
-  Star
+  Star,
+  Globe
 } from '@phosphor-icons/react';
 
 // Declare global spark object
@@ -44,6 +46,104 @@ declare global {
 
 // Access spark from global window object
 const spark = (globalThis as any).spark;
+
+// Language support
+type Language = 'en' | 'ru';
+
+interface Translations {
+  [key: string]: {
+    en: string;
+    ru: string;
+  };
+}
+
+const translations: Translations = {
+  // Header
+  appName: { en: 'AXON', ru: 'АКСОН' },
+  appDescription: { en: 'Intelligence Analysis Platform', ru: 'Платформа Анализа Данных' },
+  complete: { en: 'Complete', ru: 'Выполнено' },
+  export: { en: 'Export', ru: 'Экспорт' },
+  newAnalysis: { en: 'New Analysis', ru: 'Новый Анализ' },
+  
+  // Project creation
+  createProject: { en: 'Create New Analysis Project', ru: 'Создать Новый Проект Анализа' },
+  createProjectDesc: { en: 'Start a new systematic analysis using the IKR directive and Kipling protocol', ru: 'Начните новый систематический анализ, используя директиву IKR и протокол Киплинга' },
+  projectTitle: { en: 'Project Title', ru: 'Название Проекта' },
+  projectTitlePlaceholder: { en: 'Enter analysis project title', ru: 'Введите название проекта анализа' },
+  description: { en: 'Description', ru: 'Описание' },
+  descriptionPlaceholder: { en: 'Brief description of what you\'re analyzing', ru: 'Краткое описание того, что вы анализируете' },
+  cancel: { en: 'Cancel', ru: 'Отмена' },
+  createProjectBtn: { en: 'Create Project', ru: 'Создать Проект' },
+  
+  // Welcome screen
+  welcome: { en: 'Welcome to AXON', ru: 'Добро пожаловать в АКСОН' },
+  welcomeDesc: { en: 'Begin your systematic intelligence analysis using the IKR directive and Kipling protocol framework', ru: 'Начните ваш систематический анализ данных, используя директиву IKR и протокол Киплинга' },
+  recentProjects: { en: 'Recent Projects', ru: 'Недавние Проекты' },
+  createNewAnalysis: { en: 'Create New Analysis', ru: 'Создать Новый Анализ' },
+  
+  // Tabs
+  overview: { en: 'Analysis Overview', ru: 'Обзор Анализа' },
+  kipling: { en: 'Kipling Protocol', ru: 'Протокол Киплинга' },
+  ikr: { en: 'IKR Directive', ru: 'Директива IKR' },
+  
+  // Kipling dimensions
+  who: { en: 'Who', ru: 'Кто' },
+  whoQuestion: { en: 'Who are the key stakeholders, actors, and decision-makers involved?', ru: 'Кто являются ключевыми заинтересованными сторонами, участниками и лицами, принимающими решения?' },
+  what: { en: 'What', ru: 'Что' },
+  whatQuestion: { en: 'What is happening, what are the core issues, and what needs to be addressed?', ru: 'Что происходит, какие основные проблемы и что нужно решить?' },
+  when: { en: 'When', ru: 'Когда' },
+  whenQuestion: { en: 'When did this occur, when must decisions be made, and what are the timelines?', ru: 'Когда это произошло, когда должны быть приняты решения, и каковы временные рамки?' },
+  where: { en: 'Where', ru: 'Где' },
+  whereQuestion: { en: 'Where is this taking place, what are the geographical or contextual locations?', ru: 'Где это происходит, каковы географические или контекстуальные места?' },
+  why: { en: 'Why', ru: 'Почему' },
+  whyQuestion: { en: 'Why is this happening, what are the underlying causes and motivations?', ru: 'Почему это происходит, каковы основные причины и мотивы?' },
+  how: { en: 'How', ru: 'Как' },
+  howQuestion: { en: 'How is this being executed, what are the methods and mechanisms?', ru: 'Как это выполняется, каковы методы и механизмы?' },
+  
+  // Priority levels
+  high: { en: 'high', ru: 'высокий' },
+  medium: { en: 'medium', ru: 'средний' },
+  low: { en: 'low', ru: 'низкий' },
+  
+  // General UI
+  noContent: { en: 'No analysis content yet', ru: 'Пока нет содержания анализа' },
+  keyInsights: { en: 'Key Insights:', ru: 'Ключевые Выводы:' },
+  analysisContent: { en: 'Analysis Content', ru: 'Содержание Анализа' },
+  generateInsights: { en: 'Generate Insights', ru: 'Создать Выводы' },
+  generatedInsights: { en: 'Generated Insights', ru: 'Созданные Выводы' },
+  
+  // IKR sections
+  intelligence: { en: 'Intelligence Collection & Assessment', ru: 'Сбор и Оценка Разведданных' },
+  intelligenceDesc: { en: 'Document the intelligence gathering process and raw information collected', ru: 'Документируйте процесс сбора разведданных и собранную исходную информацию' },
+  intelligencePlaceholder: { en: 'Describe intelligence sources, collection methods, and raw data gathered. Include credibility assessments and information gaps.', ru: 'Опишите источники разведданных, методы сбора и собранные исходные данные. Включите оценки достоверности и информационные пробелы.' },
+  knowledge: { en: 'Knowledge Synthesis & Integration', ru: 'Синтез и Интеграция Знаний' },
+  knowledgeDesc: { en: 'Synthesize information into coherent knowledge patterns and relationships', ru: 'Синтезируйте информацию в связные паттерны знаний и взаимосвязи' },
+  knowledgePlaceholder: { en: 'Synthesize patterns, connections, and relationships from the intelligence. Identify what we now know that we didn\'t know before.', ru: 'Синтезируйте паттерны, связи и отношения из разведданных. Определите, что мы теперь знаем, чего не знали раньше.' },
+  reasoning: { en: 'Reasoning & Strategic Assessment', ru: 'Рассуждения и Стратегическая Оценка' },
+  reasoningDesc: { en: 'Apply analytical reasoning to derive strategic insights and recommendations', ru: 'Применяйте аналитические рассуждения для получения стратегических выводов и рекомендаций' },
+  reasoningPlaceholder: { en: 'Apply logical reasoning to the knowledge base. What are the implications, predictions, and recommended actions?', ru: 'Примените логические рассуждения к базе знаний. Каковы последствия, прогнозы и рекомендуемые действия?' },
+  
+  // Actions
+  backToProjects: { en: 'Back to Projects', ru: 'Назад к Проектам' },
+  exportReport: { en: 'Export Report', ru: 'Экспортировать Отчет' },
+  saveProgress: { en: 'Save Progress', ru: 'Сохранить Прогресс' },
+  language: { en: 'Language', ru: 'Язык' },
+  
+  // Toast messages
+  projectTitleRequired: { en: 'Project title is required', ru: 'Название проекта обязательно' },
+  projectCreated: { en: 'Analysis project created successfully', ru: 'Проект анализа успешно создан' },
+  addContentFirst: { en: 'Add content first before generating insights', ru: 'Сначала добавьте содержание перед созданием выводов' },
+  insightsGenerated: { en: 'Insights generated successfully', ru: 'Выводы успешно созданы' },
+  failedToGenerate: { en: 'Failed to generate insights', ru: 'Не удалось создать выводы' },
+  reportExported: { en: 'Analysis report exported', ru: 'Отчет анализа экспортирован' },
+  analysisSaved: { en: 'Analysis saved automatically', ru: 'Анализ сохранен автоматически' }
+};
+
+const useTranslation = (language: Language) => {
+  return (key: string): string => {
+    return translations[key]?.[language] || key;
+  };
+};
 
 // Type definitions for analysis structure
 interface KiplingDimension {
@@ -73,6 +173,11 @@ interface AnalysisProject {
 }
 
 function App() {
+  // Language state
+  const [language, setLanguage] = useKV<Language>('axon-language', 'en');
+  const currentLanguage = language || 'en';
+  const t = useTranslation(currentLanguage);
+  
   // Persistent storage for analysis projects
   const [projects, setProjects] = useKV<AnalysisProject[]>('axon-projects', []);
   const [currentProject, setCurrentProject] = useKV<string | null>('current-project', null);
@@ -86,12 +191,12 @@ function App() {
   // Get current project data
   const project = projects?.find(p => p.id === currentProject);
 
-  // Initialize default Kipling dimensions
-  const defaultDimensions: KiplingDimension[] = [
+  // Initialize default Kipling dimensions with translations
+  const getDefaultDimensions = (lang: Language): KiplingDimension[] => [
     {
       id: 'who',
-      title: 'Who',
-      question: 'Who are the key stakeholders, actors, and decision-makers involved?',
+      title: t('who'),
+      question: t('whoQuestion'),
       content: '',
       insights: [],
       priority: 'high',
@@ -100,8 +205,8 @@ function App() {
     },
     {
       id: 'what',
-      title: 'What',
-      question: 'What is happening, what are the core issues, and what needs to be addressed?',
+      title: t('what'),
+      question: t('whatQuestion'),
       content: '',
       insights: [],
       priority: 'high',
@@ -110,8 +215,8 @@ function App() {
     },
     {
       id: 'when',
-      title: 'When',
-      question: 'When did this occur, when must decisions be made, and what are the timelines?',
+      title: t('when'),
+      question: t('whenQuestion'),
       content: '',
       insights: [],
       priority: 'medium',
@@ -120,8 +225,8 @@ function App() {
     },
     {
       id: 'where',
-      title: 'Where',
-      question: 'Where is this taking place, what are the geographical or contextual locations?',
+      title: t('where'),
+      question: t('whereQuestion'),
       content: '',
       insights: [],
       priority: 'medium',
@@ -130,8 +235,8 @@ function App() {
     },
     {
       id: 'why',
-      title: 'Why',
-      question: 'Why is this happening, what are the underlying causes and motivations?',
+      title: t('why'),
+      question: t('whyQuestion'),
       content: '',
       insights: [],
       priority: 'high',
@@ -140,8 +245,8 @@ function App() {
     },
     {
       id: 'how',
-      title: 'How',
-      question: 'How is this being executed, what are the methods and mechanisms?',
+      title: t('how'),
+      question: t('howQuestion'),
       content: '',
       insights: [],
       priority: 'high',
@@ -153,7 +258,7 @@ function App() {
   // Create new analysis project
   const createProject = () => {
     if (!newProjectTitle.trim()) {
-      toast.error('Project title is required');
+      toast.error(t('projectTitleRequired'));
       return;
     }
 
@@ -164,7 +269,7 @@ function App() {
       createdAt: new Date().toISOString(),
       lastModified: new Date().toISOString(),
       completeness: 0,
-      dimensions: defaultDimensions,
+      dimensions: getDefaultDimensions(currentLanguage),
       ikrDirective: {
         intelligence: '',
         knowledge: '',
@@ -177,7 +282,7 @@ function App() {
     setNewProjectTitle('');
     setNewProjectDescription('');
     setIsCreatingProject(false);
-    toast.success('Analysis project created successfully');
+    toast.success(t('projectCreated'));
   };
 
   // Update dimension content
@@ -237,7 +342,7 @@ function App() {
     
     const dimension = project.dimensions.find(d => d.id === dimensionId);
     if (!dimension || !dimension.content) {
-      toast.error('Add content first before generating insights');
+      toast.error(t('addContentFirst'));
       return;
     }
 
@@ -248,9 +353,9 @@ function App() {
       const result = JSON.parse(response);
       
       updateDimension(dimensionId, 'insights', result.insights || []);
-      toast.success('Insights generated successfully');
+      toast.success(t('insightsGenerated'));
     } catch (error) {
-      toast.error('Failed to generate insights');
+      toast.error(t('failedToGenerate'));
       console.error('Error generating insights:', error);
     }
   };
@@ -284,7 +389,7 @@ function App() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    toast.success('Analysis report exported');
+    toast.success(t('reportExported'));
   };
 
   return (
@@ -296,20 +401,34 @@ function App() {
             <div className="flex items-center gap-3">
               <Brain size={32} className="text-primary" />
               <div>
-                <h1 className="text-2xl font-bold text-foreground">AXON</h1>
-                <p className="text-sm text-muted-foreground">Intelligence Analysis Platform</p>
+                <h1 className="text-2xl font-bold text-foreground">{t('appName')}</h1>
+                <p className="text-sm text-muted-foreground">{t('appDescription')}</p>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
+              {/* Language Selector */}
+              <Select value={currentLanguage} onValueChange={(value: Language) => setLanguage(value)}>
+                <SelectTrigger className="w-24">
+                  <div className="flex items-center gap-2">
+                    <Globe size={16} />
+                    <SelectValue />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">EN</SelectItem>
+                  <SelectItem value="ru">RU</SelectItem>
+                </SelectContent>
+              </Select>
+
               {project && (
                 <>
                   <Badge variant="secondary" className="text-xs">
-                    {calculateCompleteness(project)}% Complete
+                    {calculateCompleteness(project)}% {t('complete')}
                   </Badge>
                   <Button onClick={exportReport} variant="outline" size="sm">
                     <Download size={16} className="mr-2" />
-                    Export
+                    {t('export')}
                   </Button>
                 </>
               )}
@@ -318,41 +437,41 @@ function App() {
                 <DialogTrigger asChild>
                   <Button size="sm">
                     <Plus size={16} className="mr-2" />
-                    New Analysis
+                    {t('newAnalysis')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Create New Analysis Project</DialogTitle>
+                    <DialogTitle>{t('createProject')}</DialogTitle>
                     <DialogDescription>
-                      Start a new systematic analysis using the IKR directive and Kipling protocol
+                      {t('createProjectDesc')}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="title">Project Title</Label>
+                      <Label htmlFor="title">{t('projectTitle')}</Label>
                       <Input
                         id="title"
                         value={newProjectTitle}
                         onChange={(e) => setNewProjectTitle(e.target.value)}
-                        placeholder="Enter analysis project title"
+                        placeholder={t('projectTitlePlaceholder')}
                       />
                     </div>
                     <div>
-                      <Label htmlFor="description">Description</Label>
+                      <Label htmlFor="description">{t('description')}</Label>
                       <Textarea
                         id="description"
                         value={newProjectDescription}
                         onChange={(e) => setNewProjectDescription(e.target.value)}
-                        placeholder="Brief description of what you're analyzing"
+                        placeholder={t('descriptionPlaceholder')}
                         rows={3}
                       />
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" onClick={() => setIsCreatingProject(false)}>
-                        Cancel
+                        {t('cancel')}
                       </Button>
-                      <Button onClick={createProject}>Create Project</Button>
+                      <Button onClick={createProject}>{t('createProjectBtn')}</Button>
                     </div>
                   </div>
                 </DialogContent>
@@ -368,14 +487,14 @@ function App() {
           // Project Selection Screen
           <div className="text-center py-12">
             <ChartLine size={64} className="mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-2xl font-semibold mb-2">Welcome to AXON</h2>
+            <h2 className="text-2xl font-semibold mb-2">{t('welcome')}</h2>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Begin your systematic intelligence analysis using the IKR directive and Kipling protocol framework
+              {t('welcomeDesc')}
             </p>
             
             {(projects || []).length > 0 && (
               <div className="max-w-2xl mx-auto mb-8">
-                <h3 className="text-lg font-medium mb-4">Recent Projects</h3>
+                <h3 className="text-lg font-medium mb-4">{t('recentProjects')}</h3>
                 <div className="grid gap-3">
                   {(projects || []).map(proj => (
                     <Card key={proj.id} className="cursor-pointer hover:shadow-md transition-shadow" 
@@ -398,7 +517,7 @@ function App() {
             
             <Button onClick={() => setIsCreatingProject(true)} size="lg">
               <Plus size={20} className="mr-2" />
-              Create New Analysis
+              {t('createNewAnalysis')}
             </Button>
           </div>
         ) : (
@@ -413,16 +532,16 @@ function App() {
               <div className="flex items-center gap-4">
                 <Progress value={calculateCompleteness(project)} className="w-32" />
                 <Badge variant={calculateCompleteness(project) > 80 ? 'default' : 'secondary'}>
-                  {calculateCompleteness(project)}% Complete
+                  {calculateCompleteness(project)}% {t('complete')}
                 </Badge>
               </div>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="overview">Analysis Overview</TabsTrigger>
-                <TabsTrigger value="kipling">Kipling Protocol</TabsTrigger>
-                <TabsTrigger value="ikr">IKR Directive</TabsTrigger>
+                <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
+                <TabsTrigger value="kipling">{t('kipling')}</TabsTrigger>
+                <TabsTrigger value="ikr">{t('ikr')}</TabsTrigger>
               </TabsList>
 
               {/* Overview Tab */}
@@ -437,7 +556,7 @@ function App() {
                             <CardTitle className="text-lg">{dimension.title}</CardTitle>
                           </div>
                           <Badge variant={dimension.priority === 'high' ? 'default' : 'secondary'}>
-                            {dimension.priority}
+                            {t(dimension.priority)}
                           </Badge>
                         </div>
                         <CardDescription className="text-sm">
@@ -450,12 +569,12 @@ function App() {
                           <p className="text-sm text-muted-foreground">
                             {dimension.content ? 
                               `${dimension.content.substring(0, 100)}${dimension.content.length > 100 ? '...' : ''}` :
-                              'No analysis content yet'
+                              t('noContent')
                             }
                           </p>
                           {dimension.insights.length > 0 && (
                             <div className="space-y-1">
-                              <p className="text-xs font-medium text-accent">Key Insights:</p>
+                              <p className="text-xs font-medium text-accent">{t('keyInsights')}</p>
                               <ul className="text-xs space-y-1">
                                 {dimension.insights.slice(0, 2).map((insight, i) => (
                                   <li key={i} className="flex items-start gap-1">
@@ -489,12 +608,12 @@ function App() {
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div>
-                          <Label htmlFor={`content-${dimension.id}`}>Analysis Content</Label>
+                          <Label htmlFor={`content-${dimension.id}`}>{t('analysisContent')}</Label>
                           <Textarea
                             id={`content-${dimension.id}`}
                             value={dimension.content}
                             onChange={(e) => updateDimension(dimension.id, 'content', e.target.value)}
-                            placeholder={`Provide detailed analysis for: ${dimension.question}`}
+                            placeholder={`${t('analysisContent')}: ${dimension.question}`}
                             rows={6}
                             className="mt-2"
                           />
@@ -504,7 +623,7 @@ function App() {
                           <div className="flex items-center gap-2">
                             <Progress value={dimension.completeness} className="w-32" />
                             <span className="text-sm text-muted-foreground">
-                              {Math.round(dimension.completeness)}% complete
+                              {Math.round(dimension.completeness)}% {t('complete').toLowerCase()}
                             </span>
                           </div>
                           <Button 
@@ -514,7 +633,7 @@ function App() {
                             disabled={!dimension.content}
                           >
                             <Brain size={16} className="mr-2" />
-                            Generate Insights
+                            {t('generateInsights')}
                           </Button>
                         </div>
 
@@ -524,7 +643,7 @@ function App() {
                             <div>
                               <h4 className="font-medium mb-3 flex items-center gap-2">
                                 <Star size={16} className="text-accent" />
-                                Generated Insights
+                                {t('generatedInsights')}
                               </h4>
                               <ul className="space-y-2">
                                 {dimension.insights.map((insight, i) => (
@@ -550,17 +669,17 @@ function App() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Target size={24} className="text-primary" />
-                        Intelligence Collection & Assessment
+                        {t('intelligence')}
                       </CardTitle>
                       <CardDescription>
-                        Document the intelligence gathering process and raw information collected
+                        {t('intelligenceDesc')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <Textarea
                         value={project.ikrDirective.intelligence}
                         onChange={(e) => updateIKR('intelligence', e.target.value)}
-                        placeholder="Describe intelligence sources, collection methods, and raw data gathered. Include credibility assessments and information gaps."
+                        placeholder={t('intelligencePlaceholder')}
                         rows={6}
                       />
                     </CardContent>
@@ -570,17 +689,17 @@ function App() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Graph size={24} className="text-primary" />
-                        Knowledge Synthesis & Integration
+                        {t('knowledge')}
                       </CardTitle>
                       <CardDescription>
-                        Synthesize information into coherent knowledge patterns and relationships
+                        {t('knowledgeDesc')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <Textarea
                         value={project.ikrDirective.knowledge}
                         onChange={(e) => updateIKR('knowledge', e.target.value)}
-                        placeholder="Synthesize patterns, connections, and relationships from the intelligence. Identify what we now know that we didn't know before."
+                        placeholder={t('knowledgePlaceholder')}
                         rows={6}
                       />
                     </CardContent>
@@ -590,17 +709,17 @@ function App() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Lightbulb size={24} className="text-primary" />
-                        Reasoning & Strategic Assessment
+                        {t('reasoning')}
                       </CardTitle>
                       <CardDescription>
-                        Apply analytical reasoning to derive strategic insights and recommendations
+                        {t('reasoningDesc')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <Textarea
                         value={project.ikrDirective.reasoning}
                         onChange={(e) => updateIKR('reasoning', e.target.value)}
-                        placeholder="Apply logical reasoning to the knowledge base. What are the implications, predictions, and recommended actions?"
+                        placeholder={t('reasoningPlaceholder')}
                         rows={6}
                       />
                     </CardContent>
@@ -613,17 +732,17 @@ function App() {
             <div className="flex items-center justify-between pt-6 border-t">
               <Button variant="outline" onClick={() => setCurrentProject(null)}>
                 <ArrowRight size={16} className="mr-2 rotate-180" />
-                Back to Projects
+                {t('backToProjects')}
               </Button>
               
               <div className="flex items-center gap-3">
                 <Button variant="outline" onClick={exportReport}>
                   <Download size={16} className="mr-2" />
-                  Export Report
+                  {t('exportReport')}
                 </Button>
-                <Button onClick={() => toast.success('Analysis saved automatically')}>
+                <Button onClick={() => toast.success(t('analysisSaved'))}>
                   <FloppyDisk size={16} className="mr-2" />
-                  Save Progress
+                  {t('saveProgress')}
                 </Button>
               </div>
             </div>
