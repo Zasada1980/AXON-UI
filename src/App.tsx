@@ -15,6 +15,14 @@ import NavigationGuide from './components/NavigationGuide';
 import ProjectIntegrationJournal from './components/ProjectIntegrationJournal';
 import MicroTaskExecutor from './components/MicroTaskExecutor';
 import UIIntegrationManager from './components/UIIntegrationManager';
+import E2ETestingSystem from './components/E2ETestingSystem';
+import AdvancedAnalytics from './components/AdvancedAnalytics';
+import NotificationSystem, { 
+  notifyTaskCompleted, 
+  notifyBlockerDetected, 
+  notifyAuditResult,
+  notifyIntegrationComplete 
+} from './components/NotificationSystem';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1787,6 +1795,9 @@ Respond naturally and helpfully.`;
               : p
           )
         );
+        
+        // Send notification about audit completion
+        notifyAuditResult(agent.name, (result.findings || []).length, project.id);
       } catch (error) {
         // Update session as failed
         setProjects(current => 
@@ -2076,7 +2087,7 @@ Respond naturally and helpfully.`;
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-12">
+              <TabsList className="grid w-full grid-cols-15">
                 <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
                 <TabsTrigger value="kipling">{t('kipling')}</TabsTrigger>
                 <TabsTrigger value="ikr">{t('ikr')}</TabsTrigger>
@@ -2089,6 +2100,9 @@ Respond naturally and helpfully.`;
                 <TabsTrigger value="journal">Journal</TabsTrigger>
                 <TabsTrigger value="microtasks">MicroTasks</TabsTrigger>
                 <TabsTrigger value="integration">Integration</TabsTrigger>
+                <TabsTrigger value="testing">E2E Tests</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                <TabsTrigger value="notifications">Notifications</TabsTrigger>
                 <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
               </TabsList>
 
@@ -3098,6 +3112,49 @@ Respond naturally and helpfully.`;
                   }}
                   onTestPassed={(testCase) => {
                     toast.success(`Test passed: ${testCase.title}`);
+                  }}
+                />
+              </TabsContent>
+
+              {/* E2E Testing System Tab */}
+              <TabsContent value="testing" className="space-y-6">
+                <E2ETestingSystem
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onTestCompleted={(testCase) => {
+                    toast.success(`Test completed: ${testCase.name}`);
+                  }}
+                  onSuiteCompleted={(suite) => {
+                    toast.success(`Test suite completed: ${suite.name}`);
+                  }}
+                  onIssueDetected={(issue) => {
+                    toast.error(`Test issue: ${issue.error}`);
+                    notifyBlockerDetected(`Test failed: ${issue.test} - ${issue.error}`, project.id);
+                  }}
+                />
+              </TabsContent>
+
+              {/* Advanced Analytics Tab */}
+              <TabsContent value="analytics" className="space-y-6">
+                <AdvancedAnalytics
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onReportGenerated={(report) => {
+                    toast.success(`Analytics report generated for project: ${project.title}`);
+                  }}
+                />
+              </TabsContent>
+
+              {/* Notification System Tab */}
+              <TabsContent value="notifications" className="space-y-6">
+                <NotificationSystem
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onNotificationClick={(notification) => {
+                    // Handle notification click - could navigate to relevant tab
+                    if (notification.actionUrl) {
+                      window.location.hash = notification.actionUrl;
+                    }
                   }}
                 />
               </TabsContent>
