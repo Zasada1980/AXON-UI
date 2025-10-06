@@ -18,6 +18,10 @@ import MicroTaskExecutor from './components/MicroTaskExecutor';
 import UIIntegrationManager from './components/UIIntegrationManager';
 import E2ETestingSystem from './components/E2ETestingSystem';
 import AdvancedAnalytics from './components/AdvancedAnalytics';
+import AdvancedSearchFilter from './components/AdvancedSearchFilter';
+import AutoBackupSystem from './components/AutoBackupSystem';
+import ExternalAPIIntegrator from './components/ExternalAPIIntegrator';
+import VersionControlSystem from './components/VersionControlSystem';
 import NotificationSystem, { 
   notifyTaskCompleted, 
   notifyBlockerDetected, 
@@ -2088,7 +2092,7 @@ Respond naturally and helpfully.`;
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-8 lg:grid-cols-17">
+              <TabsList className="grid w-full grid-cols-8 lg:grid-cols-21">
                 <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
                 <TabsTrigger value="kipling">{t('kipling')}</TabsTrigger>
                 <TabsTrigger value="ikr">{t('ikr')}</TabsTrigger>
@@ -2105,6 +2109,10 @@ Respond naturally and helpfully.`;
                 <TabsTrigger value="testing">E2E Tests</TabsTrigger>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
                 <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                <TabsTrigger value="advanced-search">Advanced Search</TabsTrigger>
+                <TabsTrigger value="auto-backup">Auto Backup</TabsTrigger>
+                <TabsTrigger value="api-integrator">API Integrator</TabsTrigger>
+                <TabsTrigger value="version-control">Version Control</TabsTrigger>
                 <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
               </TabsList>
 
@@ -3171,6 +3179,68 @@ Respond naturally and helpfully.`;
                     if (notification.actionUrl) {
                       window.location.hash = notification.actionUrl;
                     }
+                  }}
+                />
+              </TabsContent>
+
+              {/* Advanced Search Filter Tab */}
+              <TabsContent value="advanced-search" className="space-y-6">
+                <AdvancedSearchFilter
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onSearchResults={(results) => {
+                    toast.success(`Found ${results.length} search results`);
+                  }}
+                  onFilterSaved={(filter) => {
+                    toast.success(`Search filter saved: ${filter.name}`);
+                  }}
+                />
+              </TabsContent>
+
+              {/* Auto Backup System Tab */}
+              <TabsContent value="auto-backup" className="space-y-6">
+                <AutoBackupSystem
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onBackupCreated={(backup) => {
+                    toast.success(`Backup created: ${backup.id}`);
+                  }}
+                  onRestoreCompleted={(restorePoint) => {
+                    toast.success(`Restore completed: ${restorePoint.name}`);
+                  }}
+                />
+              </TabsContent>
+
+              {/* External API Integrator Tab */}
+              <TabsContent value="api-integrator" className="space-y-6">
+                <ExternalAPIIntegrator
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onConnectionEstablished={(connection) => {
+                    toast.success(`API connection established: ${connection.name}`);
+                  }}
+                  onRequestCompleted={(request) => {
+                    toast.success(`API request completed: ${request.method} ${request.endpoint}`);
+                  }}
+                  onWebhookTriggered={(webhook) => {
+                    toast.info(`Webhook triggered: ${webhook.name}`);
+                  }}
+                />
+              </TabsContent>
+
+              {/* Version Control System Tab */}
+              <TabsContent value="version-control" className="space-y-6">
+                <VersionControlSystem
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onVersionCreated={(version) => {
+                    toast.success(`Version created: ${version.version}`);
+                  }}
+                  onRollbackCompleted={(rollback) => {
+                    toast.success(`Rollback completed: ${rollback.type}`);
+                  }}
+                  onBranchCreated={(branch) => {
+                    toast.success(`Branch created: ${branch.name}`);
                   }}
                 />
               </TabsContent>
