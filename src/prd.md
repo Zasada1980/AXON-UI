@@ -33,6 +33,16 @@
 - **Audit Session Management**: Real-time monitoring of audit processes with start/stop controls and status tracking
 - **Comprehensive Reporting**: Detailed audit results with findings categorization, severity assessment, and recommendations
 
+### Agent Memory & Learning System
+- **Debate Memory Backup**: Each debate agent maintains persistent memory for collecting and storing correct decision information
+- **Log Collection System**: Automated collection and storage of all debate logs, audit results, and agent decisions with comprehensive tracking
+- **Memory File Creation**: Automated creation of curated memory files from collected logs using AI-driven filtering and organization
+- **Audit-Driven Curation**: AI audit agents automatically review, edit, and filter memory files, retaining only relevant and accurate information
+- **Project-Specific Knowledge Base**: Individual memory databases maintained per project, allowing agents to build project-specific expertise
+- **Silent Verification Pipeline**: Two-cycle automated debate verification system runs silently before memory file creation to ensure information quality
+- **Structured Journal Format**: All agent interactions stored in structured journal format with timestamps, context, and relevance scoring
+- **Memory Learning Integration**: Agents continuously learn from their memory files to improve future decision-making and analysis quality
+
 ### System Diagnostics & Recovery
 - **Real-time System Monitoring**: Continuous monitoring of system components including memory, performance, storage, network, security, and uptime metrics
 - **Automated Issue Detection**: Intelligent identification of system failures, performance degradation, and operational anomalies

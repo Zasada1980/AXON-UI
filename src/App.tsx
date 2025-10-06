@@ -8,6 +8,10 @@ import StepByStepRecovery from './components/StepByStepRecovery';
 import CheckpointSystem from './components/CheckpointSystem';
 import TaskManagementSystem from './components/TaskManagementSystem';
 import IntegrationTest from './components/IntegrationTest';
+import AgentMemoryManager from './components/AgentMemoryManager';
+import DebateLogManager from './components/DebateLogManager';
+import AgentJournalManager from './components/AgentJournalManager';
+import NavigationGuide from './components/NavigationGuide';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -271,6 +275,17 @@ const translations: Translations = {
   userGuide: { en: 'User Guide', ru: 'Руководство пользователя' },
   howToUse: { en: 'How to use AXON platform', ru: 'Как использовать платформу АКСОН' },
   diagnostics: { en: 'System Diagnostics & Recovery', ru: 'Диагностика и Восстановление Системы' },
+  
+  // Agent Memory System
+  agentMemory: { en: 'Agent Memory', ru: 'Память Агентов' },
+  agentMemorySystem: { en: 'Agent Memory System', ru: 'Система Памяти Агентов' },
+  memoryBackup: { en: 'Memory Backup', ru: 'Резервное Копирование Памяти' },
+  logCollection: { en: 'Log Collection', ru: 'Сбор Логов' },
+  memoryCreation: { en: 'Memory Creation', ru: 'Создание Памяти' },
+  silentVerification: { en: 'Silent Verification', ru: 'Тихая Верификация' },
+  auditCuration: { en: 'Audit Curation', ru: 'Курирование Аудитом' },
+  debateMemory: { en: 'Debate Memory', ru: 'Память Дебатов' },
+  agentLearning: { en: 'Agent Learning', ru: 'Обучение Агентов' },
   
   // Settings tab
   settings: { en: 'Settings', ru: 'Настройки' },
@@ -641,6 +656,12 @@ interface ModuleColorSettings {
     accent: string;
     background: string;
   };
+  memory: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+  };
 }
 
 interface ChatMessage {
@@ -759,6 +780,12 @@ function App() {
       secondary: 'oklch(41% 0.12 80)',
       accent: 'oklch(71% 0.22 40)',
       background: 'oklch(17% 0.027 60)'
+    },
+    memory: {
+      primary: 'oklch(59% 0.19 320)',
+      secondary: 'oklch(39% 0.13 340)',
+      accent: 'oklch(69% 0.23 300)',
+      background: 'oklch(18% 0.026 320)'
     }
   });
 
@@ -1356,6 +1383,14 @@ function App() {
           root.style.setProperty('--module-background', settings.executor.background);
         }
         break;
+      case 'memory':
+        if (settings.memory) {
+          root.style.setProperty('--module-primary', settings.memory.primary);
+          root.style.setProperty('--module-secondary', settings.memory.secondary);
+          root.style.setProperty('--module-accent', settings.memory.accent);
+          root.style.setProperty('--module-background', settings.memory.background);
+        }
+        break;
     }
     
     toast.success(t('colorApplied'));
@@ -1891,145 +1926,18 @@ Respond naturally and helpfully.`;
                     {t('instructions')}
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[80vh]">
+                <DialogContent className="max-w-6xl max-h-[90vh]">
                   <DialogHeader>
                     <DialogTitle>{t('userGuide')}</DialogTitle>
                     <DialogDescription>
                       {t('howToUse')}
                     </DialogDescription>
                   </DialogHeader>
-                  <ScrollArea className="h-[60vh] pr-4">
-                    <div className="prose prose-sm max-w-none text-foreground">
-                      {currentLanguage === 'ru' ? (
-                        <div className="space-y-4 text-sm">
-                          <h2 className="text-lg font-semibold">Обзор системы</h2>
-                          <p>АКСОН - это интеллектуальная платформа для систематического анализа данных, использующая директиву IKR (Intelligence-Knowledge-Reasoning) и протокол Киплинга. Система также включает модуль аудита ИИ для проверки и анализа систем искусственного интеллекта.</p>
-                          
-                          <h3 className="text-md font-semibold mt-6">Аудит ИИ - Модуль проверки систем искусственного интеллекта</h3>
-                          
-                          <h4 className="font-medium">Выбор агентов аудита</h4>
-                          <p>В системе доступны 4 типа агентов аудита:</p>
-                          <ul className="list-disc pl-6 space-y-2">
-                            <li><strong>Агент Безопасности</strong> - Анализ уязвимостей и угроз безопасности</li>
-                            <li><strong>Агент Обнаружения Предвзятости</strong> - Выявление алгоритмической предвзятости</li>
-                            <li><strong>Агент Производительности</strong> - Мониторинг производительности и точности модели</li>
-                            <li><strong>Агент Соответствия</strong> - Проверка соответствия нормативным требованиям</li>
-                          </ul>
-                          
-                          <h4 className="font-medium">Настройка агентов аудита</h4>
-                          <ol className="list-decimal pl-6 space-y-1">
-                            <li><strong>Выбор агента</strong>: Кликните на карточку агента в разделе "Аудит ИИ"</li>
-                            <li><strong>Настройка API</strong>: Нажмите кнопку "API" для настройки подключения к облачному провайдеру</li>
-                            <li><strong>Конфигурация</strong>: Нажмите кнопку "Настроить" для открытия панели настроек</li>
-                            <li><strong>Параметры API</strong>:
-                              <ul className="list-disc pl-6 mt-2 space-y-1">
-                                <li>Облачный провайдер (OpenAI, Anthropic, Google AI, Azure, Локальный)</li>
-                                <li>API ключ для выбранного провайдера</li>
-                                <li>Пользовательская конечная точка (опционально)</li>
-                                <li>Название модели (опционально)</li>
-                              </ul>
-                            </li>
-                            <li><strong>Параметры настройки</strong>:
-                              <ul className="list-disc pl-6 mt-2 space-y-1">
-                                <li>Уровень чувствительности (0-100%)</li>
-                                <li>Глубина анализа (0-100%)</li>
-                                <li>Область аудита (System/Algorithm/Model/Full)</li>
-                                <li>Порог оповещения (0-100%)</li>
-                              </ul>
-                            </li>
-                          </ol>
-                          
-                          <h4 className="font-medium">Типы аудита ИИ</h4>
-                          <ul className="list-disc pl-6 space-y-2">
-                            <li><strong>Полный Аудит Системы</strong> - Комплексная проверка всех компонентов</li>
-                            <li><strong>Быстрое Сканирование Безопасности</strong> - Экспресс-проверка основных уязвимостей</li>
-                            <li><strong>Оценка Предвзятости</strong> - Специализированная проверка на предвзятость</li>
-                            <li><strong>Обзор Производительности</strong> - Анализ эффективности работы модели</li>
-                          </ul>
-                          
-                          <h4 className="font-medium">Запуск аудита</h4>
-                          <ol className="list-decimal pl-6 space-y-1">
-                            <li>Выберите агента: Кликните на нужного агента аудита</li>
-                            <li>Выберите тип аудита: Нажмите на одну из кнопок типов аудита</li>
-                            <li>Мониторинг: Следите за статусом выполнения</li>
-                            <li>Остановка: При необходимости используйте кнопку "Остановить Аудит"</li>
-                          </ol>
-                          
-                          <h4 className="font-medium">Результаты аудита</h4>
-                          <p>После завершения аудита вы получите:</p>
-                          <ul className="list-disc pl-6 space-y-1">
-                            <li>Статус выполнения</li>
-                            <li>Количество находок</li>
-                            <li>Детальные результаты</li>
-                            <li>Временные метки</li>
-                          </ul>
-                        </div>
-                      ) : (
-                        <div className="space-y-4 text-sm">
-                          <h2 className="text-lg font-semibold">System Overview</h2>
-                          <p>AXON is an intelligent platform for systematic data analysis using the IKR (Intelligence-Knowledge-Reasoning) directive and Kipling protocol. The system also includes an AI audit module for checking and analyzing artificial intelligence systems.</p>
-                          
-                          <h3 className="text-md font-semibold mt-6">AI Audit - AI Systems Verification Module</h3>
-                          
-                          <h4 className="font-medium">Selecting Audit Agents</h4>
-                          <p>The system provides 4 types of audit agents:</p>
-                          <ul className="list-disc pl-6 space-y-2">
-                            <li><strong>Security Agent</strong> - Analyzes security vulnerabilities and threats</li>
-                            <li><strong>Bias Detection Agent</strong> - Detects algorithmic bias and fairness issues</li>
-                            <li><strong>Performance Agent</strong> - Monitors AI model performance and accuracy</li>
-                            <li><strong>Compliance Agent</strong> - Ensures regulatory and ethical compliance</li>
-                          </ul>
-                          
-                          <h4 className="font-medium">Configuring Audit Agents</h4>
-                          <ol className="list-decimal pl-6 space-y-1">
-                            <li><strong>Select Agent</strong>: Click on the agent card in the "AI Audit" section</li>
-                            <li><strong>API Setup</strong>: Click the "API" button to configure cloud provider connection</li>
-                            <li><strong>Configuration</strong>: Click the "Configure" button to open settings panel</li>
-                            <li><strong>API Parameters</strong>:
-                              <ul className="list-disc pl-6 mt-2 space-y-1">
-                                <li>Cloud Provider (OpenAI, Anthropic, Google AI, Azure, Local/Custom)</li>
-                                <li>API key for the selected provider</li>
-                                <li>Custom endpoint URL (optional)</li>
-                                <li>Model name (optional)</li>
-                              </ul>
-                            </li>
-                            <li><strong>Configuration Parameters</strong>:
-                              <ul className="list-disc pl-6 mt-2 space-y-1">
-                                <li>Sensitivity Level (0-100%)</li>
-                                <li>Analysis Depth (0-100%)</li>
-                                <li>Audit Scope (System/Algorithm/Model/Full)</li>
-                                <li>Alert Threshold (0-100%)</li>
-                              </ul>
-                            </li>
-                          </ol>
-                          
-                          <h4 className="font-medium">AI Audit Types</h4>
-                          <ul className="list-disc pl-6 space-y-2">
-                            <li><strong>Full System Audit</strong> - Comprehensive check of all components</li>
-                            <li><strong>Quick Security Scan</strong> - Express check of main vulnerabilities</li>
-                            <li><strong>Bias Assessment</strong> - Specialized bias detection</li>
-                            <li><strong>Performance Review</strong> - Analysis of model efficiency</li>
-                          </ul>
-                          
-                          <h4 className="font-medium">Running an Audit</h4>
-                          <ol className="list-decimal pl-6 space-y-1">
-                            <li>Select Agent: Click on the desired audit agent</li>
-                            <li>Choose Audit Type: Click on one of the audit type buttons</li>
-                            <li>Monitor: Track execution status</li>
-                            <li>Stop: Use "Stop Audit" button if needed</li>
-                          </ol>
-                          
-                          <h4 className="font-medium">Audit Results</h4>
-                          <p>After audit completion you will receive:</p>
-                          <ul className="list-disc pl-6 space-y-1">
-                            <li>Execution status</li>
-                            <li>Number of findings</li>
-                            <li>Detailed results</li>
-                            <li>Timestamps</li>
-                          </ul>
-                        </div>
-                      )}
-                    </div>
+                  <ScrollArea className="h-[70vh] pr-4">
+                    <NavigationGuide 
+                      language={currentLanguage} 
+                      currentModule={activeTab}
+                    />
                   </ScrollArea>
                 </DialogContent>
               </Dialog>
@@ -2165,13 +2073,14 @@ Respond naturally and helpfully.`;
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-9">
+              <TabsList className="grid w-full grid-cols-10">
                 <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
                 <TabsTrigger value="kipling">{t('kipling')}</TabsTrigger>
                 <TabsTrigger value="ikr">{t('ikr')}</TabsTrigger>
                 <TabsTrigger value="audit">{t('aiAudit')}</TabsTrigger>
                 <TabsTrigger value="debate">{t('agentDebate')}</TabsTrigger>
                 <TabsTrigger value="executor">{t('executor')}</TabsTrigger>
+                <TabsTrigger value="memory">{t('agentMemory')}</TabsTrigger>
                 <TabsTrigger value="diagnostics">{t('diagnostics')}</TabsTrigger>
                 <TabsTrigger value="chat">{t('chat')}</TabsTrigger>
                 <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
@@ -2819,6 +2728,48 @@ Respond naturally and helpfully.`;
                     toast.info(`Step completed: ${step.command.name}`);
                   }}
                 />
+              </TabsContent>
+
+              {/* Agent Memory Tab */}
+              <TabsContent value="memory" className="space-y-6">
+                <div className="grid gap-6">
+                  <AgentMemoryManager
+                    language={currentLanguage}
+                    projectId={project.id}
+                    onMemoryCreated={(memoryFile) => {
+                      toast.success(`Memory file created: ${memoryFile.name}`);
+                    }}
+                    onPipelineCompleted={(pipeline) => {
+                      toast.success(`Memory pipeline completed: ${pipeline.request.name}`);
+                    }}
+                  />
+                  
+                  <Separator />
+                  
+                  <DebateLogManager
+                    language={currentLanguage}
+                    projectId={project.id}
+                    onLogCreated={(log) => {
+                      // Можно добавить логику для сохранения логов в проекте
+                    }}
+                    onMemoryExtracted={(memories) => {
+                      toast.success(`Extracted ${memories.length} memory entries from debate logs`);
+                    }}
+                  />
+                  
+                  <Separator />
+                  
+                  <AgentJournalManager
+                    language={currentLanguage}
+                    projectId={project.id}
+                    onEntryCreated={(entry) => {
+                      toast.success(`Journal entry created: ${entry.title}`);
+                    }}
+                    onJournalExported={(journal) => {
+                      toast.success(`Journal exported for agent: ${journal.agentId}`);
+                    }}
+                  />
+                </div>
               </TabsContent>
 
               {/* System Diagnostics Tab */}
