@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -201,6 +201,24 @@ const translations: Translations = {
   userGuide: { en: 'User Guide', ru: 'Руководство пользователя' },
   howToUse: { en: 'How to use AXON platform', ru: 'Как использовать платформу АКСОН' },
   
+  // Settings tab
+  settings: { en: 'Settings', ru: 'Настройки' },
+  moduleColorSettings: { en: 'Module Color Settings', ru: 'Настройки Цветов Модулей' },
+  colorRangeConfig: { en: 'Configure color ranges for workspace modules', ru: 'Настройка цветовых диапазонов для модулей рабочей области' },
+  colorRange: { en: 'Color Range', ru: 'Цветовой Диапазон' },
+  primaryColor: { en: 'Primary Color', ru: 'Основной Цвет' },
+  secondaryColor: { en: 'Secondary Color', ru: 'Вторичный Цвет' },
+  accentColor: { en: 'Accent Color', ru: 'Акцентный Цвет' },
+  backgroundColor: { en: 'Background Color', ru: 'Цвет Фона' },
+  overviewModule: { en: 'Overview Module', ru: 'Модуль Обзора' },
+  kiplingModule: { en: 'Kipling Module', ru: 'Модуль Киплинга' },
+  ikrModule: { en: 'IKR Module', ru: 'Модуль IKR' },
+  auditModule: { en: 'Audit Module', ru: 'Модуль Аудита' },
+  resetToDefault: { en: 'Reset to Default', ru: 'Сбросить к Умолчанию' },
+  applyColors: { en: 'Apply Colors', ru: 'Применить Цвета' },
+  colorApplied: { en: 'Color settings applied', ru: 'Настройки цвета применены' },
+  colorsReset: { en: 'Colors reset to default', ru: 'Цвета сброшены к умолчанию' },
+  
   // API Configuration
   apiConfiguration: { en: 'API Configuration', ru: 'Настройка API' },
   cloudProvider: { en: 'Cloud Provider', ru: 'Облачный Провайдер' },
@@ -288,6 +306,34 @@ interface AnalysisProject {
   };
   auditAgents: AuditAgent[];
   auditSessions: AuditSession[];
+  colorSettings?: ModuleColorSettings;
+}
+
+interface ModuleColorSettings {
+  overview: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+  };
+  kipling: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+  };
+  ikr: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+  };
+  audit: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+  };
 }
 
 function App() {
@@ -310,6 +356,7 @@ function App() {
   const [isConfiguringApi, setIsConfiguringApi] = useState(false);
   const [currentAuditSession, setCurrentAuditSession] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [tempColorSettings, setTempColorSettings] = useState<ModuleColorSettings | null>(null);
 
   // Get current project data
   const projectData = projects?.find(p => p.id === currentProject);
@@ -338,7 +385,33 @@ function App() {
     }
   };
 
-  // Get default audit agents
+  // Get default color settings
+  const getDefaultColorSettings = (): ModuleColorSettings => ({
+    overview: {
+      primary: 'oklch(55% 0.2 200)',
+      secondary: 'oklch(35% 0.1 220)',
+      accent: 'oklch(65% 0.25 180)',
+      background: 'oklch(16% 0.03 220)'
+    },
+    kipling: {
+      primary: 'oklch(60% 0.18 240)',
+      secondary: 'oklch(40% 0.12 260)',
+      accent: 'oklch(70% 0.22 220)',
+      background: 'oklch(18% 0.025 240)'
+    },
+    ikr: {
+      primary: 'oklch(58% 0.19 160)',
+      secondary: 'oklch(38% 0.11 180)',
+      accent: 'oklch(68% 0.23 140)',
+      background: 'oklch(17% 0.028 160)'
+    },
+    audit: {
+      primary: 'oklch(62% 0.17 15)',
+      secondary: 'oklch(42% 0.13 35)',
+      accent: 'oklch(72% 0.21 350)',
+      background: 'oklch(19% 0.022 15)'
+    }
+  });
   const getDefaultAuditAgents = (): AuditAgent[] => [
     {
       id: 'security-agent',
@@ -431,7 +504,8 @@ function App() {
       const updatedProject = {
         ...proj,
         auditAgents: proj.auditAgents || getDefaultAuditAgents(),
-        auditSessions: proj.auditSessions || []
+        auditSessions: proj.auditSessions || [],
+        colorSettings: proj.colorSettings || getDefaultColorSettings()
       };
       
       // Update the projects array
@@ -558,7 +632,8 @@ function App() {
         reasoning: ''
       },
       auditAgents: getDefaultAuditAgents(),
-      auditSessions: []
+      auditSessions: [],
+      colorSettings: getDefaultColorSettings()
     };
 
     setProjects(current => [...(current || []), newProject]);
@@ -611,7 +686,96 @@ function App() {
     );
   };
 
-  // Update audit agent settings
+  // Update color settings
+  const updateColorSettings = (moduleId: keyof ModuleColorSettings, colorType: string, color: string) => {
+    if (!project) return;
+
+    const currentSettings = project.colorSettings || getDefaultColorSettings();
+    const newSettings = {
+      ...currentSettings,
+      [moduleId]: {
+        ...currentSettings[moduleId],
+        [colorType]: color
+      }
+    };
+
+    setProjects(current => 
+      (current || []).map(p => 
+        p.id === project.id 
+          ? {
+              ...p,
+              lastModified: new Date().toISOString(),
+              colorSettings: newSettings
+            }
+          : p
+      )
+    );
+  };
+
+  // Reset colors to default
+  const resetColorsToDefault = () => {
+    if (!project) return;
+
+    setProjects(current => 
+      (current || []).map(p => 
+        p.id === project.id 
+          ? {
+              ...p,
+              lastModified: new Date().toISOString(),
+              colorSettings: getDefaultColorSettings()
+            }
+          : p
+      )
+    );
+    
+    setTempColorSettings(null);
+    toast.success(t('colorsReset'));
+  };
+
+  // Apply color settings to CSS
+  const applyColorSettings = () => {
+    if (!project?.colorSettings) return;
+
+    const settings = project.colorSettings;
+    const root = document.documentElement;
+
+    // Apply colors based on active tab
+    switch (activeTab) {
+      case 'overview':
+        root.style.setProperty('--module-primary', settings.overview.primary);
+        root.style.setProperty('--module-secondary', settings.overview.secondary);
+        root.style.setProperty('--module-accent', settings.overview.accent);
+        root.style.setProperty('--module-background', settings.overview.background);
+        break;
+      case 'kipling':
+        root.style.setProperty('--module-primary', settings.kipling.primary);
+        root.style.setProperty('--module-secondary', settings.kipling.secondary);
+        root.style.setProperty('--module-accent', settings.kipling.accent);
+        root.style.setProperty('--module-background', settings.kipling.background);
+        break;
+      case 'ikr':
+        root.style.setProperty('--module-primary', settings.ikr.primary);
+        root.style.setProperty('--module-secondary', settings.ikr.secondary);
+        root.style.setProperty('--module-accent', settings.ikr.accent);
+        root.style.setProperty('--module-background', settings.ikr.background);
+        break;
+      case 'audit':
+        root.style.setProperty('--module-primary', settings.audit.primary);
+        root.style.setProperty('--module-secondary', settings.audit.secondary);
+        root.style.setProperty('--module-accent', settings.audit.accent);
+        root.style.setProperty('--module-background', settings.audit.background);
+        break;
+    }
+    
+    toast.success(t('colorApplied'));
+  };
+
+  // Apply colors when tab changes
+  useEffect(() => {
+    if (project?.colorSettings) {
+      applyColorSettings();
+    }
+  }, [activeTab, project?.colorSettings]);
   const updateAgentSettings = (agentId: string, settings: Partial<AuditAgent['settings']>) => {
     if (!project) return;
 
@@ -1166,11 +1330,12 @@ function App() {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
                 <TabsTrigger value="kipling">{t('kipling')}</TabsTrigger>
                 <TabsTrigger value="ikr">{t('ikr')}</TabsTrigger>
                 <TabsTrigger value="audit">{t('aiAudit')}</TabsTrigger>
+                <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
               </TabsList>
 
               {/* Overview Tab */}
@@ -1602,6 +1767,418 @@ function App() {
                     </Card>
                   )}
                 </div>
+              </TabsContent>
+
+              {/* Settings Tab */}
+              <TabsContent value="settings" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Gear size={24} className="text-primary" />
+                      {t('moduleColorSettings')}
+                    </CardTitle>
+                    <CardDescription>
+                      {t('colorRangeConfig')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Overview Module Colors */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg flex items-center gap-2">
+                        <ChartLine size={20} />
+                        {t('overviewModule')}
+                      </h4>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="overview-primary">{t('primaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="overview-primary"
+                              type="color"
+                              value={project.colorSettings?.overview.primary.includes('oklch') 
+                                ? '#0ea5e9' 
+                                : project.colorSettings?.overview.primary || '#0ea5e9'
+                              }
+                              onChange={(e) => updateColorSettings('overview', 'primary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.overview.primary || 'oklch(55% 0.2 200)'}
+                              onChange={(e) => updateColorSettings('overview', 'primary', e.target.value)}
+                              placeholder="oklch(55% 0.2 200)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="overview-secondary">{t('secondaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="overview-secondary"
+                              type="color"
+                              value={project.colorSettings?.overview.secondary.includes('oklch')
+                                ? '#334155'
+                                : project.colorSettings?.overview.secondary || '#334155'
+                              }
+                              onChange={(e) => updateColorSettings('overview', 'secondary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.overview.secondary || 'oklch(35% 0.1 220)'}
+                              onChange={(e) => updateColorSettings('overview', 'secondary', e.target.value)}
+                              placeholder="oklch(35% 0.1 220)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="overview-accent">{t('accentColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="overview-accent"
+                              type="color"
+                              value={project.colorSettings?.overview.accent.includes('oklch')
+                                ? '#06b6d4'
+                                : project.colorSettings?.overview.accent || '#06b6d4'
+                              }
+                              onChange={(e) => updateColorSettings('overview', 'accent', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.overview.accent || 'oklch(65% 0.25 180)'}
+                              onChange={(e) => updateColorSettings('overview', 'accent', e.target.value)}
+                              placeholder="oklch(65% 0.25 180)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="overview-background">{t('backgroundColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="overview-background"
+                              type="color"
+                              value={project.colorSettings?.overview.background.includes('oklch')
+                                ? '#1e293b'
+                                : project.colorSettings?.overview.background || '#1e293b'
+                              }
+                              onChange={(e) => updateColorSettings('overview', 'background', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.overview.background || 'oklch(16% 0.03 220)'}
+                              onChange={(e) => updateColorSettings('overview', 'background', e.target.value)}
+                              placeholder="oklch(16% 0.03 220)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Kipling Module Colors */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg flex items-center gap-2">
+                        <Users size={20} />
+                        {t('kiplingModule')}
+                      </h4>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="kipling-primary">{t('primaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="kipling-primary"
+                              type="color"
+                              value={project.colorSettings?.kipling.primary.includes('oklch')
+                                ? '#8b5cf6'
+                                : project.colorSettings?.kipling.primary || '#8b5cf6'
+                              }
+                              onChange={(e) => updateColorSettings('kipling', 'primary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.kipling.primary || 'oklch(60% 0.18 240)'}
+                              onChange={(e) => updateColorSettings('kipling', 'primary', e.target.value)}
+                              placeholder="oklch(60% 0.18 240)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="kipling-secondary">{t('secondaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="kipling-secondary"
+                              type="color"
+                              value={project.colorSettings?.kipling.secondary.includes('oklch')
+                                ? '#6366f1'
+                                : project.colorSettings?.kipling.secondary || '#6366f1'
+                              }
+                              onChange={(e) => updateColorSettings('kipling', 'secondary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.kipling.secondary || 'oklch(40% 0.12 260)'}
+                              onChange={(e) => updateColorSettings('kipling', 'secondary', e.target.value)}
+                              placeholder="oklch(40% 0.12 260)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="kipling-accent">{t('accentColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="kipling-accent"
+                              type="color"
+                              value={project.colorSettings?.kipling.accent.includes('oklch')
+                                ? '#a855f7'
+                                : project.colorSettings?.kipling.accent || '#a855f7'
+                              }
+                              onChange={(e) => updateColorSettings('kipling', 'accent', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.kipling.accent || 'oklch(70% 0.22 220)'}
+                              onChange={(e) => updateColorSettings('kipling', 'accent', e.target.value)}
+                              placeholder="oklch(70% 0.22 220)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="kipling-background">{t('backgroundColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="kipling-background"
+                              type="color"
+                              value={project.colorSettings?.kipling.background.includes('oklch')
+                                ? '#312e81'
+                                : project.colorSettings?.kipling.background || '#312e81'
+                              }
+                              onChange={(e) => updateColorSettings('kipling', 'background', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.kipling.background || 'oklch(18% 0.025 240)'}
+                              onChange={(e) => updateColorSettings('kipling', 'background', e.target.value)}
+                              placeholder="oklch(18% 0.025 240)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* IKR Module Colors */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg flex items-center gap-2">
+                        <Target size={20} />
+                        {t('ikrModule')}
+                      </h4>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="ikr-primary">{t('primaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="ikr-primary"
+                              type="color"
+                              value={project.colorSettings?.ikr.primary.includes('oklch')
+                                ? '#10b981'
+                                : project.colorSettings?.ikr.primary || '#10b981'
+                              }
+                              onChange={(e) => updateColorSettings('ikr', 'primary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.ikr.primary || 'oklch(58% 0.19 160)'}
+                              onChange={(e) => updateColorSettings('ikr', 'primary', e.target.value)}
+                              placeholder="oklch(58% 0.19 160)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="ikr-secondary">{t('secondaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="ikr-secondary"
+                              type="color"
+                              value={project.colorSettings?.ikr.secondary.includes('oklch')
+                                ? '#059669'
+                                : project.colorSettings?.ikr.secondary || '#059669'
+                              }
+                              onChange={(e) => updateColorSettings('ikr', 'secondary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.ikr.secondary || 'oklch(38% 0.11 180)'}
+                              onChange={(e) => updateColorSettings('ikr', 'secondary', e.target.value)}
+                              placeholder="oklch(38% 0.11 180)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="ikr-accent">{t('accentColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="ikr-accent"
+                              type="color"
+                              value={project.colorSettings?.ikr.accent.includes('oklch')
+                                ? '#34d399'
+                                : project.colorSettings?.ikr.accent || '#34d399'
+                              }
+                              onChange={(e) => updateColorSettings('ikr', 'accent', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.ikr.accent || 'oklch(68% 0.23 140)'}
+                              onChange={(e) => updateColorSettings('ikr', 'accent', e.target.value)}
+                              placeholder="oklch(68% 0.23 140)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="ikr-background">{t('backgroundColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="ikr-background"
+                              type="color"
+                              value={project.colorSettings?.ikr.background.includes('oklch')
+                                ? '#064e3b'
+                                : project.colorSettings?.ikr.background || '#064e3b'
+                              }
+                              onChange={(e) => updateColorSettings('ikr', 'background', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.ikr.background || 'oklch(17% 0.028 160)'}
+                              onChange={(e) => updateColorSettings('ikr', 'background', e.target.value)}
+                              placeholder="oklch(17% 0.028 160)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Audit Module Colors */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg flex items-center gap-2">
+                        <Robot size={20} />
+                        {t('auditModule')}
+                      </h4>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="audit-primary">{t('primaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="audit-primary"
+                              type="color"
+                              value={project.colorSettings?.audit.primary.includes('oklch')
+                                ? '#f97316'
+                                : project.colorSettings?.audit.primary || '#f97316'
+                              }
+                              onChange={(e) => updateColorSettings('audit', 'primary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.audit.primary || 'oklch(62% 0.17 15)'}
+                              onChange={(e) => updateColorSettings('audit', 'primary', e.target.value)}
+                              placeholder="oklch(62% 0.17 15)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="audit-secondary">{t('secondaryColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="audit-secondary"
+                              type="color"
+                              value={project.colorSettings?.audit.secondary.includes('oklch')
+                                ? '#ea580c'
+                                : project.colorSettings?.audit.secondary || '#ea580c'
+                              }
+                              onChange={(e) => updateColorSettings('audit', 'secondary', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.audit.secondary || 'oklch(42% 0.13 35)'}
+                              onChange={(e) => updateColorSettings('audit', 'secondary', e.target.value)}
+                              placeholder="oklch(42% 0.13 35)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="audit-accent">{t('accentColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="audit-accent"
+                              type="color"
+                              value={project.colorSettings?.audit.accent.includes('oklch')
+                                ? '#fb7185'
+                                : project.colorSettings?.audit.accent || '#fb7185'
+                              }
+                              onChange={(e) => updateColorSettings('audit', 'accent', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.audit.accent || 'oklch(72% 0.21 350)'}
+                              onChange={(e) => updateColorSettings('audit', 'accent', e.target.value)}
+                              placeholder="oklch(72% 0.21 350)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="audit-background">{t('backgroundColor')}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="audit-background"
+                              type="color"
+                              value={project.colorSettings?.audit.background.includes('oklch')
+                                ? '#7c2d12'
+                                : project.colorSettings?.audit.background || '#7c2d12'
+                              }
+                              onChange={(e) => updateColorSettings('audit', 'background', e.target.value)}
+                              className="w-16 h-10 p-1 border rounded"
+                            />
+                            <Input
+                              value={project.colorSettings?.audit.background || 'oklch(19% 0.022 15)'}
+                              onChange={(e) => updateColorSettings('audit', 'background', e.target.value)}
+                              placeholder="oklch(19% 0.022 15)"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center justify-between pt-4">
+                      <Button variant="outline" onClick={resetColorsToDefault}>
+                        <ArrowRight size={16} className="mr-2 rotate-180" />
+                        {t('resetToDefault')}
+                      </Button>
+                      <Button onClick={applyColorSettings}>
+                        <CheckCircle size={16} className="mr-2" />
+                        {t('applyColors')}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
 
