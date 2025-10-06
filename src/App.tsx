@@ -12,6 +12,9 @@ import AgentMemoryManager from './components/AgentMemoryManager';
 import DebateLogManager from './components/DebateLogManager';
 import AgentJournalManager from './components/AgentJournalManager';
 import NavigationGuide from './components/NavigationGuide';
+import ProjectIntegrationJournal from './components/ProjectIntegrationJournal';
+import MicroTaskExecutor from './components/MicroTaskExecutor';
+import UIIntegrationManager from './components/UIIntegrationManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -2073,7 +2076,7 @@ Respond naturally and helpfully.`;
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-10">
+              <TabsList className="grid w-full grid-cols-12">
                 <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
                 <TabsTrigger value="kipling">{t('kipling')}</TabsTrigger>
                 <TabsTrigger value="ikr">{t('ikr')}</TabsTrigger>
@@ -2083,6 +2086,9 @@ Respond naturally and helpfully.`;
                 <TabsTrigger value="memory">{t('agentMemory')}</TabsTrigger>
                 <TabsTrigger value="diagnostics">{t('diagnostics')}</TabsTrigger>
                 <TabsTrigger value="chat">{t('chat')}</TabsTrigger>
+                <TabsTrigger value="journal">Journal</TabsTrigger>
+                <TabsTrigger value="microtasks">MicroTasks</TabsTrigger>
+                <TabsTrigger value="integration">Integration</TabsTrigger>
                 <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
               </TabsList>
 
@@ -3043,6 +3049,57 @@ Respond naturally and helpfully.`;
                     </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              {/* Project Integration Journal Tab */}
+              <TabsContent value="journal" className="space-y-6">
+                <ProjectIntegrationJournal
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onEntryCreated={(entry) => {
+                    toast.success(`Journal entry created: ${entry.title}`);
+                  }}
+                  onMapUpdated={(map) => {
+                    toast.success(`Project map updated: ${map.name}`);
+                  }}
+                  onPhaseCompleted={(phase) => {
+                    toast.success(`Integration phase completed: ${phase.name}`);
+                  }}
+                />
+              </TabsContent>
+
+              {/* Micro Task Executor Tab */}
+              <TabsContent value="microtasks" className="space-y-6">
+                <MicroTaskExecutor
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onTaskCompleted={(task) => {
+                    toast.success(`Micro-task completed: ${task.title}`);
+                  }}
+                  onSessionCompleted={(session) => {
+                    toast.success(`Task session completed: ${session.name}`);
+                  }}
+                  onBreakdownCreated={(breakdown) => {
+                    toast.success(`Task breakdown created: ${breakdown.originalTask}`);
+                  }}
+                />
+              </TabsContent>
+
+              {/* UI Integration Manager Tab */}
+              <TabsContent value="integration" className="space-y-6">
+                <UIIntegrationManager
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onIntegrationCompleted={(integration) => {
+                    toast.success(`Integration completed: ${integration.name}`);
+                  }}
+                  onSessionCompleted={(session) => {
+                    toast.success(`Integration session completed: ${session.name}`);
+                  }}
+                  onTestPassed={(testCase) => {
+                    toast.success(`Test passed: ${testCase.title}`);
+                  }}
+                />
               </TabsContent>
 
               {/* Settings Tab */}
