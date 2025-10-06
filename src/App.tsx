@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   Brain,
@@ -31,7 +32,16 @@ import {
   CheckCircle,
   Warning,
   Star,
-  Globe
+  Globe,
+  Robot,
+  Shield,
+  Play,
+  Pause,
+  Stop,
+  ListChecks,
+  Bug,
+  SecurityCamera,
+  Question
 } from '@phosphor-icons/react';
 
 // Declare global spark object
@@ -85,6 +95,7 @@ const translations: Translations = {
   overview: { en: 'Analysis Overview', ru: 'Обзор Анализа' },
   kipling: { en: 'Kipling Protocol', ru: 'Протокол Киплинга' },
   ikr: { en: 'IKR Directive', ru: 'Директива IKR' },
+  aiAudit: { en: 'AI Audit', ru: 'Аудит ИИ' },
   
   // Kipling dimensions
   who: { en: 'Who', ru: 'Кто' },
@@ -123,11 +134,51 @@ const translations: Translations = {
   reasoningDesc: { en: 'Apply analytical reasoning to derive strategic insights and recommendations', ru: 'Применяйте аналитические рассуждения для получения стратегических выводов и рекомендаций' },
   reasoningPlaceholder: { en: 'Apply logical reasoning to the knowledge base. What are the implications, predictions, and recommended actions?', ru: 'Примените логические рассуждения к базе знаний. Каковы последствия, прогнозы и рекомендуемые действия?' },
   
+  // AI Audit section
+  auditAgents: { en: 'Audit Agents', ru: 'Агенты Аудита' },
+  auditAgentsDesc: { en: 'Configure and manage AI audit agents for systematic analysis', ru: 'Настройте и управляйте агентами аудита ИИ для систематического анализа' },
+  selectAgent: { en: 'Select Agent', ru: 'Выбрать Агента' },
+  agentSettings: { en: 'Agent Settings', ru: 'Настройки Агента' },
+  auditType: { en: 'Audit Type', ru: 'Тип Аудита' },
+  startAudit: { en: 'Start Audit', ru: 'Начать Аудит' },
+  stopAudit: { en: 'Stop Audit', ru: 'Остановить Аудит' },
+  auditResults: { en: 'Audit Results', ru: 'Результаты Аудита' },
+  auditStatus: { en: 'Audit Status', ru: 'Статус Аудита' },
+  
+  // Agent types
+  securityAgent: { en: 'Security Agent', ru: 'Агент Безопасности' },
+  securityAgentDesc: { en: 'Analyzes security vulnerabilities and threats', ru: 'Анализирует уязвимости безопасности и угрозы' },
+  biasAgent: { en: 'Bias Detection Agent', ru: 'Агент Обнаружения Предвзятости' },
+  biasAgentDesc: { en: 'Detects algorithmic bias and fairness issues', ru: 'Обнаруживает алгоритмическую предвзятость и проблемы справедливости' },
+  performanceAgent: { en: 'Performance Agent', ru: 'Агент Производительности' },
+  performanceAgentDesc: { en: 'Monitors AI model performance and accuracy', ru: 'Отслеживает производительность и точность модели ИИ' },
+  complianceAgent: { en: 'Compliance Agent', ru: 'Агент Соответствия' },
+  complianceAgentDesc: { en: 'Ensures regulatory and ethical compliance', ru: 'Обеспечивает соответствие нормативным и этическим требованиям' },
+  
+  // Audit types
+  fullAudit: { en: 'Full System Audit', ru: 'Полный Аудит Системы' },
+  quickScan: { en: 'Quick Security Scan', ru: 'Быстрое Сканирование Безопасности' },
+  biasAudit: { en: 'Bias Assessment', ru: 'Оценка Предвзятости' },
+  performanceAudit: { en: 'Performance Review', ru: 'Обзор Производительности' },
+  
+  // Audit status
+  idle: { en: 'Idle', ru: 'Ожидание' },
+  running: { en: 'Running', ru: 'Выполняется' },
+  completed: { en: 'Completed', ru: 'Завершено' },
+  failed: { en: 'Failed', ru: 'Не удался' },
+  
+  // Agent settings
+  sensitivity: { en: 'Sensitivity Level', ru: 'Уровень Чувствительности' },
+  depth: { en: 'Analysis Depth', ru: 'Глубина Анализа' },
+  scope: { en: 'Audit Scope', ru: 'Область Аудита' },
+  threshold: { en: 'Alert Threshold', ru: 'Порог Оповещения' },
+  
   // Actions
   backToProjects: { en: 'Back to Projects', ru: 'Назад к Проектам' },
   exportReport: { en: 'Export Report', ru: 'Экспортировать Отчет' },
   saveProgress: { en: 'Save Progress', ru: 'Сохранить Прогресс' },
   language: { en: 'Language', ru: 'Язык' },
+  configure: { en: 'Configure', ru: 'Настроить' },
   
   // Toast messages
   projectTitleRequired: { en: 'Project title is required', ru: 'Название проекта обязательно' },
@@ -136,7 +187,17 @@ const translations: Translations = {
   insightsGenerated: { en: 'Insights generated successfully', ru: 'Выводы успешно созданы' },
   failedToGenerate: { en: 'Failed to generate insights', ru: 'Не удалось создать выводы' },
   reportExported: { en: 'Analysis report exported', ru: 'Отчет анализа экспортирован' },
-  analysisSaved: { en: 'Analysis saved automatically', ru: 'Анализ сохранен автоматически' }
+  analysisSaved: { en: 'Analysis saved automatically', ru: 'Анализ сохранен автоматически' },
+  auditStarted: { en: 'AI audit started', ru: 'Аудит ИИ начат' },
+  auditStopped: { en: 'AI audit stopped', ru: 'Аудит ИИ остановлен' },
+  agentConfigured: { en: 'Agent configured successfully', ru: 'Агент успешно настроен' },
+  
+  // Additional translations
+  started: { en: 'Started', ru: 'Начато' },
+  findings: { en: 'Findings', ru: 'Находки' },
+  instructions: { en: 'Instructions', ru: 'Инструкции' },
+  userGuide: { en: 'User Guide', ru: 'Руководство пользователя' },
+  howToUse: { en: 'How to use AXON platform', ru: 'Как использовать платформу АКСОН' }
 };
 
 const useTranslation = (language: Language) => {
@@ -157,6 +218,33 @@ interface KiplingDimension {
   icon: React.ReactNode;
 }
 
+interface AuditAgent {
+  id: string;
+  name: string;
+  description: string;
+  type: 'security' | 'bias' | 'performance' | 'compliance';
+  status: 'idle' | 'running' | 'completed' | 'failed';
+  settings: {
+    sensitivity: number;
+    depth: number;
+    scope: string;
+    threshold: number;
+  };
+  results: string[];
+  icon: React.ReactNode;
+}
+
+interface AuditSession {
+  id: string;
+  agentId: string;
+  auditType: string;
+  startTime: string;
+  endTime?: string;
+  status: 'running' | 'completed' | 'failed';
+  results: string[];
+  findings: number;
+}
+
 interface AnalysisProject {
   id: string;
   title: string;
@@ -170,6 +258,8 @@ interface AnalysisProject {
     knowledge: string;
     reasoning: string;
   };
+  auditAgents: AuditAgent[];
+  auditSessions: AuditSession[];
 }
 
 function App() {
@@ -187,9 +277,104 @@ function App() {
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState('');
   const [newProjectDescription, setNewProjectDescription] = useState('');
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [isConfiguringAgent, setIsConfiguringAgent] = useState(false);
+  const [currentAuditSession, setCurrentAuditSession] = useState<string | null>(null);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   // Get current project data
-  const project = projects?.find(p => p.id === currentProject);
+  const projectData = projects?.find(p => p.id === currentProject);
+
+  // Ensure project has audit functionality (backward compatibility)
+  const ensureAuditFunctionality = (proj: AnalysisProject | undefined): AnalysisProject | undefined => {
+    if (!proj) return proj;
+    
+    if (!proj.auditAgents || !proj.auditSessions) {
+      // Update project with audit functionality
+      const updatedProject = {
+        ...proj,
+        auditAgents: proj.auditAgents || getDefaultAuditAgents(),
+        auditSessions: proj.auditSessions || []
+      };
+      
+      // Update the projects array
+      setProjects(current => 
+        (current || []).map(p => 
+          p.id === proj.id ? updatedProject : p
+        )
+      );
+      
+      return updatedProject;
+    }
+    
+    return proj;
+  };
+
+  const project = ensureAuditFunctionality(projectData);
+
+  // Get default audit agents
+  const getDefaultAuditAgents = (): AuditAgent[] => [
+    {
+      id: 'security-agent',
+      name: t('securityAgent'),
+      description: t('securityAgentDesc'),
+      type: 'security',
+      status: 'idle',
+      settings: {
+        sensitivity: 75,
+        depth: 50,
+        scope: 'system',
+        threshold: 80
+      },
+      results: [],
+      icon: <Shield size={20} />
+    },
+    {
+      id: 'bias-agent',
+      name: t('biasAgent'),
+      description: t('biasAgentDesc'),
+      type: 'bias',
+      status: 'idle',
+      settings: {
+        sensitivity: 85,
+        depth: 70,
+        scope: 'algorithm',
+        threshold: 70
+      },
+      results: [],
+      icon: <Bug size={20} />
+    },
+    {
+      id: 'performance-agent',
+      name: t('performanceAgent'),
+      description: t('performanceAgentDesc'),
+      type: 'performance',
+      status: 'idle',
+      settings: {
+        sensitivity: 60,
+        depth: 80,
+        scope: 'model',
+        threshold: 90
+      },
+      results: [],
+      icon: <ChartLine size={20} />
+    },
+    {
+      id: 'compliance-agent',
+      name: t('complianceAgent'),
+      description: t('complianceAgentDesc'),
+      type: 'compliance',
+      status: 'idle',
+      settings: {
+        sensitivity: 90,
+        depth: 90,
+        scope: 'full',
+        threshold: 95
+      },
+      results: [],
+      icon: <ListChecks size={20} />
+    }
+  ];
 
   // Initialize default Kipling dimensions with translations
   const getDefaultDimensions = (lang: Language): KiplingDimension[] => [
@@ -274,7 +459,9 @@ function App() {
         intelligence: '',
         knowledge: '',
         reasoning: ''
-      }
+      },
+      auditAgents: getDefaultAuditAgents(),
+      auditSessions: []
     };
 
     setProjects(current => [...(current || []), newProject]);
@@ -325,6 +512,152 @@ function App() {
           : p
       )
     );
+  };
+
+  // Update audit agent settings
+  const updateAgentSettings = (agentId: string, settings: Partial<AuditAgent['settings']>) => {
+    if (!project) return;
+
+    setProjects(current => 
+      (current || []).map(p => 
+        p.id === project.id 
+          ? {
+              ...p,
+              lastModified: new Date().toISOString(),
+              auditAgents: p.auditAgents.map(agent => 
+                agent.id === agentId 
+                  ? { ...agent, settings: { ...agent.settings, ...settings } }
+                  : agent
+              )
+            }
+          : p
+      )
+    );
+    toast.success(t('agentConfigured'));
+  };
+
+  // Start audit session
+  const startAuditSession = async (agentId: string, auditType: string) => {
+    if (!project) return;
+
+    const sessionId = `session-${Date.now()}`;
+    const newSession: AuditSession = {
+      id: sessionId,
+      agentId,
+      auditType,
+      startTime: new Date().toISOString(),
+      status: 'running',
+      results: [],
+      findings: 0
+    };
+
+    // Update project with new session
+    setProjects(current => 
+      (current || []).map(p => 
+        p.id === project.id 
+          ? {
+              ...p,
+              auditSessions: [...p.auditSessions, newSession],
+              auditAgents: p.auditAgents.map(agent => 
+                agent.id === agentId 
+                  ? { ...agent, status: 'running' }
+                  : agent
+              )
+            }
+          : p
+      )
+    );
+
+    setCurrentAuditSession(sessionId);
+    toast.success(t('auditStarted'));
+
+    // Simulate audit process
+    setTimeout(async () => {
+      try {
+        const agent = project.auditAgents.find(a => a.id === agentId);
+        const prompt = spark.llmPrompt`Perform a ${auditType} audit simulation for ${agent?.name}. Generate 3-5 realistic audit findings based on the audit type. Return as JSON with a single property "findings" containing an array of finding strings.`;
+        
+        const response = await spark.llm(prompt, 'gpt-4o-mini', true);
+        const result = JSON.parse(response);
+        
+        // Update session with results
+        setProjects(current => 
+          (current || []).map(p => 
+            p.id === project.id 
+              ? {
+                  ...p,
+                  auditSessions: p.auditSessions.map(session =>
+                    session.id === sessionId
+                      ? {
+                          ...session,
+                          status: 'completed',
+                          endTime: new Date().toISOString(),
+                          results: result.findings || [],
+                          findings: (result.findings || []).length
+                        }
+                      : session
+                  ),
+                  auditAgents: p.auditAgents.map(agent => 
+                    agent.id === agentId 
+                      ? { ...agent, status: 'completed', results: result.findings || [] }
+                      : agent
+                  )
+                }
+              : p
+          )
+        );
+      } catch (error) {
+        // Update session as failed
+        setProjects(current => 
+          (current || []).map(p => 
+            p.id === project.id 
+              ? {
+                  ...p,
+                  auditSessions: p.auditSessions.map(session =>
+                    session.id === sessionId
+                      ? { ...session, status: 'failed', endTime: new Date().toISOString() }
+                      : session
+                  ),
+                  auditAgents: p.auditAgents.map(agent => 
+                    agent.id === agentId 
+                      ? { ...agent, status: 'failed' }
+                      : agent
+                  )
+                }
+              : p
+          )
+        );
+      }
+    }, 3000);
+  };
+
+  // Stop audit session
+  const stopAuditSession = (sessionId: string) => {
+    if (!project) return;
+
+    setProjects(current => 
+      (current || []).map(p => 
+        p.id === project.id 
+          ? {
+              ...p,
+              auditSessions: p.auditSessions.map(session =>
+                session.id === sessionId && session.status === 'running'
+                  ? { ...session, status: 'failed', endTime: new Date().toISOString() }
+                  : session
+              ),
+              auditAgents: p.auditAgents.map(agent => {
+                const session = p.auditSessions.find(s => s.id === sessionId);
+                return session && agent.id === session.agentId
+                  ? { ...agent, status: 'idle' }
+                  : agent;
+              })
+            }
+          : p
+      )
+    );
+
+    setCurrentAuditSession(null);
+    toast.success(t('auditStopped'));
   };
 
   // Calculate overall project completeness
@@ -407,6 +740,139 @@ function App() {
             </div>
             
             <div className="flex items-center gap-3">
+              {/* Instructions Button */}
+              <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Question size={16} className="mr-2" />
+                    {t('instructions')}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh]">
+                  <DialogHeader>
+                    <DialogTitle>{t('userGuide')}</DialogTitle>
+                    <DialogDescription>
+                      {t('howToUse')}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <ScrollArea className="h-[60vh] pr-4">
+                    <div className="prose prose-sm max-w-none text-foreground">
+                      {currentLanguage === 'ru' ? (
+                        <div className="space-y-4 text-sm">
+                          <h2 className="text-lg font-semibold">Обзор системы</h2>
+                          <p>АКСОН - это интеллектуальная платформа для систематического анализа данных, использующая директиву IKR (Intelligence-Knowledge-Reasoning) и протокол Киплинга. Система также включает модуль аудита ИИ для проверки и анализа систем искусственного интеллекта.</p>
+                          
+                          <h3 className="text-md font-semibold mt-6">Аудит ИИ - Модуль проверки систем искусственного интеллекта</h3>
+                          
+                          <h4 className="font-medium">Выбор агентов аудита</h4>
+                          <p>В системе доступны 4 типа агентов аудита:</p>
+                          <ul className="list-disc pl-6 space-y-2">
+                            <li><strong>Агент Безопасности</strong> - Анализ уязвимостей и угроз безопасности</li>
+                            <li><strong>Агент Обнаружения Предвзятости</strong> - Выявление алгоритмической предвзятости</li>
+                            <li><strong>Агент Производительности</strong> - Мониторинг производительности и точности модели</li>
+                            <li><strong>Агент Соответствия</strong> - Проверка соответствия нормативным требованиям</li>
+                          </ul>
+                          
+                          <h4 className="font-medium">Настройка агентов аудита</h4>
+                          <ol className="list-decimal pl-6 space-y-1">
+                            <li><strong>Выбор агента</strong>: Кликните на карточку агента в разделе "Аудит ИИ"</li>
+                            <li><strong>Конфигурация</strong>: Нажмите кнопку "Настроить" для открытия панели настроек</li>
+                            <li><strong>Параметры настройки</strong>:
+                              <ul className="list-disc pl-6 mt-2 space-y-1">
+                                <li>Уровень чувствительности (0-100%)</li>
+                                <li>Глубина анализа (0-100%)</li>
+                                <li>Область аудита (System/Algorithm/Model/Full)</li>
+                                <li>Порог оповещения (0-100%)</li>
+                              </ul>
+                            </li>
+                          </ol>
+                          
+                          <h4 className="font-medium">Типы аудита ИИ</h4>
+                          <ul className="list-disc pl-6 space-y-2">
+                            <li><strong>Полный Аудит Системы</strong> - Комплексная проверка всех компонентов</li>
+                            <li><strong>Быстрое Сканирование Безопасности</strong> - Экспресс-проверка основных уязвимостей</li>
+                            <li><strong>Оценка Предвзятости</strong> - Специализированная проверка на предвзятость</li>
+                            <li><strong>Обзор Производительности</strong> - Анализ эффективности работы модели</li>
+                          </ul>
+                          
+                          <h4 className="font-medium">Запуск аудита</h4>
+                          <ol className="list-decimal pl-6 space-y-1">
+                            <li>Выберите агента: Кликните на нужного агента аудита</li>
+                            <li>Выберите тип аудита: Нажмите на одну из кнопок типов аудита</li>
+                            <li>Мониторинг: Следите за статусом выполнения</li>
+                            <li>Остановка: При необходимости используйте кнопку "Остановить Аудит"</li>
+                          </ol>
+                          
+                          <h4 className="font-medium">Результаты аудита</h4>
+                          <p>После завершения аудита вы получите:</p>
+                          <ul className="list-disc pl-6 space-y-1">
+                            <li>Статус выполнения</li>
+                            <li>Количество находок</li>
+                            <li>Детальные результаты</li>
+                            <li>Временные метки</li>
+                          </ul>
+                        </div>
+                      ) : (
+                        <div className="space-y-4 text-sm">
+                          <h2 className="text-lg font-semibold">System Overview</h2>
+                          <p>AXON is an intelligent platform for systematic data analysis using the IKR (Intelligence-Knowledge-Reasoning) directive and Kipling protocol. The system also includes an AI audit module for checking and analyzing artificial intelligence systems.</p>
+                          
+                          <h3 className="text-md font-semibold mt-6">AI Audit - AI Systems Verification Module</h3>
+                          
+                          <h4 className="font-medium">Selecting Audit Agents</h4>
+                          <p>The system provides 4 types of audit agents:</p>
+                          <ul className="list-disc pl-6 space-y-2">
+                            <li><strong>Security Agent</strong> - Analyzes security vulnerabilities and threats</li>
+                            <li><strong>Bias Detection Agent</strong> - Detects algorithmic bias and fairness issues</li>
+                            <li><strong>Performance Agent</strong> - Monitors AI model performance and accuracy</li>
+                            <li><strong>Compliance Agent</strong> - Ensures regulatory and ethical compliance</li>
+                          </ul>
+                          
+                          <h4 className="font-medium">Configuring Audit Agents</h4>
+                          <ol className="list-decimal pl-6 space-y-1">
+                            <li><strong>Select Agent</strong>: Click on the agent card in the "AI Audit" section</li>
+                            <li><strong>Configuration</strong>: Click the "Configure" button to open settings panel</li>
+                            <li><strong>Configuration Parameters</strong>:
+                              <ul className="list-disc pl-6 mt-2 space-y-1">
+                                <li>Sensitivity Level (0-100%)</li>
+                                <li>Analysis Depth (0-100%)</li>
+                                <li>Audit Scope (System/Algorithm/Model/Full)</li>
+                                <li>Alert Threshold (0-100%)</li>
+                              </ul>
+                            </li>
+                          </ol>
+                          
+                          <h4 className="font-medium">AI Audit Types</h4>
+                          <ul className="list-disc pl-6 space-y-2">
+                            <li><strong>Full System Audit</strong> - Comprehensive check of all components</li>
+                            <li><strong>Quick Security Scan</strong> - Express check of main vulnerabilities</li>
+                            <li><strong>Bias Assessment</strong> - Specialized bias detection</li>
+                            <li><strong>Performance Review</strong> - Analysis of model efficiency</li>
+                          </ul>
+                          
+                          <h4 className="font-medium">Running an Audit</h4>
+                          <ol className="list-decimal pl-6 space-y-1">
+                            <li>Select Agent: Click on the desired audit agent</li>
+                            <li>Choose Audit Type: Click on one of the audit type buttons</li>
+                            <li>Monitor: Track execution status</li>
+                            <li>Stop: Use "Stop Audit" button if needed</li>
+                          </ol>
+                          
+                          <h4 className="font-medium">Audit Results</h4>
+                          <p>After audit completion you will receive:</p>
+                          <ul className="list-disc pl-6 space-y-1">
+                            <li>Execution status</li>
+                            <li>Number of findings</li>
+                            <li>Detailed results</li>
+                            <li>Timestamps</li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </DialogContent>
+              </Dialog>
+
               {/* Language Selector */}
               <Select value={currentLanguage} onValueChange={(value: Language) => setLanguage(value)}>
                 <SelectTrigger className="w-24">
@@ -538,10 +1004,11 @@ function App() {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
                 <TabsTrigger value="kipling">{t('kipling')}</TabsTrigger>
                 <TabsTrigger value="ikr">{t('ikr')}</TabsTrigger>
+                <TabsTrigger value="audit">{t('aiAudit')}</TabsTrigger>
               </TabsList>
 
               {/* Overview Tab */}
@@ -726,7 +1193,273 @@ function App() {
                   </Card>
                 </div>
               </TabsContent>
+
+              {/* AI Audit Tab */}
+              <TabsContent value="audit" className="space-y-6">
+                <div className="grid gap-6">
+                  {/* Audit Agents Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Robot size={24} className="text-primary" />
+                        {t('auditAgents')}
+                      </CardTitle>
+                      <CardDescription>
+                        {t('auditAgentsDesc')}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {project.auditAgents.map(agent => (
+                          <Card key={agent.id} className={`cursor-pointer transition-all ${selectedAgent === agent.id ? 'ring-2 ring-primary' : ''}`}
+                                onClick={() => setSelectedAgent(agent.id)}>
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  {agent.icon}
+                                  <h4 className="font-medium">{agent.name}</h4>
+                                </div>
+                                <Badge variant={
+                                  agent.status === 'running' ? 'default' :
+                                  agent.status === 'completed' ? 'secondary' :
+                                  agent.status === 'failed' ? 'destructive' : 'outline'
+                                }>
+                                  {t(agent.status)}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-3">{agent.description}</p>
+                              <div className="flex items-center justify-between">
+                                <div className="text-xs text-muted-foreground">
+                                  {agent.results.length} {t('auditResults').toLowerCase()}
+                                </div>
+                                <Button size="sm" variant="outline" 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedAgent(agent.id);
+                                          setIsConfiguringAgent(true);
+                                        }}>
+                                  <Gear size={14} className="mr-1" />
+                                  {t('configure')}
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Audit Control Section */}
+                  {selectedAgent && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <SecurityCamera size={24} className="text-primary" />
+                          {t('auditType')}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <Button 
+                              onClick={() => startAuditSession(selectedAgent, t('fullAudit'))}
+                              disabled={project.auditAgents.find(a => a.id === selectedAgent)?.status === 'running'}
+                              className="h-16"
+                            >
+                              <div className="text-center">
+                                <Play size={20} className="mx-auto mb-1" />
+                                <div className="text-sm">{t('fullAudit')}</div>
+                              </div>
+                            </Button>
+                            <Button 
+                              onClick={() => startAuditSession(selectedAgent, t('quickScan'))}
+                              disabled={project.auditAgents.find(a => a.id === selectedAgent)?.status === 'running'}
+                              variant="outline"
+                              className="h-16"
+                            >
+                              <div className="text-center">
+                                <Play size={20} className="mx-auto mb-1" />
+                                <div className="text-sm">{t('quickScan')}</div>
+                              </div>
+                            </Button>
+                            <Button 
+                              onClick={() => startAuditSession(selectedAgent, t('biasAudit'))}
+                              disabled={project.auditAgents.find(a => a.id === selectedAgent)?.status === 'running'}
+                              variant="outline"
+                              className="h-16"
+                            >
+                              <div className="text-center">
+                                <Bug size={20} className="mx-auto mb-1" />
+                                <div className="text-sm">{t('biasAudit')}</div>
+                              </div>
+                            </Button>
+                            <Button 
+                              onClick={() => startAuditSession(selectedAgent, t('performanceAudit'))}
+                              disabled={project.auditAgents.find(a => a.id === selectedAgent)?.status === 'running'}
+                              variant="outline"
+                              className="h-16"
+                            >
+                              <div className="text-center">
+                                <ChartLine size={20} className="mx-auto mb-1" />
+                                <div className="text-sm">{t('performanceAudit')}</div>
+                              </div>
+                            </Button>
+                          </div>
+
+                          {currentAuditSession && (
+                            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <span className="text-sm font-medium">{t('auditStatus')}: {t('running')}</span>
+                              </div>
+                              <Button 
+                                onClick={() => stopAuditSession(currentAuditSession)}
+                                size="sm"
+                                variant="destructive"
+                              >
+                                <Stop size={16} className="mr-2" />
+                                {t('stopAudit')}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Audit Results Section */}
+                  {project.auditSessions.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <ListChecks size={24} className="text-primary" />
+                          {t('auditResults')}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {project.auditSessions.slice().reverse().map(session => {
+                            const agent = project.auditAgents.find(a => a.id === session.agentId);
+                            return (
+                              <div key={session.id} className="border rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    {agent?.icon}
+                                    <span className="font-medium">{agent?.name}</span>
+                                    <Badge variant="outline">{session.auditType}</Badge>
+                                  </div>
+                                  <Badge variant={
+                                    session.status === 'running' ? 'default' :
+                                    session.status === 'completed' ? 'secondary' :
+                                    'destructive'
+                                  }>
+                                    {t(session.status)}
+                                  </Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground mb-3">
+                                  {t('started')}: {new Date(session.startTime).toLocaleString()}
+                                  {session.endTime && (
+                                    <> • {t('completed')}: {new Date(session.endTime).toLocaleString()}</>
+                                  )}
+                                </div>
+                                {session.results.length > 0 && (
+                                  <div className="space-y-2">
+                                    <h5 className="font-medium text-sm">{t('findings')} ({session.findings}):</h5>
+                                    <ul className="space-y-1">
+                                      {session.results.map((result, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm">
+                                          <Warning size={14} className="text-orange-500 mt-0.5 flex-shrink-0" />
+                                          <span>{result}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </TabsContent>
             </Tabs>
+
+            {/* Agent Configuration Dialog */}
+            <Dialog open={isConfiguringAgent} onOpenChange={setIsConfiguringAgent}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{t('agentSettings')}</DialogTitle>
+                  <DialogDescription>
+                    {selectedAgent && project.auditAgents.find(a => a.id === selectedAgent)?.description}
+                  </DialogDescription>
+                </DialogHeader>
+                {selectedAgent && (
+                  <div className="space-y-4">
+                    {(() => {
+                      const agent = project.auditAgents.find(a => a.id === selectedAgent);
+                      if (!agent) return null;
+                      
+                      return (
+                        <>
+                          <div>
+                            <Label>{t('sensitivity')}: {agent.settings.sensitivity}%</Label>
+                            <Input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={agent.settings.sensitivity}
+                              onChange={(e) => updateAgentSettings(selectedAgent, { sensitivity: parseInt(e.target.value) })}
+                              className="mt-2"
+                            />
+                          </div>
+                          <div>
+                            <Label>{t('depth')}: {agent.settings.depth}%</Label>
+                            <Input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={agent.settings.depth}
+                              onChange={(e) => updateAgentSettings(selectedAgent, { depth: parseInt(e.target.value) })}
+                              className="mt-2"
+                            />
+                          </div>
+                          <div>
+                            <Label>{t('threshold')}: {agent.settings.threshold}%</Label>
+                            <Input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={agent.settings.threshold}
+                              onChange={(e) => updateAgentSettings(selectedAgent, { threshold: parseInt(e.target.value) })}
+                              className="mt-2"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="scope">{t('scope')}</Label>
+                            <Select 
+                              value={agent.settings.scope} 
+                              onValueChange={(value) => updateAgentSettings(selectedAgent, { scope: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="system">System</SelectItem>
+                                <SelectItem value="algorithm">Algorithm</SelectItem>
+                                <SelectItem value="model">Model</SelectItem>
+                                <SelectItem value="full">Full</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
 
             {/* Action Bar */}
             <div className="flex items-center justify-between pt-6 border-t">
