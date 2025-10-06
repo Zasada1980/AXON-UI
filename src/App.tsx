@@ -807,34 +807,44 @@ function App() {
     // Apply colors based on active tab
     switch (activeTab) {
       case 'overview':
-        root.style.setProperty('--module-primary', settings.overview.primary);
-        root.style.setProperty('--module-secondary', settings.overview.secondary);
-        root.style.setProperty('--module-accent', settings.overview.accent);
-        root.style.setProperty('--module-background', settings.overview.background);
+        if (settings.overview) {
+          root.style.setProperty('--module-primary', settings.overview.primary);
+          root.style.setProperty('--module-secondary', settings.overview.secondary);
+          root.style.setProperty('--module-accent', settings.overview.accent);
+          root.style.setProperty('--module-background', settings.overview.background);
+        }
         break;
       case 'kipling':
-        root.style.setProperty('--module-primary', settings.kipling.primary);
-        root.style.setProperty('--module-secondary', settings.kipling.secondary);
-        root.style.setProperty('--module-accent', settings.kipling.accent);
-        root.style.setProperty('--module-background', settings.kipling.background);
+        if (settings.kipling) {
+          root.style.setProperty('--module-primary', settings.kipling.primary);
+          root.style.setProperty('--module-secondary', settings.kipling.secondary);
+          root.style.setProperty('--module-accent', settings.kipling.accent);
+          root.style.setProperty('--module-background', settings.kipling.background);
+        }
         break;
       case 'ikr':
-        root.style.setProperty('--module-primary', settings.ikr.primary);
-        root.style.setProperty('--module-secondary', settings.ikr.secondary);
-        root.style.setProperty('--module-accent', settings.ikr.accent);
-        root.style.setProperty('--module-background', settings.ikr.background);
+        if (settings.ikr) {
+          root.style.setProperty('--module-primary', settings.ikr.primary);
+          root.style.setProperty('--module-secondary', settings.ikr.secondary);
+          root.style.setProperty('--module-accent', settings.ikr.accent);
+          root.style.setProperty('--module-background', settings.ikr.background);
+        }
         break;
       case 'audit':
-        root.style.setProperty('--module-primary', settings.audit.primary);
-        root.style.setProperty('--module-secondary', settings.audit.secondary);
-        root.style.setProperty('--module-accent', settings.audit.accent);
-        root.style.setProperty('--module-background', settings.audit.background);
+        if (settings.audit) {
+          root.style.setProperty('--module-primary', settings.audit.primary);
+          root.style.setProperty('--module-secondary', settings.audit.secondary);
+          root.style.setProperty('--module-accent', settings.audit.accent);
+          root.style.setProperty('--module-background', settings.audit.background);
+        }
         break;
       case 'chat':
-        root.style.setProperty('--module-primary', settings.chat.primary);
-        root.style.setProperty('--module-secondary', settings.chat.secondary);
-        root.style.setProperty('--module-accent', settings.chat.accent);
-        root.style.setProperty('--module-background', settings.chat.background);
+        if (settings.chat) {
+          root.style.setProperty('--module-primary', settings.chat.primary);
+          root.style.setProperty('--module-secondary', settings.chat.secondary);
+          root.style.setProperty('--module-accent', settings.chat.accent);
+          root.style.setProperty('--module-background', settings.chat.background);
+        }
         break;
     }
     
@@ -2306,15 +2316,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="overview-primary"
                               type="color"
-                              value={project.colorSettings?.overview.primary.includes('oklch') 
+                              value={project.colorSettings?.overview?.primary?.includes('oklch') 
                                 ? '#0ea5e9' 
-                                : project.colorSettings?.overview.primary || '#0ea5e9'
+                                : project.colorSettings?.overview?.primary || '#0ea5e9'
                               }
                               onChange={(e) => updateColorSettings('overview', 'primary', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.overview.primary || 'oklch(55% 0.2 200)'}
+                              value={project.colorSettings?.overview?.primary || 'oklch(55% 0.2 200)'}
                               onChange={(e) => updateColorSettings('overview', 'primary', e.target.value)}
                               placeholder="oklch(55% 0.2 200)"
                               className="flex-1"
@@ -2327,15 +2337,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="overview-secondary"
                               type="color"
-                              value={project.colorSettings?.overview.secondary.includes('oklch')
+                              value={project.colorSettings?.overview?.secondary?.includes('oklch')
                                 ? '#334155'
-                                : project.colorSettings?.overview.secondary || '#334155'
+                                : project.colorSettings?.overview?.secondary || '#334155'
                               }
                               onChange={(e) => updateColorSettings('overview', 'secondary', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.overview.secondary || 'oklch(35% 0.1 220)'}
+                              value={project.colorSettings?.overview?.secondary || 'oklch(35% 0.1 220)'}
                               onChange={(e) => updateColorSettings('overview', 'secondary', e.target.value)}
                               placeholder="oklch(35% 0.1 220)"
                               className="flex-1"
@@ -2348,15 +2358,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="overview-accent"
                               type="color"
-                              value={project.colorSettings?.overview.accent.includes('oklch')
+                              value={project.colorSettings?.overview?.accent?.includes('oklch')
                                 ? '#06b6d4'
-                                : project.colorSettings?.overview.accent || '#06b6d4'
+                                : project.colorSettings?.overview?.accent || '#06b6d4'
                               }
                               onChange={(e) => updateColorSettings('overview', 'accent', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.overview.accent || 'oklch(65% 0.25 180)'}
+                              value={project.colorSettings?.overview?.accent || 'oklch(65% 0.25 180)'}
                               onChange={(e) => updateColorSettings('overview', 'accent', e.target.value)}
                               placeholder="oklch(65% 0.25 180)"
                               className="flex-1"
@@ -2369,15 +2379,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="overview-background"
                               type="color"
-                              value={project.colorSettings?.overview.background.includes('oklch')
+                              value={project.colorSettings?.overview?.background?.includes('oklch')
                                 ? '#1e293b'
-                                : project.colorSettings?.overview.background || '#1e293b'
+                                : project.colorSettings?.overview?.background || '#1e293b'
                               }
                               onChange={(e) => updateColorSettings('overview', 'background', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.overview.background || 'oklch(16% 0.03 220)'}
+                              value={project.colorSettings?.overview?.background || 'oklch(16% 0.03 220)'}
                               onChange={(e) => updateColorSettings('overview', 'background', e.target.value)}
                               placeholder="oklch(16% 0.03 220)"
                               className="flex-1"
@@ -2402,15 +2412,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="kipling-primary"
                               type="color"
-                              value={project.colorSettings?.kipling.primary.includes('oklch')
+                              value={project.colorSettings?.kipling?.primary?.includes('oklch')
                                 ? '#8b5cf6'
-                                : project.colorSettings?.kipling.primary || '#8b5cf6'
+                                : project.colorSettings?.kipling?.primary || '#8b5cf6'
                               }
                               onChange={(e) => updateColorSettings('kipling', 'primary', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.kipling.primary || 'oklch(60% 0.18 240)'}
+                              value={project.colorSettings?.kipling?.primary || 'oklch(60% 0.18 240)'}
                               onChange={(e) => updateColorSettings('kipling', 'primary', e.target.value)}
                               placeholder="oklch(60% 0.18 240)"
                               className="flex-1"
@@ -2423,15 +2433,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="kipling-secondary"
                               type="color"
-                              value={project.colorSettings?.kipling.secondary.includes('oklch')
+                              value={project.colorSettings?.kipling?.secondary?.includes('oklch')
                                 ? '#6366f1'
-                                : project.colorSettings?.kipling.secondary || '#6366f1'
+                                : project.colorSettings?.kipling?.secondary || '#6366f1'
                               }
                               onChange={(e) => updateColorSettings('kipling', 'secondary', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.kipling.secondary || 'oklch(40% 0.12 260)'}
+                              value={project.colorSettings?.kipling?.secondary || 'oklch(40% 0.12 260)'}
                               onChange={(e) => updateColorSettings('kipling', 'secondary', e.target.value)}
                               placeholder="oklch(40% 0.12 260)"
                               className="flex-1"
@@ -2444,15 +2454,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="kipling-accent"
                               type="color"
-                              value={project.colorSettings?.kipling.accent.includes('oklch')
+                              value={project.colorSettings?.kipling?.accent?.includes('oklch')
                                 ? '#a855f7'
-                                : project.colorSettings?.kipling.accent || '#a855f7'
+                                : project.colorSettings?.kipling?.accent || '#a855f7'
                               }
                               onChange={(e) => updateColorSettings('kipling', 'accent', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.kipling.accent || 'oklch(70% 0.22 220)'}
+                              value={project.colorSettings?.kipling?.accent || 'oklch(70% 0.22 220)'}
                               onChange={(e) => updateColorSettings('kipling', 'accent', e.target.value)}
                               placeholder="oklch(70% 0.22 220)"
                               className="flex-1"
@@ -2465,15 +2475,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="kipling-background"
                               type="color"
-                              value={project.colorSettings?.kipling.background.includes('oklch')
+                              value={project.colorSettings?.kipling?.background?.includes('oklch')
                                 ? '#312e81'
-                                : project.colorSettings?.kipling.background || '#312e81'
+                                : project.colorSettings?.kipling?.background || '#312e81'
                               }
                               onChange={(e) => updateColorSettings('kipling', 'background', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.kipling.background || 'oklch(18% 0.025 240)'}
+                              value={project.colorSettings?.kipling?.background || 'oklch(18% 0.025 240)'}
                               onChange={(e) => updateColorSettings('kipling', 'background', e.target.value)}
                               placeholder="oklch(18% 0.025 240)"
                               className="flex-1"
@@ -2498,15 +2508,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="ikr-primary"
                               type="color"
-                              value={project.colorSettings?.ikr.primary.includes('oklch')
+                              value={project.colorSettings?.ikr?.primary?.includes('oklch')
                                 ? '#10b981'
-                                : project.colorSettings?.ikr.primary || '#10b981'
+                                : project.colorSettings?.ikr?.primary || '#10b981'
                               }
                               onChange={(e) => updateColorSettings('ikr', 'primary', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.ikr.primary || 'oklch(58% 0.19 160)'}
+                              value={project.colorSettings?.ikr?.primary || 'oklch(58% 0.19 160)'}
                               onChange={(e) => updateColorSettings('ikr', 'primary', e.target.value)}
                               placeholder="oklch(58% 0.19 160)"
                               className="flex-1"
@@ -2519,15 +2529,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="ikr-secondary"
                               type="color"
-                              value={project.colorSettings?.ikr.secondary.includes('oklch')
+                              value={project.colorSettings?.ikr?.secondary?.includes('oklch')
                                 ? '#059669'
-                                : project.colorSettings?.ikr.secondary || '#059669'
+                                : project.colorSettings?.ikr?.secondary || '#059669'
                               }
                               onChange={(e) => updateColorSettings('ikr', 'secondary', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.ikr.secondary || 'oklch(38% 0.11 180)'}
+                              value={project.colorSettings?.ikr?.secondary || 'oklch(38% 0.11 180)'}
                               onChange={(e) => updateColorSettings('ikr', 'secondary', e.target.value)}
                               placeholder="oklch(38% 0.11 180)"
                               className="flex-1"
@@ -2540,15 +2550,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="ikr-accent"
                               type="color"
-                              value={project.colorSettings?.ikr.accent.includes('oklch')
+                              value={project.colorSettings?.ikr?.accent?.includes('oklch')
                                 ? '#34d399'
-                                : project.colorSettings?.ikr.accent || '#34d399'
+                                : project.colorSettings?.ikr?.accent || '#34d399'
                               }
                               onChange={(e) => updateColorSettings('ikr', 'accent', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.ikr.accent || 'oklch(68% 0.23 140)'}
+                              value={project.colorSettings?.ikr?.accent || 'oklch(68% 0.23 140)'}
                               onChange={(e) => updateColorSettings('ikr', 'accent', e.target.value)}
                               placeholder="oklch(68% 0.23 140)"
                               className="flex-1"
@@ -2561,15 +2571,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="ikr-background"
                               type="color"
-                              value={project.colorSettings?.ikr.background.includes('oklch')
+                              value={project.colorSettings?.ikr?.background?.includes('oklch')
                                 ? '#064e3b'
-                                : project.colorSettings?.ikr.background || '#064e3b'
+                                : project.colorSettings?.ikr?.background || '#064e3b'
                               }
                               onChange={(e) => updateColorSettings('ikr', 'background', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.ikr.background || 'oklch(17% 0.028 160)'}
+                              value={project.colorSettings?.ikr?.background || 'oklch(17% 0.028 160)'}
                               onChange={(e) => updateColorSettings('ikr', 'background', e.target.value)}
                               placeholder="oklch(17% 0.028 160)"
                               className="flex-1"
@@ -2594,15 +2604,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="chat-primary"
                               type="color"
-                              value={project.colorSettings?.chat.primary.includes('oklch')
+                              value={project.colorSettings?.chat?.primary?.includes('oklch')
                                 ? '#a855f7'
-                                : project.colorSettings?.chat.primary || '#a855f7'
+                                : project.colorSettings?.chat?.primary || '#a855f7'
                               }
                               onChange={(e) => updateColorSettings('chat', 'primary', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.chat.primary || 'oklch(65% 0.2 280)'}
+                              value={project.colorSettings?.chat?.primary || 'oklch(65% 0.2 280)'}
                               onChange={(e) => updateColorSettings('chat', 'primary', e.target.value)}
                               placeholder="oklch(65% 0.2 280)"
                               className="flex-1"
@@ -2615,15 +2625,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="chat-secondary"
                               type="color"
-                              value={project.colorSettings?.chat.secondary.includes('oklch')
+                              value={project.colorSettings?.chat?.secondary?.includes('oklch')
                                 ? '#7c3aed'
-                                : project.colorSettings?.chat.secondary || '#7c3aed'
+                                : project.colorSettings?.chat?.secondary || '#7c3aed'
                               }
                               onChange={(e) => updateColorSettings('chat', 'secondary', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.chat.secondary || 'oklch(45% 0.12 300)'}
+                              value={project.colorSettings?.chat?.secondary || 'oklch(45% 0.12 300)'}
                               onChange={(e) => updateColorSettings('chat', 'secondary', e.target.value)}
                               placeholder="oklch(45% 0.12 300)"
                               className="flex-1"
@@ -2636,15 +2646,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="chat-accent"
                               type="color"
-                              value={project.colorSettings?.chat.accent.includes('oklch')
+                              value={project.colorSettings?.chat?.accent?.includes('oklch')
                                 ? '#c084fc'
-                                : project.colorSettings?.chat.accent || '#c084fc'
+                                : project.colorSettings?.chat?.accent || '#c084fc'
                               }
                               onChange={(e) => updateColorSettings('chat', 'accent', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.chat.accent || 'oklch(75% 0.25 260)'}
+                              value={project.colorSettings?.chat?.accent || 'oklch(75% 0.25 260)'}
                               onChange={(e) => updateColorSettings('chat', 'accent', e.target.value)}
                               placeholder="oklch(75% 0.25 260)"
                               className="flex-1"
@@ -2657,15 +2667,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="chat-background"
                               type="color"
-                              value={project.colorSettings?.chat.background.includes('oklch')
+                              value={project.colorSettings?.chat?.background?.includes('oklch')
                                 ? '#581c87'
-                                : project.colorSettings?.chat.background || '#581c87'
+                                : project.colorSettings?.chat?.background || '#581c87'
                               }
                               onChange={(e) => updateColorSettings('chat', 'background', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.chat.background || 'oklch(20% 0.03 280)'}
+                              value={project.colorSettings?.chat?.background || 'oklch(20% 0.03 280)'}
                               onChange={(e) => updateColorSettings('chat', 'background', e.target.value)}
                               placeholder="oklch(20% 0.03 280)"
                               className="flex-1"
@@ -2690,15 +2700,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="audit-primary"
                               type="color"
-                              value={project.colorSettings?.audit.primary.includes('oklch')
+                              value={project.colorSettings?.audit?.primary?.includes('oklch')
                                 ? '#f97316'
-                                : project.colorSettings?.audit.primary || '#f97316'
+                                : project.colorSettings?.audit?.primary || '#f97316'
                               }
                               onChange={(e) => updateColorSettings('audit', 'primary', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.audit.primary || 'oklch(62% 0.17 15)'}
+                              value={project.colorSettings?.audit?.primary || 'oklch(62% 0.17 15)'}
                               onChange={(e) => updateColorSettings('audit', 'primary', e.target.value)}
                               placeholder="oklch(62% 0.17 15)"
                               className="flex-1"
@@ -2711,15 +2721,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="audit-secondary"
                               type="color"
-                              value={project.colorSettings?.audit.secondary.includes('oklch')
+                              value={project.colorSettings?.audit?.secondary?.includes('oklch')
                                 ? '#ea580c'
-                                : project.colorSettings?.audit.secondary || '#ea580c'
+                                : project.colorSettings?.audit?.secondary || '#ea580c'
                               }
                               onChange={(e) => updateColorSettings('audit', 'secondary', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.audit.secondary || 'oklch(42% 0.13 35)'}
+                              value={project.colorSettings?.audit?.secondary || 'oklch(42% 0.13 35)'}
                               onChange={(e) => updateColorSettings('audit', 'secondary', e.target.value)}
                               placeholder="oklch(42% 0.13 35)"
                               className="flex-1"
@@ -2732,15 +2742,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="audit-accent"
                               type="color"
-                              value={project.colorSettings?.audit.accent.includes('oklch')
+                              value={project.colorSettings?.audit?.accent?.includes('oklch')
                                 ? '#fb7185'
-                                : project.colorSettings?.audit.accent || '#fb7185'
+                                : project.colorSettings?.audit?.accent || '#fb7185'
                               }
                               onChange={(e) => updateColorSettings('audit', 'accent', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.audit.accent || 'oklch(72% 0.21 350)'}
+                              value={project.colorSettings?.audit?.accent || 'oklch(72% 0.21 350)'}
                               onChange={(e) => updateColorSettings('audit', 'accent', e.target.value)}
                               placeholder="oklch(72% 0.21 350)"
                               className="flex-1"
@@ -2753,15 +2763,15 @@ Respond naturally and helpfully.`;
                             <Input
                               id="audit-background"
                               type="color"
-                              value={project.colorSettings?.audit.background.includes('oklch')
+                              value={project.colorSettings?.audit?.background?.includes('oklch')
                                 ? '#7c2d12'
-                                : project.colorSettings?.audit.background || '#7c2d12'
+                                : project.colorSettings?.audit?.background || '#7c2d12'
                               }
                               onChange={(e) => updateColorSettings('audit', 'background', e.target.value)}
                               className="w-16 h-10 p-1 border rounded"
                             />
                             <Input
-                              value={project.colorSettings?.audit.background || 'oklch(19% 0.022 15)'}
+                              value={project.colorSettings?.audit?.background || 'oklch(19% 0.022 15)'}
                               onChange={(e) => updateColorSettings('audit', 'background', e.target.value)}
                               placeholder="oklch(19% 0.022 15)"
                               className="flex-1"
