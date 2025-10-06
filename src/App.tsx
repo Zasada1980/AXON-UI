@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useKV } from '@github/spark/hooks';
+import SystemDiagnostics from './components/SystemDiagnostics';
+import StepByStepExecutor from './components/StepByStepExecutor';
+import AutoRecovery from './components/AutoRecovery';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -262,6 +265,7 @@ const translations: Translations = {
   instructions: { en: 'Instructions', ru: 'Инструкции' },
   userGuide: { en: 'User Guide', ru: 'Руководство пользователя' },
   howToUse: { en: 'How to use AXON platform', ru: 'Как использовать платформу АКСОН' },
+  diagnostics: { en: 'Diagnostics', ru: 'Диагностика' },
   
   // Settings tab
   settings: { en: 'Settings', ru: 'Настройки' },
@@ -1832,13 +1836,14 @@ Respond naturally and helpfully.`;
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-8">
+              <TabsList className="grid w-full grid-cols-9">
                 <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
                 <TabsTrigger value="kipling">{t('kipling')}</TabsTrigger>
                 <TabsTrigger value="ikr">{t('ikr')}</TabsTrigger>
                 <TabsTrigger value="audit">{t('aiAudit')}</TabsTrigger>
                 <TabsTrigger value="debate">{t('agentDebate')}</TabsTrigger>
                 <TabsTrigger value="executor">{t('executor')}</TabsTrigger>
+                <TabsTrigger value="diagnostics">{t('diagnostics')}</TabsTrigger>
                 <TabsTrigger value="chat">{t('chat')}</TabsTrigger>
                 <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
               </TabsList>
@@ -2476,216 +2481,43 @@ Respond naturally and helpfully.`;
 
               {/* Task Executor Tab */}
               <TabsContent value="executor" className="space-y-6">
-                <div className="grid gap-6 lg:grid-cols-3">
-                  {/* Task Queue */}
-                  <div className="lg:col-span-2">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <ListChecks size={24} className="text-primary" />
-                          {t('taskQueue')}
-                        </CardTitle>
-                        <CardDescription>
-                          {t('executorDesc')}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          {/* Active Task */}
-                          <div className="border rounded-lg p-4 bg-muted/20">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                <span className="font-medium">{t('activeTask')}</span>
-                              </div>
-                              <Badge variant="default">{t('executing')}</Badge>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <h5 className="font-medium">Analysis Task: Market Research</h5>
-                              <p className="text-sm text-muted-foreground">
-                                Analyzing market trends for Q4 projections using multiple data sources
-                              </p>
-                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                <span>Agent: Research-Agent-01</span>
-                                <span>Started: 5 min ago</span>
-                                <span>Priority: High</span>
-                              </div>
-                              <Progress value={65} className="h-1" />
-                            </div>
-                          </div>
+                <StepByStepExecutor
+                  language={currentLanguage}
+                  onTaskCompleted={(task) => {
+                    toast.success(`Task completed: ${task.title}`);
+                  }}
+                  onStepCompleted={(step) => {
+                    toast.info(`Step completed: ${step.command.name}`);
+                  }}
+                />
+              </TabsContent>
 
-                          {/* Pending Tasks */}
-                          <div className="space-y-3">
-                            <h4 className="font-medium">{t('pending')} ({3})</h4>
-                            
-                            {[1, 2, 3].map(i => (
-                              <Card key={i} className="hover:shadow-md transition-shadow">
-                                <CardContent className="p-4">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <h5 className="font-medium">Task {i + 1}: Data Synthesis</h5>
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant={i === 1 ? "default" : "outline"}>
-                                        {i === 1 ? t('high') : i === 2 ? t('medium') : t('low')}
-                                      </Badge>
-                                      <Button size="sm" variant="outline">
-                                        <Play size={14} className="mr-1" />
-                                        {t('executeTask')}
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  <p className="text-sm text-muted-foreground mb-2">
-                                    Synthesize findings from Kipling analysis into actionable insights
-                                  </p>
-                                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                    <span>Type: {t('analysisTask')}</span>
-                                    <span>Agent: Unassigned</span>
-                                    <span>Created: {i} hours ago</span>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Task Controls & Settings */}
-                  <div className="space-y-6">
-                    {/* Create Task */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">{t('createTask')}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="task-title">Title</Label>
-                            <Input id="task-title" placeholder="Task title..." />
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="task-type">{t('taskType')}</Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select type..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="analysis">{t('analysisTask')}</SelectItem>
-                                <SelectItem value="research">{t('researchTask')}</SelectItem>
-                                <SelectItem value="debate">{t('debateTaskType')}</SelectItem>
-                                <SelectItem value="report">{t('reportTask')}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="task-priority">{t('taskPriority')}</Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select priority..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="urgent">Urgent</SelectItem>
-                                <SelectItem value="high">{t('high')}</SelectItem>
-                                <SelectItem value="medium">{t('medium')}</SelectItem>
-                                <SelectItem value="low">{t('low')}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="task-agent">{t('assignedAgent')}</Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Auto-assign" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="auto">Auto-assign</SelectItem>
-                                <SelectItem value="research-01">Research Agent 01</SelectItem>
-                                <SelectItem value="analysis-01">Analysis Agent 01</SelectItem>
-                                <SelectItem value="synthesis-01">Synthesis Agent 01</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <Button className="w-full">
-                            <Plus size={16} className="mr-2" />
-                            {t('createTask')}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Executor Settings */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Gear size={20} />
-                          Executor Settings
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div>
-                            <Label>Max Concurrent Tasks: 3</Label>
-                            <Input type="range" min="1" max="10" defaultValue="3" className="mt-2" />
-                          </div>
-                          
-                          <div>
-                            <Label>Default Timeout: 5 min</Label>
-                            <Select defaultValue="300">
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="300">5 minutes</SelectItem>
-                                <SelectItem value="600">10 minutes</SelectItem>
-                                <SelectItem value="1800">30 minutes</SelectItem>
-                                <SelectItem value="3600">1 hour</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <div className="flex items-center justify-between">
-                            <Label>Auto-retry failed tasks</Label>
-                            <Button variant="outline" size="sm">
-                              <CheckCircle size={14} className="mr-1" />
-                              Enabled
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Task Statistics */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">{t('taskHistory')}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm">Completed Today</span>
-                            <Badge variant="secondary">7</Badge>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm">In Queue</span>
-                            <Badge variant="outline">3</Badge>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm">Failed</span>
-                            <Badge variant="destructive">1</Badge>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm">Avg. Time</span>
-                            <span className="text-sm text-muted-foreground">8.3 min</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+              {/* System Diagnostics Tab */}
+              <TabsContent value="diagnostics" className="space-y-6">
+                <div className="grid gap-6">
+                  <SystemDiagnostics
+                    language={currentLanguage}
+                    onIssueDetected={(issue) => {
+                      toast.warning(`System issue detected: ${issue.description}`);
+                    }}
+                    onTaskCompleted={(task) => {
+                      toast.success(`Task completed: ${task.title}`);
+                    }}
+                  />
+                  
+                  <Separator />
+                  
+                  <AutoRecovery
+                    language={currentLanguage}
+                    onRepairCompleted={(action) => {
+                      toast.success(`Repair completed: ${action.action}`);
+                    }}
+                    onSystemHealthUpdated={(health) => {
+                      if (health < 50) {
+                        toast.error(`System health critical: ${health}%`);
+                      }
+                    }}
+                  />
                 </div>
               </TabsContent>
               <TabsContent value="chat" className="space-y-6">
