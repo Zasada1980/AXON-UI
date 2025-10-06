@@ -3564,6 +3564,12 @@ Return as JSON with property "recommendations" containing array of recommendatio
                   <DebateLogManager
                     language={currentLanguage}
                     projectId={project.id}
+                    globalSettings={{
+                      auditingEnabled: true,  // Можно получить из глобальных настроек проекта
+                      memoryRetentionDays: 30,
+                      autoAnalysisEnabled: true,
+                      qualityThreshold: 70
+                    }}
                     onLogCreated={(log) => {
                       // Можно добавить логику для сохранения логов в проекте
                     }}

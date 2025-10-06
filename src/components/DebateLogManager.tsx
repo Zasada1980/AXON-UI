@@ -37,6 +37,12 @@ interface DebateLogManagerProps {
   projectId: string;
   onLogCreated?: (log: DebateLog) => void;
   onMemoryExtracted?: (memories: MemoryEntry[]) => void;
+  globalSettings?: {
+    auditingEnabled: boolean;
+    memoryRetentionDays: number;
+    autoAnalysisEnabled: boolean;
+    qualityThreshold: number;
+  };
 }
 
 // Переводы для системы логов дебатов
@@ -86,7 +92,20 @@ const debateLogTranslations = {
     logCollection: 'Log Collection',
     contentAnalysis: 'Content Analysis',
     memoryCreation: 'Memory Creation',
-    verificationCheck: 'Verification Check'
+    verificationCheck: 'Verification Check',
+    auditSettings: 'Audit Settings',
+    globalAuditEnabled: 'Global Audit Enabled',
+    autoAnalysis: 'Auto Analysis',
+    qualityThreshold: 'Quality Threshold',
+    retentionPeriod: 'Retention Period',
+    days: 'days',
+    auditDisabled: 'Audit functionality is disabled in project settings',
+    enableAuditFirst: 'Enable audit in global project settings to use this feature',
+    auditCompliance: 'Audit Compliance',
+    complianceCheck: 'Compliance Check',
+    securityScan: 'Security Scan',
+    biasDetection: 'Bias Detection',
+    performanceAudit: 'Performance Audit'
   },
   ru: {
     debateLogManager: 'Менеджер Логов Дебатов',
@@ -133,7 +152,20 @@ const debateLogTranslations = {
     logCollection: 'Сбор Логов',
     contentAnalysis: 'Анализ Содержания',
     memoryCreation: 'Создание Памяти',
-    verificationCheck: 'Проверка Верификации'
+    verificationCheck: 'Проверка Верификации',
+    auditSettings: 'Настройки Аудита',
+    globalAuditEnabled: 'Глобальный Аудит Включен',
+    autoAnalysis: 'Автоматический Анализ',
+    qualityThreshold: 'Порог Качества',
+    retentionPeriod: 'Период Хранения',
+    days: 'дней',
+    auditDisabled: 'Функция аудита отключена в настройках проекта',
+    enableAuditFirst: 'Включите аудит в глобальных настройках проекта для использования этой функции',
+    auditCompliance: 'Соответствие Аудиту',
+    complianceCheck: 'Проверка Соответствия',
+    securityScan: 'Сканирование Безопасности',
+    biasDetection: 'Обнаружение Предвзятости',
+    performanceAudit: 'Аудит Производительности'
   }
 };
 
@@ -153,7 +185,13 @@ export default function DebateLogManager({
   language, 
   projectId, 
   onLogCreated, 
-  onMemoryExtracted 
+  onMemoryExtracted,
+  globalSettings = {
+    auditingEnabled: true,
+    memoryRetentionDays: 30,
+    autoAnalysisEnabled: true,
+    qualityThreshold: 70
+  }
 }: DebateLogManagerProps) {
   const t = (key: keyof typeof debateLogTranslations.en) => debateLogTranslations[language][key];
 
@@ -170,8 +208,13 @@ export default function DebateLogManager({
   const [isViewingSession, setIsViewingSession] = useState(false);
   const [isExtractingMemory, setIsExtractingMemory] = useState(false);
 
-  // Создать новую сессию дебатов (симуляция)
+  // Создать новую сессию дебатов с учетом настроек аудита
   const startNewDebateSession = () => {
+    if (!globalSettings.auditingEnabled) {
+      toast.error(t('auditDisabled'));
+      return;
+    }
+
     const newSession: DebateSession = {
       id: `debate-${Date.now()}`,
       topic: language === 'ru' 
@@ -187,8 +230,10 @@ export default function DebateLogManager({
 
     setDebateSessions(current => [...(current || []), newSession]);
     
-    // Симуляция логов дебатов
-    setTimeout(() => simulateDebateLogs(newSession.id), 1000);
+    // Симуляция логов дебатов с учетом настроек
+    if (globalSettings.autoAnalysisEnabled) {
+      setTimeout(() => simulateDebateLogs(newSession.id), 1000);
+    }
     
     toast.success(t('debateStarted'));
   };
@@ -278,11 +323,16 @@ export default function DebateLogManager({
     toast.success(t('debateStopped'));
   };
 
-  // Извлечь память из логов
+  // Извлечь память из логов с проверкой качества
   const extractMemoryFromLogs = async (sessionId: string) => {
     const session = debateSessions?.find(s => s.id === sessionId);
     if (!session || session.logs.length === 0) {
       toast.error(t('memoryExtractionFailed'));
+      return;
+    }
+
+    if (!globalSettings.auditingEnabled) {
+      toast.error(t('auditDisabled'));
       return;
     }
 
@@ -295,14 +345,22 @@ export default function DebateLogManager({
     // Этап 2: Анализ содержания  
     await simulateExtractionStage(sessionId, t('contentAnalysis'), 3000);
     
-    // Этап 3: Создание памяти
+    // Этап 3: Проверка соответствия аудиту
+    await simulateExtractionStage(sessionId, t('auditCompliance'), 2500);
+    
+    // Этап 4: Создание памяти
     await simulateExtractionStage(sessionId, t('memoryCreation'), 2000);
     
-    // Этап 4: Проверка верификации
+    // Этап 5: Проверка верификации
     await simulateExtractionStage(sessionId, t('verificationCheck'), 1500);
 
-    // Создать записи памяти
-    const memoryEntries: MemoryEntry[] = session.logs.map(log => ({
+    // Фильтровать логи по порогу качества
+    const qualityFilteredLogs = session.logs.filter(log => 
+      log.confidence >= globalSettings.qualityThreshold
+    );
+
+    // Создать записи памяти только для качественных логов
+    const memoryEntries: MemoryEntry[] = qualityFilteredLogs.map(log => ({
       id: `memory-${log.id}`,
       timestamp: log.timestamp,
       agentId: log.agentId,
@@ -315,7 +373,7 @@ export default function DebateLogManager({
         relevance: log.confidence,
         accuracy: log.confidence
       },
-      tags: ['debate', log.messageType, `round-${log.round}`],
+      tags: ['debate', log.messageType, `round-${log.round}`, 'quality-filtered'],
       verified: true,
       source: 'debate' as const
     }));
@@ -326,7 +384,7 @@ export default function DebateLogManager({
 
     setIsExtractingMemory(false);
     setExtractionProgress(null);
-    toast.success(t('memoriesExtracted'));
+    toast.success(`${t('memoriesExtracted')} (${memoryEntries.length}/${session.logs.length})`);
   };
 
   // Симуляция этапа извлечения
@@ -405,13 +463,63 @@ export default function DebateLogManager({
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">{t('activeSessions')}</h3>
-              <Button onClick={startNewDebateSession}>
-                <Play size={16} className="mr-2" />
-                {t('startNewDebate')}
-              </Button>
+              <div className="flex items-center gap-2">
+                {!globalSettings.auditingEnabled && (
+                  <Badge variant="outline" className="text-destructive">
+                    {t('auditDisabled')}
+                  </Badge>
+                )}
+                <Button 
+                  onClick={startNewDebateSession}
+                  disabled={!globalSettings.auditingEnabled}
+                >
+                  <Play size={16} className="mr-2" />
+                  {t('startNewDebate')}
+                </Button>
+              </div>
             </div>
 
-            {activeSessions.length === 0 ? (
+            {/* Audit Settings Info */}
+            {globalSettings.auditingEnabled && (
+              <Card className="mb-4 bg-muted/50">
+                <CardContent className="p-4">
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <Gear size={16} />
+                    {t('auditSettings')}
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">{t('autoAnalysis')}: </span>
+                      <Badge variant={globalSettings.autoAnalysisEnabled ? "secondary" : "outline"}>
+                        {globalSettings.autoAnalysisEnabled ? "ON" : "OFF"}
+                      </Badge>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">{t('qualityThreshold')}: </span>
+                      <span className="font-medium">{globalSettings.qualityThreshold}%</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">{t('retentionPeriod')}: </span>
+                      <span className="font-medium">{globalSettings.memoryRetentionDays} {t('days')}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">{t('globalAuditEnabled')}: </span>
+                      <Badge variant="secondary">
+                        {globalSettings.auditingEnabled ? "✓" : "✗"}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {!globalSettings.auditingEnabled ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Warning size={48} className="mx-auto mb-4 opacity-50 text-destructive" />
+                <p>{t('auditDisabled')}</p>
+                <p className="text-sm">{t('enableAuditFirst')}</p>
+              </div>
+            ) : activeSessions.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Users size={48} className="mx-auto mb-4 opacity-50" />
                 <p>{t('noActiveSessions')}</p>
