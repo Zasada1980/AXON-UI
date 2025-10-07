@@ -211,6 +211,29 @@ export default function AgentMemoryManager({
   const [memoryFiles, setMemoryFiles] = useKV<MemoryFile[]>(`memory-files-${projectId}`, []);
   const [processingPipelines, setProcessingPipelines] = useKV<MemoryProcessingPipeline[]>(`memory-pipelines-${projectId}`, []);
   const [agentJournals, setAgentJournals] = useKV<AgentJournal[]>(`agent-journals-${projectId}`, []);
+  const [memoryStats, setMemoryStats] = useKV<{
+    totalSize: number;
+    compressedSize: number;
+    compressionRatio: number;
+    lastCompression: string;
+    crossSessionData: Record<string, any>;
+    performanceMetrics: {
+      averageAccessTime: number;
+      cacheHitRatio: number;
+      memoryEfficiency: number;
+    };
+  }>(`memory-stats-${projectId}`, {
+    totalSize: 0,
+    compressedSize: 0,
+    compressionRatio: 0,
+    lastCompression: '',
+    crossSessionData: {},
+    performanceMetrics: {
+      averageAccessTime: 0,
+      cacheHitRatio: 0,
+      memoryEfficiency: 0
+    }
+  });
   
   // UI состояния
   const [selectedTab, setSelectedTab] = useState('memory-files');
@@ -222,7 +245,175 @@ export default function AgentMemoryManager({
   const [verificationEnabled, setVerificationEnabled] = useState(true);
   const [viewingMemory, setViewingMemory] = useState<MemoryFile | null>(null);
 
-  // Доступные агенты для создания памяти
+  // Memory compression algorithms
+  const compressMemoryData = (data: any): { compressed: string; originalSize: number; compressedSize: number } => {
+    const originalString = JSON.stringify(data);
+    const originalSize = originalString.length;
+    
+    // Simple compression: remove redundant spaces and compress common patterns
+    let compressed = originalString
+      .replace(/\s+/g, ' ')
+      .replace(/,\s*/g, ',')
+      .replace(/:\s*/g, ':')
+      .replace(/{\s*/g, '{')
+      .replace(/\s*}/g, '}')
+      .replace(/\[\s*/g, '[')
+      .replace(/\s*]/g, ']');
+    
+    // Compress common repeated phrases
+    const patterns = [
+      { pattern: /"timestamp":/g, replacement: '"t":' },
+      { pattern: /"content":/g, replacement: '"c":' },
+      { pattern: /"importance":/g, replacement: '"i":' },
+      { pattern: /"relevance":/g, replacement: '"r":' },
+      { pattern: /"metadata":/g, replacement: '"m":' }
+    ];
+    
+    patterns.forEach(({ pattern, replacement }) => {
+      compressed = compressed.replace(pattern, replacement);
+    });
+    
+    const compressedSize = compressed.length;
+    
+    return {
+      compressed,
+      originalSize,
+      compressedSize
+    };
+  };
+
+  const decompressMemoryData = (compressed: string): any => {
+    // Reverse the compression patterns
+    let decompressed = compressed
+      .replace(/"t":/g, '"timestamp":')
+      .replace(/"c":/g, '"content":')
+      .replace(/"i":/g, '"importance":')
+      .replace(/"r":/g, '"relevance":')
+      .replace(/"m":/g, '"metadata":');
+    
+    return JSON.parse(decompressed);
+  };
+
+  // Cross-session memory persistence
+  const saveCrossSessionData = async (agentId: string, sessionData: any) => {
+    const currentStats = memoryStats || {
+      totalSize: 0,
+      compressedSize: 0,
+      compressionRatio: 0,
+      lastCompression: '',
+      crossSessionData: {},
+      performanceMetrics: {
+        averageAccessTime: 0,
+        cacheHitRatio: 0,
+        memoryEfficiency: 0
+      }
+    };
+
+    const { compressed, originalSize, compressedSize } = compressMemoryData(sessionData);
+    
+    setMemoryStats({
+      ...currentStats,
+      totalSize: currentStats.totalSize + originalSize,
+      compressedSize: currentStats.compressedSize + compressedSize,
+      compressionRatio: ((currentStats.totalSize + originalSize - currentStats.compressedSize - compressedSize) / (currentStats.totalSize + originalSize)) * 100,
+      lastCompression: new Date().toISOString(),
+      crossSessionData: {
+        ...currentStats.crossSessionData,
+        [agentId]: {
+          data: compressed,
+          timestamp: new Date().toISOString(),
+          originalSize,
+          compressedSize
+        }
+      }
+    });
+  };
+
+  const loadCrossSessionData = (agentId: string): any => {
+    const sessionData = memoryStats?.crossSessionData?.[agentId];
+    if (!sessionData) return null;
+    
+    try {
+      return decompressMemoryData(sessionData.data);
+    } catch (error) {
+      console.error('Failed to decompress session data:', error);
+      return null;
+    }
+  };
+
+  // Performance monitoring and optimization
+  const updatePerformanceMetrics = (accessTime: number, cacheHit: boolean) => {
+    const currentStats = memoryStats || {
+      totalSize: 0,
+      compressedSize: 0,
+      compressionRatio: 0,
+      lastCompression: '',
+      crossSessionData: {},
+      performanceMetrics: {
+        averageAccessTime: 0,
+        cacheHitRatio: 0,
+        memoryEfficiency: 0
+      }
+    };
+
+    const newAverageAccessTime = (currentStats.performanceMetrics.averageAccessTime + accessTime) / 2;
+    const newCacheHitRatio = cacheHit 
+      ? Math.min(100, currentStats.performanceMetrics.cacheHitRatio + 1)
+      : Math.max(0, currentStats.performanceMetrics.cacheHitRatio - 0.5);
+    
+    const memoryEfficiency = currentStats.totalSize > 0 
+      ? (1 - (currentStats.compressedSize / currentStats.totalSize)) * 100
+      : 0;
+
+    setMemoryStats({
+      ...currentStats,
+      performanceMetrics: {
+        averageAccessTime: newAverageAccessTime,
+        cacheHitRatio: newCacheHitRatio,
+        memoryEfficiency
+      }
+    });
+  };
+
+  // Memory cleanup and optimization
+  const optimizeMemory = async () => {
+    const startTime = performance.now();
+    
+    // Compress all memory files
+    const optimizedFiles = (memoryFiles || []).map(file => {
+      const { compressed, originalSize, compressedSize } = compressMemoryData(file.entries);
+      return {
+        ...file,
+        entries: JSON.parse(compressed),
+        metadata: {
+          ...file.metadata,
+          originalSize,
+          compressedSize,
+          lastOptimization: new Date().toISOString()
+        }
+      };
+    });
+
+    setMemoryFiles(optimizedFiles);
+    
+    // Update performance metrics
+    const endTime = performance.now();
+    updatePerformanceMetrics(endTime - startTime, false);
+    
+    toast.success(language === 'ru' ? 'Память оптимизирована' : 'Memory optimized');
+  };
+
+  // Auto-optimization when memory usage is high
+  useEffect(() => {
+    const currentStats = memoryStats;
+    if (currentStats && currentStats.totalSize > 1000000) { // 1MB threshold
+      const efficiency = currentStats.performanceMetrics.memoryEfficiency;
+      if (efficiency < 50) {
+        optimizeMemory();
+      }
+    }
+  }, [memoryFiles]);
+
   const availableAgents = [
     { id: 'debate-agent-1', name: 'Debate Agent 1', type: 'debate' },
     { id: 'debate-agent-2', name: 'Debate Agent 2', type: 'debate' },

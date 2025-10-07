@@ -141,6 +141,8 @@ const AuthenticationSystem: React.FC<AuthenticationSystemProps> = ({
   const [sessions, setSessions] = useKV<AuthSession[]>(`auth-sessions-${projectId}`, []);
   const [auditEvents, setAuditEvents] = useKV<SecurityAuditEvent[]>(`security-audit-${projectId}`, []);
   const [currentUser, setCurrentUser] = useKV<AuthUser | null>(`current-user-${projectId}`, null);
+  const [sparkUser, setSparkUser] = useState<any>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   
   // UI state
   const [activeTab, setActiveTab] = useState('users');
@@ -155,49 +157,112 @@ const AuthenticationSystem: React.FC<AuthenticationSystemProps> = ({
   });
   const [showPassword, setShowPassword] = useState(false);
 
-  // Initialize demo data
+  // Initialize demo data and Spark user integration
   useEffect(() => {
-    if (!users || users.length === 0) {
-      const demoUsers: AuthUser[] = [
-        {
-          id: 'user-1',
-          username: 'admin',
-          email: 'admin@axon.ai',
-          role: 'admin',
-          permissions: ['read', 'write', 'delete', 'admin', 'security'],
-          lastLogin: new Date().toISOString(),
-          isActive: true,
-          securityLevel: 'critical',
-          twoFactorEnabled: true,
-          avatar: undefined
-        },
-        {
-          id: 'user-2',
-          username: 'analyst_1',
-          email: 'analyst@axon.ai',
-          role: 'analyst',
-          permissions: ['read', 'write', 'analyze'],
-          lastLogin: new Date(Date.now() - 3600000).toISOString(),
-          isActive: true,
-          securityLevel: 'high',
-          twoFactorEnabled: false
-        },
-        {
-          id: 'user-3',
-          username: 'viewer_1',
-          email: 'viewer@axon.ai',
-          role: 'viewer',
-          permissions: ['read'],
-          lastLogin: new Date(Date.now() - 86400000).toISOString(),
-          isActive: true,
-          securityLevel: 'medium',
-          twoFactorEnabled: false
+    const initializeAuth = async () => {
+      setIsLoadingAuth(true);
+      
+      try {
+        // Get current Spark user
+        const sparkUserData = await (globalThis as any).spark?.user?.();
+        if (sparkUserData) {
+          setSparkUser(sparkUserData);
+          
+          // Convert Spark user to AuthUser format
+          const sparkAuthUser: AuthUser = {
+            id: `spark-${sparkUserData.id}`,
+            username: sparkUserData.login,
+            email: sparkUserData.email,
+            role: sparkUserData.isOwner ? 'admin' : 'analyst',
+            permissions: sparkUserData.isOwner 
+              ? ['read', 'write', 'delete', 'admin', 'security', 'audit']
+              : ['read', 'write', 'analyze', 'export'],
+            lastLogin: new Date().toISOString(),
+            isActive: true,
+            securityLevel: sparkUserData.isOwner ? 'critical' : 'high',
+            twoFactorEnabled: true, // Assume GitHub has 2FA
+            avatar: sparkUserData.avatarUrl
+          };
+          
+          // Set as current user
+          setCurrentUser(sparkAuthUser);
+          
+          // Add to users list if not exists
+          if (!users?.find(u => u.id === sparkAuthUser.id)) {
+            setUsers(current => [...(current || []), sparkAuthUser]);
+          }
+          
+          // Log authentication event
+          logSecurityEvent('login', `Spark user authenticated: ${sparkUserData.login}`, 'low', sparkAuthUser.id);
+          onUserAuthenticated?.(sparkAuthUser);
         }
-      ];
-      setUsers(demoUsers);
-      setCurrentUser(demoUsers[0]); // Set admin as current user for demo
-    }
-  }, [users, setUsers, setCurrentUser]);
+      } catch (error) {
+        console.error('Failed to get Spark user:', error);
+        // Fallback to demo users if Spark user API fails
+        initializeDemoData();
+      } finally {
+        setIsLoadingAuth(false);
+      }
+    };
+
+    const initializeDemoData = () => {
+      if (!users || users.length === 0) {
+        const demoUsers: AuthUser[] = [
+          {
+            id: 'user-1',
+            username: 'admin',
+            email: 'admin@axon.ai',
+            role: 'admin',
+            permissions: ['read', 'write', 'delete', 'admin', 'security'],
+            lastLogin: new Date().toISOString(),
+            isActive: true,
+            securityLevel: 'critical',
+            twoFactorEnabled: true,
+            avatar: undefined
+          },
+          {
+            id: 'user-2',
+            username: 'analyst_1',
+            email: 'analyst@axon.ai',
+            role: 'analyst',
+            permissions: ['read', 'write', 'analyze'],
+            lastLogin: new Date(Date.now() - 3600000).toISOString(),
+            isActive: true,
+            securityLevel: 'high',
+            twoFactorEnabled: false
+          },
+          {
+            id: 'user-3',
+            username: 'viewer_1',
+            email: 'viewer@axon.ai',
+            role: 'viewer',
+            permissions: ['read'],
+            lastLogin: new Date(Date.now() - 86400000).toISOString(),
+            isActive: true,
+            securityLevel: 'medium',
+            twoFactorEnabled: false
+          }
+        ];
+        setUsers(demoUsers);
+        setCurrentUser(demoUsers[0]); // Set admin as current user for demo
+      }
+    };
+
+    initializeAuth();
+  }, []);
+
+  // Role-based access control
+  const hasPermission = (permission: string): boolean => {
+    return currentUser?.permissions.includes(permission) || false;
+  };
+
+  const canManageUsers = (): boolean => {
+    return hasPermission('admin') || hasPermission('security');
+  };
+
+  const canViewAudit = (): boolean => {
+    return hasPermission('admin') || hasPermission('security') || hasPermission('audit');
+  };
 
   // Security event logging
   const logSecurityEvent = (
@@ -330,15 +395,34 @@ const AuthenticationSystem: React.FC<AuthenticationSystemProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {currentUser && (
+              {isLoadingAuth ? (
                 <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-lg">
-                  <User size={16} />
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm">Loading...</span>
+                </div>
+              ) : currentUser ? (
+                <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-lg">
+                  {sparkUser?.avatarUrl ? (
+                    <img 
+                      src={sparkUser.avatarUrl} 
+                      alt={currentUser.username}
+                      className="w-6 h-6 rounded-full"
+                    />
+                  ) : (
+                    <User size={16} />
+                  )}
                   <span className="text-sm font-medium">{currentUser.username}</span>
                   <Badge variant={getRoleBadgeVariant(currentUser.role)}>
                     {t(currentUser.role)}
                   </Badge>
+                  {sparkUser && (
+                    <Badge variant="outline" className="text-xs">
+                      <Globe size={12} className="mr-1" />
+                      GitHub
+                    </Badge>
+                  )}
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </CardHeader>
@@ -369,11 +453,26 @@ const AuthenticationSystem: React.FC<AuthenticationSystemProps> = ({
         <TabsContent value="users" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">{t('userManagement')}</h3>
-            <Button onClick={() => setIsCreatingUser(true)}>
-              <User size={16} className="mr-2" />
-              {t('createUser')}
-            </Button>
+            {canManageUsers() && (
+              <Button onClick={() => setIsCreatingUser(true)}>
+                <User size={16} className="mr-2" />
+                {t('createUser')}
+              </Button>
+            )}
           </div>
+
+          {/* Permission Check Alert */}
+          {!canManageUsers() && (
+            <Alert>
+              <Warning size={16} />
+              <AlertDescription>
+                {language === 'ru' 
+                  ? 'У вас нет прав для управления пользователями. Обратитесь к администратору.'
+                  : 'You do not have permission to manage users. Contact an administrator.'
+                }
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* User Creation Form */}
           {isCreatingUser && (
@@ -491,13 +590,15 @@ const AuthenticationSystem: React.FC<AuthenticationSystemProps> = ({
                       <span className="text-xs text-muted-foreground">
                         Last: {new Date(user.lastLogin).toLocaleDateString()}
                       </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleUserStatus(user.id)}
-                      >
-                        {user.isActive ? <Lock size={16} /> : <Lock size={16} className="opacity-50" />}
-                      </Button>
+                      {canManageUsers() && user.id !== currentUser?.id && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleUserStatus(user.id)}
+                        >
+                          {user.isActive ? <Lock size={16} /> : <Lock size={16} className="opacity-50" />}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -508,90 +609,118 @@ const AuthenticationSystem: React.FC<AuthenticationSystemProps> = ({
 
         {/* Session Management Tab */}
         <TabsContent value="sessions" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">{t('sessionManagement')}</h3>
-            <Badge variant="secondary">
-              {(sessions || []).filter(s => s.isActive).length} {t('active')} sessions
-            </Badge>
-          </div>
+          {!canManageUsers() ? (
+            <Alert>
+              <Warning size={16} />
+              <AlertDescription>
+                {language === 'ru' 
+                  ? 'У вас нет прав для управления сессиями. Обратитесь к администратору.'
+                  : 'You do not have permission to manage sessions. Contact an administrator.'
+                }
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">{t('sessionManagement')}</h3>
+                <Badge variant="secondary">
+                  {(sessions || []).filter(s => s.isActive).length} {t('active')} sessions
+                </Badge>
+              </div>
 
-          {/* Active Sessions */}
-          <div className="grid gap-4">
-            {(sessions || []).filter(s => s.isActive).map(session => {
-              const user = users?.find(u => u.id === session.userId);
-              return (
-                <Card key={session.id} className="cyber-border">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <div>
-                          <h4 className="font-medium">{user?.username || 'Unknown User'}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            IP: {session.ipAddress} • {new Date(session.lastActivity).toLocaleString()}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {session.userAgent.substring(0, 50)}...
-                          </p>
+              {/* Active Sessions */}
+              <div className="grid gap-4">
+                {(sessions || []).filter(s => s.isActive).map(session => {
+                  const user = users?.find(u => u.id === session.userId);
+                  return (
+                    <Card key={session.id} className="cyber-border">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            <div>
+                              <h4 className="font-medium">{user?.username || 'Unknown User'}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                IP: {session.ipAddress} • {new Date(session.lastActivity).toLocaleString()}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {session.userAgent.substring(0, 50)}...
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => terminateSession(session.id)}
+                          >
+                            {t('terminateSession')}
+                          </Button>
                         </div>
-                      </div>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => terminateSession(session.id)}
-                      >
-                        {t('terminateSession')}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </TabsContent>
 
         {/* Security Audit Tab */}
         <TabsContent value="audit" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">{t('securityAudit')}</h3>
-            <Badge variant="secondary">
-              {(auditEvents || []).length} events logged
-            </Badge>
-          </div>
+          {!canViewAudit() ? (
+            <Alert>
+              <Warning size={16} />
+              <AlertDescription>
+                {language === 'ru' 
+                  ? 'У вас нет прав для просмотра аудита безопасности. Обратитесь к администратору.'
+                  : 'You do not have permission to view security audit. Contact an administrator.'
+                }
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">{t('securityAudit')}</h3>
+                <Badge variant="secondary">
+                  {(auditEvents || []).length} events logged
+                </Badge>
+              </div>
 
-          {/* Security Events */}
-          <div className="space-y-3">
-            {(auditEvents || []).slice().reverse().slice(0, 20).map(event => {
-              const user = users?.find(u => u.id === event.userId);
-              return (
-                <Card key={event.id} className="cyber-border">
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${
-                          event.riskLevel === 'critical' ? 'bg-red-500' :
-                          event.riskLevel === 'high' ? 'bg-orange-500' :
-                          event.riskLevel === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                        }`}></div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{event.eventType}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {t(event.riskLevel)}
-                            </Badge>
+              {/* Security Events */}
+              <div className="space-y-3">
+                {(auditEvents || []).slice().reverse().slice(0, 20).map(event => {
+                  const user = users?.find(u => u.id === event.userId);
+                  return (
+                    <Card key={event.id} className="cyber-border">
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-2 h-2 rounded-full ${
+                              event.riskLevel === 'critical' ? 'bg-red-500' :
+                              event.riskLevel === 'high' ? 'bg-orange-500' :
+                              event.riskLevel === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                            }`}></div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">{event.eventType}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {t(event.riskLevel)}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground">{event.details}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {user?.username || 'System'} • {event.ipAddress} • {new Date(event.timestamp).toLocaleString()}
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-sm text-muted-foreground">{event.details}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {user?.username || 'System'} • {event.ipAddress} • {new Date(event.timestamp).toLocaleString()}
-                          </p>
                         </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </TabsContent>
 
         {/* Settings Tab */}

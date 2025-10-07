@@ -30,7 +30,7 @@ interface E2ETestCase {
   id: string;
   name: string;
   description: string;
-  type: 'integration' | 'regression' | 'performance' | 'user-flow';
+  type: 'integration' | 'regression' | 'performance' | 'user-flow' | 'security' | 'accessibility';
   steps: TestStep[];
   expectedResults: string[];
   status: 'pending' | 'running' | 'passed' | 'failed' | 'skipped';
@@ -40,6 +40,15 @@ interface E2ETestCase {
   category: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
   tags: string[];
+  coverage: {
+    modules: string[];
+    features: string[];
+    percentage: number;
+  };
+  dependencies: string[];
+  environment: 'development' | 'staging' | 'production';
+  retryCount: number;
+  flakiness: number; // percentage indicating test stability
 }
 
 interface TestStep {
@@ -234,7 +243,16 @@ export default function E2ETestingSystem({
       steps: newTest.steps || [],
       expectedResults: newTest.expectedResults || [],
       tags: newTest.tags || [],
-      status: 'pending'
+      status: 'pending',
+      coverage: {
+        modules: ['authentication', 'memory', 'analysis'],
+        features: ['kipling-protocol', 'ikr-directive', 'ai-audit'],
+        percentage: 75
+      },
+      dependencies: [],
+      environment: 'development',
+      retryCount: 0,
+      flakiness: 0
     };
     
     setTestCases(current => [...(current || []), testCase]);
@@ -429,6 +447,200 @@ export default function E2ETestingSystem({
   };
   
   const stats = getTestStats();
+
+  // Initialize comprehensive test scenarios
+  useEffect(() => {
+    if (!testCases || testCases.length === 0) {
+      const comprehensiveTestCases: E2ETestCase[] = [
+        // Authentication Flow Tests
+        {
+          id: 'auth-001',
+          name: 'GitHub Spark User Authentication',
+          description: 'Test authentication flow with GitHub Spark user API integration',
+          type: 'integration',
+          priority: 'critical',
+          category: 'authentication',
+          steps: [
+            { id: 'step-1', action: 'Load application', target: 'main-app', expected: 'App loads successfully', status: 'pending' },
+            { id: 'step-2', action: 'Check user authentication', target: 'auth-system', expected: 'User is authenticated via Spark API', status: 'pending' },
+            { id: 'step-3', action: 'Verify role-based access', target: 'user-permissions', expected: 'User permissions match role', status: 'pending' }
+          ],
+          expectedResults: ['User authenticated', 'Permissions verified', 'Access granted'],
+          tags: ['auth', 'github', 'integration'],
+          status: 'pending',
+          coverage: {
+            modules: ['authentication', 'authorization', 'user-management'],
+            features: ['github-integration', 'role-based-access', 'session-management'],
+            percentage: 85
+          },
+          dependencies: ['spark-api'],
+          environment: 'development',
+          retryCount: 0,
+          flakiness: 5
+        },
+        
+        // Kipling Protocol Tests
+        {
+          id: 'kipling-001',
+          name: 'Complete Kipling Protocol Analysis',
+          description: 'Test full workflow from dimension creation to insights generation',
+          type: 'user-flow',
+          priority: 'high',
+          category: 'analysis',
+          steps: [
+            { id: 'step-1', action: 'Create new project', target: 'project-creation', expected: 'Project created successfully', status: 'pending' },
+            { id: 'step-2', action: 'Fill Kipling dimensions', target: 'kipling-dimensions', expected: 'All 6 dimensions filled', status: 'pending' },
+            { id: 'step-3', action: 'Generate insights', target: 'insights-generation', expected: 'AI insights generated', status: 'pending' },
+            { id: 'step-4', action: 'Export analysis', target: 'export-functionality', expected: 'Analysis exported successfully', status: 'pending' }
+          ],
+          expectedResults: ['Project created', 'Dimensions completed', 'Insights generated', 'Export successful'],
+          tags: ['kipling', 'analysis', 'workflow'],
+          status: 'pending',
+          coverage: {
+            modules: ['kipling-protocol', 'project-management', 'insights'],
+            features: ['dimension-analysis', 'ai-insights', 'export'],
+            percentage: 90
+          },
+          dependencies: ['llm-api'],
+          environment: 'development',
+          retryCount: 0,
+          flakiness: 10
+        },
+
+        // Memory System Tests
+        {
+          id: 'memory-001',
+          name: 'Agent Memory Compression and Persistence',
+          description: 'Test memory compression algorithms and cross-session persistence',
+          type: 'performance',
+          priority: 'high',
+          category: 'memory',
+          steps: [
+            { id: 'step-1', action: 'Create memory file', target: 'memory-manager', expected: 'Memory file created', status: 'pending' },
+            { id: 'step-2', action: 'Add large dataset', target: 'memory-data', expected: 'Data stored successfully', status: 'pending' },
+            { id: 'step-3', action: 'Trigger compression', target: 'compression-algorithm', expected: 'Memory compressed', status: 'pending' },
+            { id: 'step-4', action: 'Verify persistence', target: 'cross-session', expected: 'Data persists across sessions', status: 'pending' }
+          ],
+          expectedResults: ['Memory created', 'Data stored', 'Compression applied', 'Persistence verified'],
+          tags: ['memory', 'compression', 'persistence'],
+          status: 'pending',
+          coverage: {
+            modules: ['agent-memory', 'compression', 'persistence'],
+            features: ['memory-compression', 'cross-session-persistence', 'performance-optimization'],
+            percentage: 80
+          },
+          dependencies: ['kv-storage'],
+          environment: 'development',
+          retryCount: 0,
+          flakiness: 15
+        },
+
+        // Security Tests
+        {
+          id: 'security-001',
+          name: 'Role-Based Access Control',
+          description: 'Test security measures and role-based access restrictions',
+          type: 'security',
+          priority: 'critical',
+          category: 'security',
+          steps: [
+            { id: 'step-1', action: 'Login as viewer', target: 'auth-system', expected: 'Viewer role assigned', status: 'pending' },
+            { id: 'step-2', action: 'Try admin action', target: 'admin-panel', expected: 'Access denied', status: 'pending' },
+            { id: 'step-3', action: 'Switch to admin', target: 'role-change', expected: 'Admin access granted', status: 'pending' },
+            { id: 'step-4', action: 'Perform admin action', target: 'admin-functionality', expected: 'Action successful', status: 'pending' }
+          ],
+          expectedResults: ['Role verification', 'Access control enforced', 'Permission escalation works', 'Admin actions available'],
+          tags: ['security', 'rbac', 'access-control'],
+          status: 'pending',
+          coverage: {
+            modules: ['authentication', 'authorization', 'security'],
+            features: ['role-based-access', 'permission-control', 'security-audit'],
+            percentage: 95
+          },
+          dependencies: ['auth-system'],
+          environment: 'development',
+          retryCount: 0,
+          flakiness: 3
+        },
+
+        // Performance Tests
+        {
+          id: 'perf-001',
+          name: 'System Performance Under Load',
+          description: 'Test system performance with multiple concurrent operations',
+          type: 'performance',
+          priority: 'medium',
+          category: 'performance',
+          steps: [
+            { id: 'step-1', action: 'Create multiple projects', target: 'project-system', expected: 'Projects created quickly', status: 'pending' },
+            { id: 'step-2', action: 'Run concurrent audits', target: 'audit-system', expected: 'Audits complete within limits', status: 'pending' },
+            { id: 'step-3', action: 'Stress test memory', target: 'memory-system', expected: 'Memory handles load', status: 'pending' },
+            { id: 'step-4', action: 'Check response times', target: 'ui-performance', expected: 'UI remains responsive', status: 'pending' }
+          ],
+          expectedResults: ['Fast project creation', 'Concurrent processing', 'Memory efficiency', 'Responsive UI'],
+          tags: ['performance', 'load', 'stress'],
+          status: 'pending',
+          coverage: {
+            modules: ['all-modules'],
+            features: ['concurrent-processing', 'memory-management', 'ui-performance'],
+            percentage: 70
+          },
+          dependencies: ['system-resources'],
+          environment: 'development',
+          retryCount: 0,
+          flakiness: 25
+        },
+
+        // Accessibility Tests
+        {
+          id: 'a11y-001',
+          name: 'Accessibility Compliance',
+          description: 'Test accessibility features and WCAG compliance',
+          type: 'accessibility',
+          priority: 'medium',
+          category: 'accessibility',
+          steps: [
+            { id: 'step-1', action: 'Test keyboard navigation', target: 'keyboard-nav', expected: 'All elements accessible via keyboard', status: 'pending' },
+            { id: 'step-2', action: 'Check color contrast', target: 'color-contrast', expected: 'WCAG AA compliance', status: 'pending' },
+            { id: 'step-3', action: 'Verify screen reader', target: 'aria-labels', expected: 'Content readable by screen readers', status: 'pending' },
+            { id: 'step-4', action: 'Test focus indicators', target: 'focus-states', expected: 'Clear focus indicators visible', status: 'pending' }
+          ],
+          expectedResults: ['Keyboard accessibility', 'Color compliance', 'Screen reader support', 'Focus visibility'],
+          tags: ['accessibility', 'wcag', 'a11y'],
+          status: 'pending',
+          coverage: {
+            modules: ['ui-components', 'navigation', 'forms'],
+            features: ['keyboard-navigation', 'color-contrast', 'aria-support'],
+            percentage: 60
+          },
+          dependencies: ['accessibility-tools'],
+          environment: 'development',
+          retryCount: 0,
+          flakiness: 8
+        }
+      ];
+
+      setTestCases(comprehensiveTestCases);
+      
+      // Create default test suite
+      const defaultSuite: TestSuite = {
+        id: 'suite-critical',
+        name: 'Critical Path Test Suite',
+        description: 'Essential tests for core functionality',
+        testCases: ['auth-001', 'kipling-001', 'security-001'],
+        status: 'idle',
+        progress: 0,
+        results: {
+          total: 3,
+          passed: 0,
+          failed: 0,
+          skipped: 0
+        }
+      };
+
+      setTestSuites([defaultSuite]);
+    }
+  }, []);
   
   return (
     <div className="space-y-6">
