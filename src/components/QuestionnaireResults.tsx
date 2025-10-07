@@ -5,40 +5,28 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { toast } from 'sonner';
-import {
-  Users,
-  FileText,
-  Calendar,
-  MapPin,
-  Lightbulb,
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Users, 
+  FileText, 
+  Calendar, 
+  MapPin, 
+  Lightbulb, 
   Gear,
-  Target,
-  Brain,
   CheckCircle,
-  Star,
-  ArrowRight,
   Download,
-  Eye
+  ArrowRight,
+  Target,
+  Star,
+  Eye,
+  ChartBar,
+  Brain,
+  TrendUp
 } from '@phosphor-icons/react';
 
 interface QuestionnaireResultsProps {
-  language: 'ru' | 'en';
-  questionnaireData: {
-    responses: Record<string, any>;
-    ikrMapping: {
-      intelligence: any[];
-      knowledge: any[];
-      reasoning: any[];
-    };
-    completionScore: number;
-    dimensionProgress: Array<{
-      dimension: string;
-      progress: number;
-      answered: number;
-      total: number;
-    }>;
-  };
+  language: 'en' | 'ru';
+  questionnaireData: any;
   onApplyToProject: (data: any) => void;
   onGenerateReport: () => void;
 }
@@ -49,381 +37,561 @@ const QuestionnaireResults: React.FC<QuestionnaireResultsProps> = ({
   onApplyToProject,
   onGenerateReport
 }) => {
-  const [selectedDimension, setSelectedDimension] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
-  const getDimensionIcon = (dimension: string) => {
+  // Extract data from questionnaire
+  const { responses, completedQuestions, totalQuestions, dimensionBreakdown, ikrMapping } = questionnaireData;
+
+  // Calculate completion percentage
+  const completionPercentage = Math.round((completedQuestions / totalQuestions) * 100);
+
+  // Get dimension icon
+  const getDimensionIcon = (dimension: string, size: number = 20) => {
     switch (dimension) {
-      case 'who': return <Users size={20} className="text-blue-400" />;
-      case 'what': return <FileText size={20} className="text-green-400" />;
-      case 'when': return <Calendar size={20} className="text-yellow-400" />;
-      case 'where': return <MapPin size={20} className="text-purple-400" />;
-      case 'why': return <Lightbulb size={20} className="text-orange-400" />;
-      case 'how': return <Gear size={20} className="text-red-400" />;
-      default: return <Target size={20} />;
+      case 'who': return <Users size={size} />;
+      case 'what': return <FileText size={size} />;
+      case 'when': return <Calendar size={size} />;
+      case 'where': return <MapPin size={size} />;
+      case 'why': return <Lightbulb size={size} />;
+      case 'how': return <Gear size={size} />;
+      default: return <FileText size={size} />;
     }
   };
 
-  const getIKRRecommendations = () => {
-    const { intelligence, knowledge, reasoning } = questionnaireData.ikrMapping;
-    
-    return {
-      intelligence: {
-        score: (intelligence.length / (intelligence.length + knowledge.length + reasoning.length)) * 100,
-        recommendations: language === 'ru' ? [
-          'Собрано достаточно первичной информации для анализа',
-          'Рекомендуется проверить достоверность источников',
-          'Необходимо заполнить информационные пробелы'
-        ] : [
-          'Sufficient primary information collected for analysis',
-          'Recommend verifying source credibility',
-          'Need to fill information gaps'
-        ]
-      },
-      knowledge: {
-        score: (knowledge.length / (intelligence.length + knowledge.length + reasoning.length)) * 100,
-        recommendations: language === 'ru' ? [
-          'Хорошая база для синтеза паттернов и связей',
-          'Можно приступать к построению концептуальной модели',
-          'Рекомендуется дополнительный анализ взаимосвязей'
-        ] : [
-          'Good foundation for pattern and relationship synthesis',
-          'Can proceed with conceptual model building',
-          'Recommend additional relationship analysis'
-        ]
-      },
-      reasoning: {
-        score: (reasoning.length / (intelligence.length + knowledge.length + reasoning.length)) * 100,
-        recommendations: language === 'ru' ? [
-          'Достаточно данных для стратегического анализа',
-          'Можно формулировать выводы и рекомендации',
-          'Необходима проверка логических цепочек'
-        ] : [
-          'Sufficient data for strategic analysis',
-          'Can formulate conclusions and recommendations',
-          'Need to verify logical chains'
-        ]
-      }
+  // Get dimension name
+  const getDimensionName = (dimension: string) => {
+    const names = {
+      who: { en: 'Who', ru: 'Кто' },
+      what: { en: 'What', ru: 'Что' },
+      when: { en: 'When', ru: 'Когда' },
+      where: { en: 'Where', ru: 'Где' },
+      why: { en: 'Why', ru: 'Почему' },
+      how: { en: 'How', ru: 'Как' }
     };
+    return names[dimension as keyof typeof names]?.[language] || dimension;
   };
 
-  const ikrRecommendations = getIKRRecommendations();
-
-  const getDimensionResponses = (dimension: string) => {
-    return Object.entries(questionnaireData.responses)
-      .filter(([questionId]) => questionId.startsWith(dimension))
-      .map(([questionId, response]) => ({ questionId, response }));
+  // Get response quality score
+  const getResponseQuality = (response: string) => {
+    if (!response) return 0;
+    const length = response.length;
+    if (length < 50) return 25;
+    if (length < 150) return 50;
+    if (length < 300) return 75;
+    return 100;
   };
 
-  const generateInsightSummary = (): string[] => {
-    const insights: string[] = [];
-    
-    // Анализ полноты ответов
-    if (questionnaireData.completionScore >= 90) {
-      insights.push(
-        language === 'ru' 
-          ? 'Высокая полнота сбора информации (90%+)' 
-          : 'High information collection completeness (90%+)'
-      );
-    } else if (questionnaireData.completionScore >= 70) {
-      insights.push(
-        language === 'ru'
-          ? 'Средняя полнота сбора информации (70-90%)'
-          : 'Medium information collection completeness (70-90%)'
-      );
+  // Calculate overall analysis quality
+  const calculateAnalysisQuality = () => {
+    const responseLengths = Object.values(responses).map(r => (r as string).length);
+    const avgLength = responseLengths.reduce((sum, len) => sum + len, 0) / responseLengths.length;
+    const completionScore = (completedQuestions / totalQuestions) * 100;
+    const depthScore = Math.min(100, (avgLength / 200) * 100);
+    return Math.round((completionScore * 0.6 + depthScore * 0.4));
+  };
+
+  const analysisQuality = calculateAnalysisQuality();
+
+  // Group responses by dimension for display
+  const responsesByDimension = Object.entries(responses).reduce((acc, [questionId, response]) => {
+    const dimension = questionId.split('-')[0];
+    if (!acc[dimension]) acc[dimension] = [];
+    acc[dimension].push({ questionId, response: response as string });
+    return acc;
+  }, {} as Record<string, Array<{ questionId: string; response: string }>>);
+
+  // Generate insights preview
+  const generateInsightsPreview = (): Array<{type: string; text: string}> => {
+    const insights: Array<{type: string; text: string}> = [];
+
+    // Completion insights
+    if (completionPercentage >= 90) {
+      insights.push({
+        type: 'success',
+        text: language === 'ru' 
+          ? 'Отличная полнота анализа - все ключевые аспекты рассмотрены'
+          : 'Excellent analysis completeness - all key aspects covered'
+      });
+    } else if (completionPercentage >= 70) {
+      insights.push({
+        type: 'warning',
+        text: language === 'ru' 
+          ? 'Хорошая полнота анализа, но некоторые аспекты можно углубить'
+          : 'Good analysis completeness, but some aspects could be deepened'
+      });
     } else {
-      insights.push(
-        language === 'ru'
-          ? 'Низкая полнота сбора информации (<70%). Рекомендуется дополнить ответы.'
-          : 'Low information collection completeness (<70%). Recommend completing answers.'
-      );
+      insights.push({
+        type: 'error',
+        text: language === 'ru' 
+          ? 'Анализ требует дополнения - много пропущенных важных вопросов'
+          : 'Analysis needs completion - many important questions missed'
+      });
     }
 
-    // Анализ балансировки IKR
-    const ikrBalance = questionnaireData.ikrMapping;
-    const total = ikrBalance.intelligence.length + ikrBalance.knowledge.length + ikrBalance.reasoning.length;
-    
-    if (ikrBalance.intelligence.length / total > 0.5) {
-      insights.push(
-        language === 'ru'
-          ? 'Преобладает сбор разведданных - хорошо для начальной стадии'
-          : 'Intelligence gathering dominates - good for initial stage'
-      );
-    }
-    
-    if (ikrBalance.reasoning.length / total > 0.4) {
-      insights.push(
-        language === 'ru'
-          ? 'Много стратегических вопросов - готовность к выводам'
-          : 'Many strategic questions - readiness for conclusions'
-      );
+    // Dimension-specific insights
+    Object.entries(dimensionBreakdown).forEach(([dimension, count]) => {
+      if ((count as number) === 0) {
+        insights.push({
+          type: 'warning',
+          text: language === 'ru' 
+            ? `Измерение "${getDimensionName(dimension)}" не заполнено`
+            : `"${getDimensionName(dimension)}" dimension not completed`
+        });
+      }
+    });
+
+    // Quality insights
+    if (analysisQuality >= 80) {
+      insights.push({
+        type: 'success',
+        text: language === 'ru' 
+          ? 'Высокое качество ответов - подробные и содержательные'
+          : 'High quality responses - detailed and comprehensive'
+      });
     }
 
-    return insights;
+    return insights.slice(0, 5); // Limit to 5 insights
   };
+
+  const insights = generateInsightsPreview();
 
   return (
-    <div className="space-y-6">
-      {/* Header with Results Summary */}
-      <Card className="cyber-border">
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <Card className="border-accent/20 bg-gradient-to-br from-accent/5 to-primary/5">
         <CardHeader>
-          <CardTitle className="flex items-center gap-3">
-            <CheckCircle size={24} className="text-green-400" />
-            {language === 'ru' ? 'Результаты Анкеты Киплинга' : 'Kipling Questionnaire Results'}
-          </CardTitle>
-          <CardDescription>
-            {language === 'ru'
-              ? 'Анализ собранной информации и рекомендации для IKR-анализа'
-              : 'Analysis of collected information and IKR-analysis recommendations'
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="text-center space-y-2">
-              <div className="text-2xl font-bold text-green-400">
-                {Math.round(questionnaireData.completionScore)}%
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {language === 'ru' ? 'Полнота ответов' : 'Completion Rate'}
-              </div>
-              <Progress value={questionnaireData.completionScore} className="h-2" />
-            </div>
-            
-            <div className="text-center space-y-2">
-              <div className="text-2xl font-bold text-blue-400">
-                {questionnaireData.dimensionProgress.filter(d => d.progress >= 80).length}/6
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {language === 'ru' ? 'Заполненные измерения' : 'Completed Dimensions'}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckCircle size={32} className="text-green-500" />
+              <div>
+                <CardTitle className="text-2xl">
+                  {language === 'ru' ? 'Результаты Анкеты Киплинга' : 'Kipling Questionnaire Results'}
+                </CardTitle>
+                <CardDescription className="text-base mt-1">
+                  {language === 'ru' 
+                    ? 'Систематический анализ успешно завершен'
+                    : 'Systematic analysis successfully completed'
+                  }
+                </CardDescription>
               </div>
             </div>
-            
-            <div className="text-center space-y-2">
-              <div className="text-2xl font-bold text-purple-400">
-                {Object.keys(questionnaireData.responses).length}
-              </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold text-green-500">{completionPercentage}%</div>
               <div className="text-sm text-muted-foreground">
-                {language === 'ru' ? 'Всего ответов' : 'Total Responses'}
+                {language === 'ru' ? 'завершено' : 'completed'}
               </div>
             </div>
           </div>
-        </CardContent>
+        </CardHeader>
       </Card>
 
-      {/* Dimension Analysis */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target size={20} />
-            {language === 'ru' ? 'Анализ по Измерениям' : 'Dimension Analysis'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {questionnaireData.dimensionProgress.map((dim) => (
-              <Card 
-                key={dim.dimension}
-                className={`cursor-pointer transition-all hover:shadow-lg ${
-                  selectedDimension === dim.dimension ? 'ring-2 ring-primary' : ''
-                }`}
-                onClick={() => setSelectedDimension(
-                  selectedDimension === dim.dimension ? null : dim.dimension
-                )}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    {getDimensionIcon(dim.dimension)}
+      {/* Key Metrics */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'ru' ? 'Ответы' : 'Responses'}
+                </p>
+                <p className="text-2xl font-bold text-primary">{completedQuestions}/{totalQuestions}</p>
+              </div>
+              <FileText size={24} className="text-primary/60" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'ru' ? 'Качество' : 'Quality'}
+                </p>
+                <p className="text-2xl font-bold text-accent">{analysisQuality}%</p>
+              </div>
+              <Star size={24} className="text-accent/60" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'ru' ? 'Измерения' : 'Dimensions'}
+                </p>
+                <p className="text-2xl font-bold text-secondary">
+                  {Object.values(dimensionBreakdown).filter(count => (count as number) > 0).length}/6
+                </p>
+              </div>
+              <Brain size={24} className="text-secondary/60" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'ru' ? 'Готовность' : 'Readiness'}
+                </p>
+                <p className="text-2xl font-bold text-green-500">
+                  {completionPercentage >= 70 ? (language === 'ru' ? 'Готов' : 'Ready') : (language === 'ru' ? 'Частично' : 'Partial')}
+                </p>
+              </div>
+              <TrendUp size={24} className="text-green-500/60" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Eye size={16} />
+            {language === 'ru' ? 'Обзор' : 'Overview'}
+          </TabsTrigger>
+          <TabsTrigger value="dimensions" className="flex items-center gap-2">
+            <Target size={16} />
+            {language === 'ru' ? 'Измерения' : 'Dimensions'}
+          </TabsTrigger>
+          <TabsTrigger value="insights" className="flex items-center gap-2">
+            <Lightbulb size={16} />
+            {language === 'ru' ? 'Выводы' : 'Insights'}
+          </TabsTrigger>
+          <TabsTrigger value="ikr" className="flex items-center gap-2">
+            <ChartBar size={16} />
+            IKR
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Completion Progress */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ChartBar size={20} />
+                  {language === 'ru' ? 'Прогресс по Измерениям' : 'Progress by Dimensions'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Object.entries(dimensionBreakdown).map(([dimension, count]) => (
+                  <div key={dimension} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {getDimensionIcon(dimension, 16)}
+                        <span className="font-medium">{getDimensionName(dimension)}</span>
+                      </div>
+                      <Badge variant={(count as number) > 0 ? 'default' : 'secondary'}>
+                        {count as number} {language === 'ru' ? 'ответов' : 'responses'}
+                      </Badge>
+                    </div>
+                    <Progress value={(count as number) > 0 ? 100 : 0} className="h-2" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Quick Insights */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lightbulb size={20} />
+                  {language === 'ru' ? 'Ключевые Выводы' : 'Key Insights'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-64">
+                  <div className="space-y-3">
+                    {insights.map((insight, index) => (
+                      <div key={index} className={`p-3 rounded-lg border-l-4 ${
+                        insight.type === 'success' ? 'border-l-green-500 bg-green-500/5' :
+                        insight.type === 'warning' ? 'border-l-yellow-500 bg-yellow-500/5' :
+                        'border-l-red-500 bg-red-500/5'
+                      }`}>
+                        <p className="text-sm">{insight.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Summary Stats */}
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {language === 'ru' ? 'Сводная Статистика' : 'Summary Statistics'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">{
+                    (Object.values(responses) as string[]).join(' ').length
+                  }</div>
+                  <div className="text-sm text-muted-foreground">
+                    {language === 'ru' ? 'Символов написано' : 'Characters Written'}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-accent">
+                    {Math.round((Object.values(responses) as string[]).reduce((sum, r) => sum + r.length, 0) / completedQuestions)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {language === 'ru' ? 'Среднее на ответ' : 'Average per Response'}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-secondary">
+                    {Object.values(responses).filter(r => (r as string).length > 100).length}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {language === 'ru' ? 'Детальных ответов' : 'Detailed Responses'}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Dimensions Tab */}
+        <TabsContent value="dimensions" className="space-y-6">
+          <div className="grid gap-6">
+            {Object.entries(responsesByDimension).map(([dimension, responses]) => (
+              <Card key={dimension}>
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    {getDimensionIcon(dimension, 24)}
                     <div>
-                      <h4 className="font-medium uppercase">{dim.dimension}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {dim.answered}/{dim.total} {language === 'ru' ? 'ответов' : 'answers'}
-                      </p>
+                      <CardTitle className="text-xl">{getDimensionName(dimension)}</CardTitle>
+                      <CardDescription>
+                        {responses.length} {language === 'ru' ? 'ответов в этом измерении' : 'responses in this dimension'}
+                      </CardDescription>
                     </div>
                   </div>
-                  <Progress value={dim.progress} className="h-2 mb-2" />
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">
-                      {Math.round(dim.progress)}%
-                    </span>
-                    <Button variant="ghost" size="sm">
-                      <Eye size={14} />
-                    </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {responses.map(({ questionId, response }, index) => (
+                      <div key={questionId} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-muted-foreground">
+                            {language === 'ru' ? `Вопрос ${index + 1}` : `Question ${index + 1}`}
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            {language === 'ru' ? 'Качество' : 'Quality'}: {getResponseQuality(response)}%
+                          </Badge>
+                        </div>
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <p className="text-sm">{response}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
-          
-          {selectedDimension && (
-            <div className="mt-6 p-4 border rounded-lg bg-muted/50">
-              <h4 className="font-medium mb-3 flex items-center gap-2">
-                {getDimensionIcon(selectedDimension)}
-                {language === 'ru' ? 'Ответы по измерению' : 'Dimension Responses'} "{selectedDimension.toUpperCase()}"
-              </h4>
-              <ScrollArea className="h-48">
-                <div className="space-y-3">
-                  {getDimensionResponses(selectedDimension).map(({ questionId, response }, index) => (
-                    <div key={questionId} className="border-l-2 border-primary pl-3">
-                      <p className="text-sm font-medium">
-                        {language === 'ru' ? 'Вопрос' : 'Question'} {index + 1}:
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {typeof response === 'string' ? response : JSON.stringify(response)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </TabsContent>
 
-      {/* IKR Mapping Analysis */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain size={20} />
-            {language === 'ru' ? 'Анализ IKR Директивы' : 'IKR Directive Analysis'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* Intelligence */}
-            <Card className="border-blue-500/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  {language === 'ru' ? 'Разведка' : 'Intelligence'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-400">
-                      {questionnaireData.ikrMapping.intelligence.length}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {language === 'ru' ? 'вопросов' : 'questions'}
-                    </div>
-                  </div>
-                  <Progress value={ikrRecommendations.intelligence.score} className="h-2" />
-                  <div className="space-y-1">
-                    {ikrRecommendations.intelligence.recommendations.map((rec, index) => (
-                      <p key={index} className="text-xs text-muted-foreground flex items-start gap-1">
-                        <Star size={10} className="text-blue-400 mt-1 flex-shrink-0" />
-                        {rec}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Insights Tab */}
+        <TabsContent value="insights" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain size={24} />
+                {language === 'ru' ? 'Автоматически Сгенерированные Выводы' : 'Automatically Generated Insights'}
+              </CardTitle>
+              <CardDescription>
+                {language === 'ru' 
+                  ? 'Анализ ваших ответов и рекомендации для следующих шагов'
+                  : 'Analysis of your responses and recommendations for next steps'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Card className="border-green-500/20 bg-green-500/5">
+                    <CardContent className="p-4">
+                      <h4 className="font-medium text-green-700 dark:text-green-400 mb-2">
+                        {language === 'ru' ? 'Сильные стороны анализа' : 'Analysis Strengths'}
+                      </h4>
+                      <ul className="text-sm space-y-1">
+                        {completionPercentage >= 70 && (
+                          <li>• {language === 'ru' ? 'Высокая полнота ответов' : 'High response completeness'}</li>
+                        )}
+                        {Object.values(dimensionBreakdown).filter(c => (c as number) > 0).length >= 5 && (
+                          <li>• {language === 'ru' ? 'Комплексный охват измерений' : 'Comprehensive dimension coverage'}</li>
+                        )}
+                        {analysisQuality >= 75 && (
+                          <li>• {language === 'ru' ? 'Детальность ответов' : 'Response detail quality'}</li>
+                        )}
+                      </ul>
+                    </CardContent>
+                  </Card>
 
-            {/* Knowledge */}
-            <Card className="border-green-500/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  {language === 'ru' ? 'Знания' : 'Knowledge'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-400">
-                      {questionnaireData.ikrMapping.knowledge.length}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {language === 'ru' ? 'вопросов' : 'questions'}
-                    </div>
-                  </div>
-                  <Progress value={ikrRecommendations.knowledge.score} className="h-2" />
-                  <div className="space-y-1">
-                    {ikrRecommendations.knowledge.recommendations.map((rec, index) => (
-                      <p key={index} className="text-xs text-muted-foreground flex items-start gap-1">
-                        <Star size={10} className="text-green-400 mt-1 flex-shrink-0" />
-                        {rec}
-                      </p>
-                    ))}
-                  </div>
+                  <Card className="border-yellow-500/20 bg-yellow-500/5">
+                    <CardContent className="p-4">
+                      <h4 className="font-medium text-yellow-700 dark:text-yellow-400 mb-2">
+                        {language === 'ru' ? 'Области для улучшения' : 'Areas for Improvement'}
+                      </h4>
+                      <ul className="text-sm space-y-1">
+                        {Object.entries(dimensionBreakdown).filter(([_, count]) => count === 0).map(([dim, _]) => (
+                          <li key={dim}>• {language === 'ru' ? `Дополните измерение "${getDimensionName(dim)}"` : `Complete "${getDimensionName(dim)}" dimension`}</li>
+                        ))}
+                        {analysisQuality < 60 && (
+                          <li>• {language === 'ru' ? 'Углубите детализацию ответов' : 'Increase response detail'}</li>
+                        )}
+                      </ul>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Reasoning */}
-            <Card className="border-purple-500/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                  {language === 'ru' ? 'Рассуждения' : 'Reasoning'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-400">
-                      {questionnaireData.ikrMapping.reasoning.length}
+                <Separator />
+
+                <div>
+                  <h4 className="font-medium mb-3">
+                    {language === 'ru' ? 'Рекомендуемые следующие шаги' : 'Recommended Next Steps'}
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium">1</span>
+                      </div>
+                      <div>
+                        <p className="font-medium">{language === 'ru' ? 'Применить к проекту' : 'Apply to Project'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {language === 'ru' 
+                            ? 'Интегрируйте результаты анкеты в ваш проект анализа'
+                            : 'Integrate questionnaire results into your analysis project'
+                          }
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {language === 'ru' ? 'вопросов' : 'questions'}
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium">2</span>
+                      </div>
+                      <div>
+                        <p className="font-medium">{language === 'ru' ? 'Запустить ИИ аудит' : 'Run AI Audit'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {language === 'ru' 
+                            ? 'Используйте агентов аудита для глубокого анализа'
+                            : 'Use audit agents for deep analysis'
+                          }
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <Progress value={ikrRecommendations.reasoning.score} className="h-2" />
-                  <div className="space-y-1">
-                    {ikrRecommendations.reasoning.recommendations.map((rec, index) => (
-                      <p key={index} className="text-xs text-muted-foreground flex items-start gap-1">
-                        <Star size={10} className="text-purple-400 mt-1 flex-shrink-0" />
-                        {rec}
-                      </p>
-                    ))}
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium">3</span>
+                      </div>
+                      <div>
+                        <p className="font-medium">{language === 'ru' ? 'Генерировать выводы' : 'Generate Insights'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {language === 'ru' 
+                            ? 'Получите ИИ-рекомендации для каждого измерения'
+                            : 'Get AI recommendations for each dimension'
+                          }
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Key Insights */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Star size={20} />
-            {language === 'ru' ? 'Ключевые Выводы' : 'Key Insights'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {generateInsightSummary().map((insight, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-                <CheckCircle size={16} className="text-green-400 mt-1 flex-shrink-0" />
-                <p className="text-sm">{insight}</p>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* IKR Preview Tab */}
+        <TabsContent value="ikr" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target size={24} />
+                {language === 'ru' ? 'Предпросмотр IKR Директивы' : 'IKR Directive Preview'}
+              </CardTitle>
+              <CardDescription>
+                {language === 'ru' 
+                  ? 'Автоматическое заполнение секций Intelligence-Knowledge-Reasoning на основе ваших ответов'
+                  : 'Automatic filling of Intelligence-Knowledge-Reasoning sections based on your responses'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {Object.entries(ikrMapping).map(([section, questions]) => (
+                <div key={section}>
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    {section === 'intelligence' && <Eye size={16} />}
+                    {section === 'knowledge' && <Brain size={16} />}
+                    {section === 'reasoning' && <Target size={16} />}
+                    {section === 'intelligence' && (language === 'ru' ? 'Сбор Разведданных' : 'Intelligence Collection')}
+                    {section === 'knowledge' && (language === 'ru' ? 'Синтез Знаний' : 'Knowledge Synthesis')}
+                    {section === 'reasoning' && (language === 'ru' ? 'Стратегические Рассуждения' : 'Strategic Reasoning')}
+                  </h4>
+                  <div className="p-4 bg-muted/30 rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {language === 'ru' ? 'Будет заполнено из ответов:' : 'Will be filled from responses:'}
+                    </p>
+                    <div className="space-y-2">
+                      {(questions as any[]).map((q, index) => (
+                        <div key={q.id} className="text-sm">
+                          <span className="font-medium">
+                            {index + 1}. {responses[q.id] ? 
+                              (responses[q.id] as string).substring(0, 100) + '...' : 
+                              (language === 'ru' ? 'Ответ не предоставлен' : 'Response not provided')
+                            }
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-3">
-        <Button 
-          onClick={() => onApplyToProject(questionnaireData)}
-          className="flex items-center gap-2"
-        >
-          <ArrowRight size={16} />
-          {language === 'ru' ? 'Применить к Проекту' : 'Apply to Project'}
-        </Button>
-        
-        <Button 
-          variant="outline"
-          onClick={onGenerateReport}
-          className="flex items-center gap-2"
-        >
-          <Download size={16} />
-          {language === 'ru' ? 'Скачать Отчёт' : 'Download Report'}
-        </Button>
-      </div>
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h4 className="font-medium">
+                {language === 'ru' ? 'Готовы применить результаты?' : 'Ready to apply results?'}
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                {language === 'ru' 
+                  ? 'Интегрируйте данные анкеты в ваш проект для дальнейшего анализа'
+                  : 'Integrate questionnaire data into your project for further analysis'
+                }
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={onGenerateReport}>
+                <Download size={16} className="mr-2" />
+                {language === 'ru' ? 'Экспорт Отчета' : 'Export Report'}
+              </Button>
+              <Button onClick={() => onApplyToProject(questionnaireData)}>
+                <ArrowRight size={16} className="mr-2" />
+                {language === 'ru' ? 'Применить к Проекту' : 'Apply to Project'}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

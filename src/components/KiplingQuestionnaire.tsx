@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Users, 
   FileText, 
@@ -15,484 +16,440 @@ import {
   MapPin, 
   Lightbulb, 
   Gear,
-  ArrowRight,
-  ArrowLeft,
+  CaretLeft,
+  CaretRight,
   CheckCircle,
-  Brain,
+  ArrowRight,
   Target,
-  Star,
-  Question
+  Star
 } from '@phosphor-icons/react';
 
-type Language = 'en' | 'ru';
-
-interface KiplingQuestion {
+interface Question {
   id: string;
-  category: 'who' | 'what' | 'when' | 'where' | 'why' | 'how';
-  subcategory: string;
-  priority: 'critical' | 'high' | 'medium' | 'low';
-  questionText: {
-    en: string;
-    ru: string;
-  };
-  helpText?: {
-    en: string;
-    ru: string;
-  };
-  inputType: 'text' | 'textarea' | 'select' | 'multiselect';
-  options?: {
-    en: string[];
-    ru: string[];
-  };
-  validationRules?: {
-    required?: boolean;
-    minLength?: number;
-    maxLength?: number;
-  };
-  ikrMapping: 'intelligence' | 'knowledge' | 'reasoning';
+  dimension: 'who' | 'what' | 'when' | 'where' | 'why' | 'how';
+  category: string;
+  text: string;
+  type: 'text' | 'textarea' | 'select' | 'radio' | 'checkbox';
+  options?: string[];
+  required: boolean;
+  placeholder?: string;
+  importance: 'high' | 'medium' | 'low';
 }
 
-interface QuestionnaireProps {
-  language: Language;
-  onQuestionnaireComplete: (data: {
-    responses: Record<string, string>;
-    completeness: number;
-    ikrMapping: Record<string, KiplingQuestion[]>;
-    metadata: {
-      startTime: string;
-      endTime: string;
-      totalQuestions: number;
-      answeredQuestions: number;
-    };
-  }) => void;
-  onProgressUpdate?: (progress: number) => void;
+interface KiplingQuestionnaireProps {
+  language: 'en' | 'ru';
+  onQuestionnaireComplete: (data: any) => void;
+  onProgressUpdate: (progress: number) => void;
 }
 
-const KiplingQuestionnaire: React.FC<QuestionnaireProps> = ({
+const KiplingQuestionnaire: React.FC<KiplingQuestionnaireProps> = ({
   language,
   onQuestionnaireComplete,
   onProgressUpdate
 }) => {
-  // Questionnaire state
-  const [responses, setResponses] = useKV<Record<string, string>>('kipling-questionnaire-responses', {});
-  const [currentStep, setCurrentStep] = useState(0);
-  const [startTime] = useState(new Date().toISOString());
-  const [showSummary, setShowSummary] = useState(false);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [responses, setResponses] = useState<Record<string, string>>({});
+  const [completedSections, setCompletedSections] = useState<Set<string>>(new Set());
 
-  // Comprehensive Kipling Questions based on IKR directive
-  const kiplingQuestions: KiplingQuestion[] = [
-    // WHO Questions - Intelligence Gathering
+  // Comprehensive question bank for systematic analysis
+  const questions: Question[] = [
+    // WHO dimension - stakeholders and actors
     {
       id: 'who-primary-actors',
-      category: 'who',
-      subcategory: 'primary-actors',
-      priority: 'critical',
-      questionText: {
-        en: 'Who are the primary actors, stakeholders, or decision-makers directly involved in this situation?',
-        ru: 'Кто являются основными участниками, заинтересованными сторонами или лицами, принимающими решения, непосредственно вовлеченными в эту ситуацию?'
-      },
-      helpText: {
-        en: 'List individuals, organizations, or groups with direct influence or involvement. Include their roles and level of authority.',
-        ru: 'Перечислите лиц, организации или группы с прямым влиянием или участием. Укажите их роли и уровень полномочий.'
-      },
-      inputType: 'textarea',
-      validationRules: { required: true, minLength: 50 },
-      ikrMapping: 'intelligence'
+      dimension: 'who',
+      category: language === 'ru' ? 'Основные участники' : 'Primary Actors',
+      text: language === 'ru' 
+        ? 'Кто являются ключевыми участниками или основными действующими лицами в данной ситуации?'
+        : 'Who are the key participants or main actors in this situation?',
+      type: 'textarea',
+      required: true,
+      placeholder: language === 'ru' 
+        ? 'Перечислите основных людей, организации или группы, которые играют активную роль...'
+        : 'List the main people, organizations or groups that play an active role...',
+      importance: 'high'
     },
     {
       id: 'who-secondary-influences',
-      category: 'who',
-      subcategory: 'secondary-influences',
-      priority: 'high',
-      questionText: {
-        en: 'Who are the secondary influences, advisors, or entities that may affect outcomes indirectly?',
-        ru: 'Кто являются вторичными влияниями, советниками или субъектами, которые могут косвенно повлиять на результаты?'
-      },
-      helpText: {
-        en: 'Consider background influencers, consultants, interest groups, media, or other indirect actors.',
-        ru: 'Рассмотрите фоновых влиятелей, консультантов, группы интересов, СМИ или других косвенных участников.'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 30 },
-      ikrMapping: 'intelligence'
+      dimension: 'who',
+      category: language === 'ru' ? 'Вторичные влияния' : 'Secondary Influences',
+      text: language === 'ru'
+        ? 'Кто еще может оказывать влияние на ситуацию, но не является прямым участником?'
+        : 'Who else might influence the situation but is not a direct participant?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'Консультанты, регулирующие органы, общественность, СМИ...'
+        : 'Consultants, regulatory bodies, public, media...',
+      importance: 'medium'
     },
     {
       id: 'who-opposition-resistance',
-      category: 'who',
-      subcategory: 'opposition',
-      priority: 'high',
-      questionText: {
-        en: 'Who might oppose, resist, or create obstacles to the desired outcomes?',
-        ru: 'Кто может противостоять, сопротивляться или создавать препятствия для достижения желаемых результатов?'
-      },
-      helpText: {
-        en: 'Identify potential adversaries, competing interests, or sources of resistance.',
-        ru: 'Определите потенциальных противников, конкурирующие интересы или источники сопротивления.'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 30 },
-      ikrMapping: 'knowledge'
+      dimension: 'who',
+      category: language === 'ru' ? 'Оппозиция и сопротивление' : 'Opposition & Resistance',
+      text: language === 'ru'
+        ? 'Кто может противостоять или создавать препятствия для достижения целей?'
+        : 'Who might oppose or create obstacles to achieving the goals?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'Конкуренты, скептики, группы с конфликтующими интересами...'
+        : 'Competitors, skeptics, groups with conflicting interests...',
+      importance: 'high'
     },
     {
       id: 'who-target-audience',
-      category: 'who',
-      subcategory: 'target-audience',
-      priority: 'medium',
-      questionText: {
-        en: 'Who is the target audience or beneficiary that will be affected by the analysis results?',
-        ru: 'Кто является целевой аудиторией или бенефициаром, который будет затронут результатами анализа?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 20 },
-      ikrMapping: 'reasoning'
+      dimension: 'who',
+      category: language === 'ru' ? 'Целевая аудитория' : 'Target Audience',
+      text: language === 'ru'
+        ? 'Кто является целевой аудиторией или теми, кто получит пользу от результатов?'
+        : 'Who is the target audience or those who will benefit from the outcomes?',
+      type: 'textarea',
+      required: true,
+      placeholder: language === 'ru'
+        ? 'Конечные пользователи, клиенты, бенефициары...'
+        : 'End users, clients, beneficiaries...',
+      importance: 'high'
     },
 
-    // WHAT Questions - Core Issues and Content
+    // WHAT dimension - core issues and content
     {
       id: 'what-core-issue',
-      category: 'what',
-      subcategory: 'core-issue',
-      priority: 'critical',
-      questionText: {
-        en: 'What is the core issue, problem, or opportunity that requires analysis?',
-        ru: 'В чем заключается основная проблема, вопрос или возможность, требующая анализа?'
-      },
-      helpText: {
-        en: 'Define the central challenge or opportunity in clear, specific terms. Avoid vague generalizations.',
-        ru: 'Определите центральный вызов или возможность в ясных, конкретных терминах. Избегайте расплывчатых обобщений.'
-      },
-      inputType: 'textarea',
-      validationRules: { required: true, minLength: 50 },
-      ikrMapping: 'intelligence'
+      dimension: 'what',
+      category: language === 'ru' ? 'Основная проблема' : 'Core Issue',
+      text: language === 'ru'
+        ? 'Что представляет собой основная проблема или задача, которую необходимо решить?'
+        : 'What is the core problem or challenge that needs to be addressed?',
+      type: 'textarea',
+      required: true,
+      placeholder: language === 'ru'
+        ? 'Опишите суть проблемы, её природу и масштаб...'
+        : 'Describe the essence of the problem, its nature and scope...',
+      importance: 'high'
     },
     {
       id: 'what-current-situation',
-      category: 'what',
-      subcategory: 'current-situation',
-      priority: 'critical',
-      questionText: {
-        en: 'What is currently happening? Describe the present state and ongoing developments.',
-        ru: 'Что происходит в настоящее время? Опишите текущее состояние и происходящие события.'
-      },
-      helpText: {
-        en: 'Provide factual, observable information about the current state without interpretation.',
-        ru: 'Предоставьте фактическую, наблюдаемую информацию о текущем состоянии без интерпретации.'
-      },
-      inputType: 'textarea',
-      validationRules: { required: true, minLength: 50 },
-      ikrMapping: 'intelligence'
+      dimension: 'what',
+      category: language === 'ru' ? 'Текущая ситуация' : 'Current Situation',
+      text: language === 'ru'
+        ? 'Что происходит в настоящий момент? Каково текущее состояние дел?'
+        : 'What is happening right now? What is the current state of affairs?',
+      type: 'textarea',
+      required: true,
+      placeholder: language === 'ru'
+        ? 'Опишите статус-кво, текущие процессы, существующие проблемы...'
+        : 'Describe the status quo, current processes, existing problems...',
+      importance: 'high'
     },
     {
       id: 'what-desired-outcome',
-      category: 'what',
-      subcategory: 'desired-outcome',
-      priority: 'high',
-      questionText: {
-        en: 'What is the desired end state or successful outcome you want to achieve?',
-        ru: 'Каково желаемое конечное состояние или успешный результат, которого вы хотите достичь?'
-      },
-      inputType: 'textarea',
-      validationRules: { required: true, minLength: 30 },
-      ikrMapping: 'reasoning'
+      dimension: 'what',
+      category: language === 'ru' ? 'Желаемый результат' : 'Desired Outcome',
+      text: language === 'ru'
+        ? 'Что должно быть достигнуто? Каков идеальный конечный результат?'
+        : 'What should be achieved? What is the ideal end result?',
+      type: 'textarea',
+      required: true,
+      placeholder: language === 'ru'
+        ? 'Опишите целевое состояние, ожидаемые результаты, критерии успеха...'
+        : 'Describe the target state, expected results, success criteria...',
+      importance: 'high'
     },
     {
       id: 'what-constraints-limitations',
-      category: 'what',
-      subcategory: 'constraints',
-      priority: 'high',
-      questionText: {
-        en: 'What are the key constraints, limitations, or boundaries that must be considered?',
-        ru: 'Каковы ключевые ограничения, лимиты или границы, которые необходимо учитывать?'
-      },
-      helpText: {
-        en: 'Include resource limitations, legal/regulatory constraints, technical boundaries, or policy restrictions.',
-        ru: 'Включите ограничения ресурсов, правовые/регулятивные ограничения, технические границы или политические ограничения.'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 30 },
-      ikrMapping: 'knowledge'
+      dimension: 'what',
+      category: language === 'ru' ? 'Ограничения' : 'Constraints',
+      text: language === 'ru'
+        ? 'Что ограничивает возможности решения? Какие существуют препятствия?'
+        : 'What limits the solution possibilities? What obstacles exist?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'Бюджетные ограничения, технические лимиты, регулятивные требования...'
+        : 'Budget constraints, technical limits, regulatory requirements...',
+      importance: 'medium'
     },
     {
       id: 'what-available-resources',
-      category: 'what',
-      subcategory: 'resources',
-      priority: 'medium',
-      questionText: {
-        en: 'What resources, tools, or assets are available to address this situation?',
-        ru: 'Какие ресурсы, инструменты или активы доступны для решения этой ситуации?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 20 },
-      ikrMapping: 'knowledge'
+      dimension: 'what',
+      category: language === 'ru' ? 'Доступные ресурсы' : 'Available Resources',
+      text: language === 'ru'
+        ? 'Что имеется в распоряжении для решения задачи? Какие ресурсы доступны?'
+        : 'What is available to solve the task? What resources are accessible?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'Бюджет, персонал, технологии, время, экспертиза...'
+        : 'Budget, personnel, technologies, time, expertise...',
+      importance: 'medium'
     },
 
-    // WHEN Questions - Temporal Analysis
+    // WHEN dimension - temporal aspects
     {
       id: 'when-timeline-critical',
-      category: 'when',
-      subcategory: 'timeline',
-      priority: 'critical',
-      questionText: {
-        en: 'When did this situation begin, and what are the critical timing factors or deadlines?',
-        ru: 'Когда началась эта ситуация, и каковы критические временные факторы или сроки?'
-      },
-      helpText: {
-        en: 'Provide specific dates, timeframes, and any time-sensitive elements that affect decision-making.',
-        ru: 'Укажите конкретные даты, временные рамки и любые временно-чувствительные элементы, влияющие на принятие решений.'
-      },
-      inputType: 'textarea',
-      validationRules: { required: true, minLength: 30 },
-      ikrMapping: 'intelligence'
+      dimension: 'when',
+      category: language === 'ru' ? 'Критические сроки' : 'Critical Timeline',
+      text: language === 'ru'
+        ? 'Когда должны быть достигнуты ключевые результаты? Каковы критические временные рамки?'
+        : 'When should key results be achieved? What are the critical timeframes?',
+      type: 'textarea',
+      required: true,
+      placeholder: language === 'ru'
+        ? 'Дедлайны, этапы, временные ограничения...'
+        : 'Deadlines, milestones, time constraints...',
+      importance: 'high'
     },
     {
       id: 'when-historical-context',
-      category: 'when',
-      subcategory: 'historical-context',
-      priority: 'high',
-      questionText: {
-        en: 'When have similar situations occurred before, and what historical patterns are relevant?',
-        ru: 'Когда подобные ситуации возникали ранее, и какие исторические паттерны релевантны?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 30 },
-      ikrMapping: 'knowledge'
+      dimension: 'when',
+      category: language === 'ru' ? 'Исторический контекст' : 'Historical Context',
+      text: language === 'ru'
+        ? 'Когда началась эта ситуация? Какова предыстория?'
+        : 'When did this situation begin? What is the background history?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'Ключевые события, предшествующие обстоятельства, эволюция проблемы...'
+        : 'Key events, preceding circumstances, problem evolution...',
+      importance: 'medium'
     },
     {
       id: 'when-decision-points',
-      category: 'when',
-      subcategory: 'decision-points',
-      priority: 'high',
-      questionText: {
-        en: 'When must key decisions be made, and what is the optimal timing for interventions?',
-        ru: 'Когда должны быть приняты ключевые решения, и каково оптимальное время для вмешательств?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 20 },
-      ikrMapping: 'reasoning'
+      dimension: 'when',
+      category: language === 'ru' ? 'Точки принятия решений' : 'Decision Points',
+      text: language === 'ru'
+        ? 'Когда необходимо принимать ключевые решения? Какова последовательность действий?'
+        : 'When do key decisions need to be made? What is the sequence of actions?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'Этапы планирования, контрольные точки, моменты выбора...'
+        : 'Planning stages, checkpoints, choice moments...',
+      importance: 'medium'
     },
     {
       id: 'when-monitoring-intervals',
-      category: 'when',
-      subcategory: 'monitoring',
-      priority: 'medium',
-      questionText: {
-        en: 'When should progress be evaluated, and what monitoring intervals are appropriate?',
-        ru: 'Когда следует оценивать прогресс, и какие интервалы мониторинга подходят?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 20 },
-      ikrMapping: 'reasoning'
+      dimension: 'when',
+      category: language === 'ru' ? 'Интервалы мониторинга' : 'Monitoring Intervals',
+      text: language === 'ru'
+        ? 'Когда и как часто следует оценивать прогресс и корректировать планы?'
+        : 'When and how often should progress be evaluated and plans adjusted?',
+      type: 'select',
+      options: language === 'ru' 
+        ? ['Ежедневно', 'Еженедельно', 'Ежемесячно', 'Ежеквартально', 'По этапам', 'По потребности']
+        : ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'By milestones', 'As needed'],
+      required: false,
+      importance: 'low'
     },
 
-    // WHERE Questions - Geographic and Contextual Location
+    // WHERE dimension - location and context
     {
       id: 'where-geographic-scope',
-      category: 'where',
-      subcategory: 'geographic-scope',
-      priority: 'high',
-      questionText: {
-        en: 'Where is this situation taking place geographically, and what is the scope of impact?',
-        ru: 'Где географически происходит эта ситуация, и каков масштаб воздействия?'
-      },
-      helpText: {
-        en: 'Specify countries, regions, cities, or other geographic boundaries. Include virtual/digital spaces if relevant.',
-        ru: 'Укажите страны, регионы, города или другие географические границы. Включите виртуальные/цифровые пространства, если релевантно.'
-      },
-      inputType: 'textarea',
-      validationRules: { required: true, minLength: 30 },
-      ikrMapping: 'intelligence'
+      dimension: 'where',
+      category: language === 'ru' ? 'Географический охват' : 'Geographic Scope',
+      text: language === 'ru'
+        ? 'Где происходят ключевые события? Каков географический масштаб?'
+        : 'Where do key events take place? What is the geographic scale?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'Локально, региональный, национальный, международный...'
+        : 'Local, regional, national, international...',
+      importance: 'medium'
     },
     {
       id: 'where-organizational-context',
-      category: 'where',
-      subcategory: 'organizational',
-      priority: 'high',
-      questionText: {
-        en: 'Where within organizational structures, hierarchies, or systems is this situated?',
-        ru: 'Где в рамках организационных структур, иерархий или систем это расположено?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 30 },
-      ikrMapping: 'knowledge'
+      dimension: 'where',
+      category: language === 'ru' ? 'Организационный контекст' : 'Organizational Context',
+      text: language === 'ru'
+        ? 'Где в организационной структуре происходят изменения? В каких подразделениях?'
+        : 'Where in the organizational structure do changes occur? In which departments?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'Отделы, команды, уровни иерархии, внешние партнеры...'
+        : 'Departments, teams, hierarchy levels, external partners...',
+      importance: 'medium'
     },
     {
       id: 'where-information-sources',
-      category: 'where',
-      subcategory: 'information-sources',
-      priority: 'medium',
-      questionText: {
-        en: 'Where can reliable information and data be found to support this analysis?',
-        ru: 'Где можно найти надежную информацию и данные для поддержки этого анализа?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 20 },
-      ikrMapping: 'intelligence'
+      dimension: 'where',
+      category: language === 'ru' ? 'Источники информации' : 'Information Sources',
+      text: language === 'ru'
+        ? 'Где можно найти достоверную информацию и данные для анализа?'
+        : 'Where can reliable information and data for analysis be found?',
+      type: 'textarea',
+      required: true,
+      placeholder: language === 'ru'
+        ? 'Базы данных, отчеты, эксперты, исследования...'
+        : 'Databases, reports, experts, research...',
+      importance: 'high'
     },
     {
       id: 'where-implementation-locations',
-      category: 'where',
-      subcategory: 'implementation',
-      priority: 'medium',
-      questionText: {
-        en: 'Where will solutions be implemented, and what locations require special consideration?',
-        ru: 'Где будут реализованы решения, и какие места требуют особого рассмотрения?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 20 },
-      ikrMapping: 'reasoning'
+      dimension: 'where',
+      category: language === 'ru' ? 'Места реализации' : 'Implementation Locations',
+      text: language === 'ru'
+        ? 'Где будут внедряться решения? Какие места наиболее подходят?'
+        : 'Where will solutions be implemented? Which locations are most suitable?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'Пилотные площадки, производственные объекты, офисы...'
+        : 'Pilot sites, production facilities, offices...',
+      importance: 'medium'
     },
 
-    // WHY Questions - Causation and Motivation
+    // WHY dimension - causes and motivations
     {
       id: 'why-root-causes',
-      category: 'why',
-      subcategory: 'root-causes',
-      priority: 'critical',
-      questionText: {
-        en: 'Why is this situation occurring? What are the underlying root causes and driving factors?',
-        ru: 'Почему происходит эта ситуация? Каковы основные первопричины и движущие факторы?'
-      },
-      helpText: {
-        en: 'Look beyond surface symptoms to identify deeper systemic, structural, or fundamental causes.',
-        ru: 'Смотрите за пределы поверхностных симптомов, чтобы выявить более глубокие системные, структурные или фундаментальные причины.'
-      },
-      inputType: 'textarea',
-      validationRules: { required: true, minLength: 50 },
-      ikrMapping: 'knowledge'
+      dimension: 'why',
+      category: language === 'ru' ? 'Первопричины' : 'Root Causes',
+      text: language === 'ru'
+        ? 'Почему возникла эта ситуация? Каковы глубинные причины?'
+        : 'Why did this situation arise? What are the underlying causes?',
+      type: 'textarea',
+      required: true,
+      placeholder: language === 'ru'
+        ? 'Системные проблемы, недостатки процессов, внешние факторы...'
+        : 'Systemic issues, process deficiencies, external factors...',
+      importance: 'high'
     },
     {
       id: 'why-stakeholder-motivations',
-      category: 'why',
-      subcategory: 'motivations',
-      priority: 'high',
-      questionText: {
-        en: 'Why are different stakeholders involved? What motivates their actions and positions?',
-        ru: 'Почему вовлечены различные заинтересованные стороны? Что мотивирует их действия и позиции?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 30 },
-      ikrMapping: 'knowledge'
+      dimension: 'why',
+      category: language === 'ru' ? 'Мотивации сторон' : 'Stakeholder Motivations',
+      text: language === 'ru'
+        ? 'Почему различные стороны заинтересованы в решении или сопротивляются изменениям?'
+        : 'Why are different parties interested in the solution or resistant to changes?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'Личные интересы, корпоративные цели, опасения...'
+        : 'Personal interests, corporate goals, concerns...',
+      importance: 'medium'
     },
     {
       id: 'why-importance-urgency',
-      category: 'why',
-      subcategory: 'importance',
-      priority: 'high',
-      questionText: {
-        en: 'Why is this analysis important now? What makes it urgent or significant?',
-        ru: 'Почему этот анализ важен сейчас? Что делает его срочным или значимым?'
-      },
-      inputType: 'textarea',
-      validationRules: { required: true, minLength: 30 },
-      ikrMapping: 'reasoning'
+      dimension: 'why',
+      category: language === 'ru' ? 'Важность и срочность' : 'Importance & Urgency',
+      text: language === 'ru'
+        ? 'Почему это важно решить именно сейчас? Что делает вопрос актуальным?'
+        : 'Why is it important to solve this now? What makes the issue relevant?',
+      type: 'textarea',
+      required: true,
+      placeholder: language === 'ru'
+        ? 'Рыночные условия, конкурентное давление, риски...'
+        : 'Market conditions, competitive pressure, risks...',
+      importance: 'high'
     },
     {
       id: 'why-potential-consequences',
-      category: 'why',
-      subcategory: 'consequences',
-      priority: 'medium',
-      questionText: {
-        en: 'Why should we be concerned about potential consequences of action or inaction?',
-        ru: 'Почему нас должны беспокоить потенциальные последствия действий или бездействия?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 30 },
-      ikrMapping: 'reasoning'
+      dimension: 'why',
+      category: language === 'ru' ? 'Потенциальные последствия' : 'Potential Consequences',
+      text: language === 'ru'
+        ? 'Почему бездействие недопустимо? Каковы риски отсутствия решения?'
+        : 'Why is inaction unacceptable? What are the risks of not having a solution?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'Упущенные возможности, усугубление проблем, конкурентные потери...'
+        : 'Missed opportunities, problem escalation, competitive losses...',
+      importance: 'medium'
     },
 
-    // HOW Questions - Methods and Mechanisms
+    // HOW dimension - methods and mechanisms
     {
       id: 'how-current-approaches',
-      category: 'how',
-      subcategory: 'current-approaches',
-      priority: 'high',
-      questionText: {
-        en: 'How are current efforts or approaches addressing this situation? What methods are being used?',
-        ru: 'Как текущие усилия или подходы решают эту ситуацию? Какие методы используются?'
-      },
-      helpText: {
-        en: 'Describe existing processes, methodologies, tools, or strategies currently in use.',
-        ru: 'Опишите существующие процессы, методологии, инструменты или стратегии, используемые в настоящее время.'
-      },
-      inputType: 'textarea',
-      validationRules: { required: true, minLength: 30 },
-      ikrMapping: 'intelligence'
+      dimension: 'how',
+      category: language === 'ru' ? 'Текущие подходы' : 'Current Approaches',
+      text: language === 'ru'
+        ? 'Как в настоящее время решаются подобные задачи? Какие методы используются?'
+        : 'How are similar tasks currently being solved? What methods are used?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'Существующие процессы, инструменты, методологии...'
+        : 'Existing processes, tools, methodologies...',
+      importance: 'medium'
     },
     {
       id: 'how-information-gathering',
-      category: 'how',
-      subcategory: 'information-gathering',
-      priority: 'high',
-      questionText: {
-        en: 'How will additional information be gathered and validated for this analysis?',
-        ru: 'Как будет собираться и проверяться дополнительная информация для этого анализа?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 30 },
-      ikrMapping: 'intelligence'
+      dimension: 'how',
+      category: language === 'ru' ? 'Сбор информации' : 'Information Gathering',
+      text: language === 'ru'
+        ? 'Как будет собираться и анализироваться необходимая информация?'
+        : 'How will necessary information be collected and analyzed?',
+      type: 'textarea',
+      required: true,
+      placeholder: language === 'ru'
+        ? 'Методы исследования, аналитические инструменты, источники данных...'
+        : 'Research methods, analytical tools, data sources...',
+      importance: 'high'
     },
     {
       id: 'how-success-measurement',
-      category: 'how',
-      subcategory: 'success-measurement',
-      priority: 'high',
-      questionText: {
-        en: 'How will success be measured and evaluated? What are the key performance indicators?',
-        ru: 'Как будет измеряться и оцениваться успех? Каковы ключевые показатели эффективности?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 30 },
-      ikrMapping: 'reasoning'
+      dimension: 'how',
+      category: language === 'ru' ? 'Измерение успеха' : 'Success Measurement',
+      text: language === 'ru'
+        ? 'Как будет оцениваться успех? Какие метрики и KPI будут использоваться?'
+        : 'How will success be measured? What metrics and KPIs will be used?',
+      type: 'textarea',
+      required: true,
+      placeholder: language === 'ru'
+        ? 'Количественные показатели, качественные критерии, методы оценки...'
+        : 'Quantitative indicators, qualitative criteria, assessment methods...',
+      importance: 'high'
     },
     {
       id: 'how-risk-mitigation',
-      category: 'how',
-      subcategory: 'risk-mitigation',
-      priority: 'medium',
-      questionText: {
-        en: 'How will risks be identified, assessed, and mitigated throughout the process?',
-        ru: 'Как будут выявляться, оцениваться и смягчаться риски на протяжении всего процесса?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 30 },
-      ikrMapping: 'reasoning'
+      dimension: 'how',
+      category: language === 'ru' ? 'Управление рисками' : 'Risk Mitigation',
+      text: language === 'ru'
+        ? 'Как будут выявляться и минимизироваться риски? Какие меры предосторожности?'
+        : 'How will risks be identified and minimized? What precautionary measures?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'План управления рисками, резервные варианты, мониторинг...'
+        : 'Risk management plan, backup options, monitoring...',
+      importance: 'medium'
     },
     {
       id: 'how-adaptation-learning',
-      category: 'how',
-      subcategory: 'adaptation',
-      priority: 'medium',
-      questionText: {
-        en: 'How will the approach be adapted based on new information and lessons learned?',
-        ru: 'Как будет адаптироваться подход на основе новой информации и извлеченных уроков?'
-      },
-      inputType: 'textarea',
-      validationRules: { minLength: 20 },
-      ikrMapping: 'knowledge'
+      dimension: 'how',
+      category: language === 'ru' ? 'Адаптация и обучение' : 'Adaptation & Learning',
+      text: language === 'ru'
+        ? 'Как будет происходить адаптация планов на основе полученного опыта?'
+        : 'How will plans be adapted based on experience gained?',
+      type: 'textarea',
+      required: false,
+      placeholder: language === 'ru'
+        ? 'Циклы обратной связи, корректировки стратегии, накопление знаний...'
+        : 'Feedback loops, strategy adjustments, knowledge accumulation...',
+      importance: 'medium'
     }
   ];
 
-  // Group questions by category for navigation
-  const questionsByCategory = kiplingQuestions.reduce((acc, question) => {
-    if (!acc[question.category]) acc[question.category] = [];
-    acc[question.category].push(question);
-    return acc;
-  }, {} as Record<string, KiplingQuestion[]>);
+  const currentQuestion = questions[currentQuestionIndex];
+  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
-  // Calculate progress
-  const totalQuestions = kiplingQuestions.length;
-  const answeredQuestions = Object.keys(responses || {}).length;
-  const progress = Math.round((answeredQuestions / totalQuestions) * 100);
-
-  // Update progress when responses change
+  // Update progress callback
   useEffect(() => {
-    if (onProgressUpdate) {
-      onProgressUpdate(progress);
-    }
+    onProgressUpdate(progress);
   }, [progress, onProgressUpdate]);
 
-  // Get current question
-  const currentQuestion = kiplingQuestions[currentStep];
+  // Get icon for dimension
+  const getDimensionIcon = (dimension: string) => {
+    switch (dimension) {
+      case 'who': return <Users size={16} />;
+      case 'what': return <FileText size={16} />;
+      case 'when': return <Calendar size={16} />;
+      case 'where': return <MapPin size={16} />;
+      case 'why': return <Lightbulb size={16} />;
+      case 'how': return <Gear size={16} />;
+      default: return <FileText size={16} />;
+    }
+  };
 
   // Handle response update
   const updateResponse = (questionId: string, value: string) => {
@@ -502,362 +459,282 @@ const KiplingQuestionnaire: React.FC<QuestionnaireProps> = ({
     }));
   };
 
-  // Navigation functions
-  const goToNext = () => {
-    if (currentStep < kiplingQuestions.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      setShowSummary(true);
+  // Navigate to next question
+  const nextQuestion = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
     }
   };
 
-  const goToPrevious = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+  // Navigate to previous question
+  const prevQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
     }
-  };
-
-  // Skip question
-  const skipQuestion = () => {
-    goToNext();
   };
 
   // Complete questionnaire
   const completeQuestionnaire = () => {
-    const ikrMapping = kiplingQuestions.reduce((acc, question) => {
-      if (!acc[question.ikrMapping]) acc[question.ikrMapping] = [];
-      acc[question.ikrMapping].push(question);
-      return acc;
-    }, {} as Record<string, KiplingQuestion[]>);
+    // Group responses by dimension for IKR mapping
+    const ikrMapping = {
+      intelligence: questions.filter(q => 
+        ['how-information-gathering', 'where-information-sources', 'what-available-resources'].includes(q.id)
+      ),
+      knowledge: questions.filter(q => 
+        ['what-core-issue', 'why-root-causes', 'when-historical-context'].includes(q.id)
+      ),
+      reasoning: questions.filter(q => 
+        ['what-desired-outcome', 'how-success-measurement', 'how-adaptation-learning'].includes(q.id)
+      )
+    };
 
     onQuestionnaireComplete({
-      responses: responses || {},
-      completeness: progress,
+      responses,
+      completedQuestions: Object.keys(responses).length,
+      totalQuestions: questions.length,
+      dimensionBreakdown: questions.reduce((acc, q) => {
+        if (!acc[q.dimension]) acc[q.dimension] = 0;
+        if (responses[q.id]) acc[q.dimension]++;
+        return acc;
+      }, {} as Record<string, number>),
       ikrMapping,
-      metadata: {
-        startTime,
-        endTime: new Date().toISOString(),
-        totalQuestions,
-        answeredQuestions
-      }
+      timestamp: new Date().toISOString()
     });
   };
 
-  // Category icons
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'who': return <Users size={20} />;
-      case 'what': return <FileText size={20} />;
-      case 'when': return <Calendar size={20} />;
-      case 'where': return <MapPin size={20} />;
-      case 'why': return <Lightbulb size={20} />;
-      case 'how': return <Gear size={20} />;
-      default: return <Question size={20} />;
-    }
+  // Check if current question is answered
+  const isCurrentQuestionAnswered = responses[currentQuestion.id]?.trim().length > 0;
+
+  // Calculate completion stats
+  const completionStats = {
+    total: Object.keys(responses).length,
+    byDimension: questions.reduce((acc, q) => {
+      if (!acc[q.dimension]) acc[q.dimension] = { answered: 0, total: 0 };
+      acc[q.dimension].total++;
+      if (responses[q.id]) acc[q.dimension].answered++;
+      return acc;
+    }, {} as Record<string, { answered: number; total: number }>)
   };
-
-  // Priority badge color
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'critical': return 'bg-red-500 text-white';
-      case 'high': return 'bg-orange-500 text-white';
-      case 'medium': return 'bg-yellow-500 text-black';
-      case 'low': return 'bg-green-500 text-white';
-      default: return 'bg-gray-500 text-white';
-    }
-  };
-
-  if (showSummary) {
-    return (
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle size={24} className="text-green-500" />
-            {language === 'ru' ? 'Анкета завершена' : 'Questionnaire Complete'}
-          </CardTitle>
-          <CardDescription>
-            {language === 'ru' 
-              ? 'Просмотрите ваши ответы перед применением к проекту'
-              : 'Review your responses before applying to project'
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Progress Summary */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-primary">{answeredQuestions}</div>
-                <div className="text-sm text-muted-foreground">
-                  {language === 'ru' ? 'Отвеченных вопросов' : 'Questions Answered'}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-accent">{progress}%</div>
-                <div className="text-sm text-muted-foreground">
-                  {language === 'ru' ? 'Завершенность' : 'Completion'}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-secondary">
-                  {Object.keys(questionsByCategory).length}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {language === 'ru' ? 'Категорий Киплинга' : 'Kipling Categories'}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Category Summary */}
-          <div className="space-y-4">
-            <h4 className="font-medium">
-              {language === 'ru' ? 'Сводка по категориям:' : 'Category Summary:'}
-            </h4>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {Object.entries(questionsByCategory).map(([category, questions]) => {
-                const answeredInCategory = questions.filter(q => responses?.[q.id]).length;
-                const categoryProgress = Math.round((answeredInCategory / questions.length) * 100);
-                
-                return (
-                  <Card key={category} className="p-3">
-                    <div className="flex items-center gap-3 mb-2">
-                      {getCategoryIcon(category)}
-                      <span className="font-medium capitalize">{category}</span>
-                      <Badge variant="outline" className="ml-auto">
-                        {answeredInCategory}/{questions.length}
-                      </Badge>
-                    </div>
-                    <Progress value={categoryProgress} className="h-2" />
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-6 border-t">
-            <Button variant="outline" onClick={() => setShowSummary(false)}>
-              <ArrowLeft size={16} className="mr-2" />
-              {language === 'ru' ? 'Назад к вопросам' : 'Back to Questions'}
-            </Button>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={completeQuestionnaire}>
-                {language === 'ru' ? 'Сохранить ответы' : 'Save Responses'}
-              </Button>
-              <Button onClick={completeQuestionnaire}>
-                <Target size={16} className="mr-2" />
-                {language === 'ru' ? 'Применить к проекту' : 'Apply to Project'}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!currentQuestion) return null;
 
   return (
-    <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {getCategoryIcon(currentQuestion.category)}
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Progress Header */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl">
-                {language === 'ru' ? 'Протокол Киплинга' : 'Kipling Protocol'}
+              <CardTitle className="flex items-center gap-2">
+                <Target size={24} className="text-primary" />
+                {language === 'ru' ? 'Анкета Киплинга' : 'Kipling Questionnaire'}
               </CardTitle>
               <CardDescription>
                 {language === 'ru' 
-                  ? `Вопрос ${currentStep + 1} из ${totalQuestions} • Категория: ${currentQuestion.category.toUpperCase()}`
-                  : `Question ${currentStep + 1} of ${totalQuestions} • Category: ${currentQuestion.category.toUpperCase()}`
+                  ? 'Систематический анализ по методу 6 вопросов'
+                  : 'Systematic analysis using the 6 questions method'
                 }
               </CardDescription>
             </div>
+            <Badge variant="secondary">
+              {currentQuestionIndex + 1} / {questions.length}
+            </Badge>
           </div>
-          <Badge className={getPriorityColor(currentQuestion.priority)}>
-            {currentQuestion.priority}
-          </Badge>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span>{language === 'ru' ? 'Прогресс:' : 'Progress:'}</span>
-            <span>{progress}%</span>
-          </div>
-          <Progress value={progress} className="h-2" />
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-6">
-        {/* Current Question */}
-        <div className="space-y-4">
           <div className="space-y-2">
-            <h3 className="text-lg font-medium">
-              {currentQuestion.questionText[language]}
-            </h3>
-            {currentQuestion.helpText && (
-              <p className="text-sm text-muted-foreground">
-                {currentQuestion.helpText[language]}
-              </p>
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>{language === 'ru' ? 'Прогресс' : 'Progress'}</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
+            <Progress value={progress} className="h-2" />
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Current Question */}
+      <Card className="fade-in">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            {getDimensionIcon(currentQuestion.dimension)}
+            <div>
+              <Badge variant="outline" className="mb-2">
+                {currentQuestion.dimension.toUpperCase()}
+              </Badge>
+              <CardTitle className="text-lg">{currentQuestion.category}</CardTitle>
+              <CardDescription className="mt-2">
+                {currentQuestion.text}
+              </CardDescription>
+            </div>
+            {currentQuestion.importance === 'high' && (
+              <Star size={16} className="text-accent flex-shrink-0" />
             )}
           </div>
-
-          {/* Input Field */}
-          <div className="space-y-2">
-            {currentQuestion.inputType === 'textarea' ? (
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Question Input */}
+          {currentQuestion.type === 'textarea' ? (
+            <div>
+              <Label htmlFor="response">
+                {language === 'ru' ? 'Ваш ответ' : 'Your Answer'}
+                {currentQuestion.required && <span className="text-destructive">*</span>}
+              </Label>
               <Textarea
-                value={responses?.[currentQuestion.id] || ''}
+                id="response"
+                value={responses[currentQuestion.id] || ''}
                 onChange={(e) => updateResponse(currentQuestion.id, e.target.value)}
-                placeholder={language === 'ru' ? 'Введите ваш подробный ответ...' : 'Enter your detailed response...'}
-                rows={6}
-                className="resize-none"
+                placeholder={currentQuestion.placeholder}
+                rows={4}
+                className="mt-2"
               />
-            ) : currentQuestion.inputType === 'select' && currentQuestion.options ? (
-              <Select
-                value={responses?.[currentQuestion.id] || ''}
+            </div>
+          ) : currentQuestion.type === 'select' ? (
+            <div>
+              <Label htmlFor="response">
+                {language === 'ru' ? 'Выберите вариант' : 'Select Option'}
+                {currentQuestion.required && <span className="text-destructive">*</span>}
+              </Label>
+              <Select 
+                value={responses[currentQuestion.id] || ''} 
                 onValueChange={(value) => updateResponse(currentQuestion.id, value)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={language === 'ru' ? 'Выберите опцию...' : 'Select an option...'} />
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder={language === 'ru' ? 'Выберите...' : 'Select...'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {currentQuestion.options[language].map((option, index) => (
+                  {currentQuestion.options?.map((option, index) => (
                     <SelectItem key={index} value={option}>
                       {option}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            ) : (
-              <Input
-                value={responses?.[currentQuestion.id] || ''}
-                onChange={(e) => updateResponse(currentQuestion.id, e.target.value)}
-                placeholder={language === 'ru' ? 'Введите ваш ответ...' : 'Enter your response...'}
-              />
-            )}
-
-            {/* Validation Feedback */}
-            {currentQuestion.validationRules?.required && 
-             (!responses?.[currentQuestion.id] || responses[currentQuestion.id].length === 0) && (
-              <p className="text-sm text-destructive">
-                {language === 'ru' ? 'Этот вопрос обязателен для ответа' : 'This question is required'}
-              </p>
-            )}
-            
-            {currentQuestion.validationRules?.minLength && 
-             responses?.[currentQuestion.id] &&
-             responses[currentQuestion.id].length < currentQuestion.validationRules.minLength && (
-              <p className="text-sm text-muted-foreground">
-                {language === 'ru' 
-                  ? `Минимум ${currentQuestion.validationRules.minLength} символов (текущий: ${responses[currentQuestion.id].length})`
-                  : `Minimum ${currentQuestion.validationRules.minLength} characters (current: ${responses[currentQuestion.id].length})`
-                }
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* IKR Mapping Info */}
-        <Card className="bg-muted/50 border-dashed">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Brain size={16} />
-              <span className="text-sm font-medium">
-                {language === 'ru' ? 'Соответствие IKR:' : 'IKR Mapping:'}
-              </span>
-              <Badge variant="outline" className="text-xs">
-                {currentQuestion.ikrMapping === 'intelligence' && (language === 'ru' ? 'Разведка' : 'Intelligence')}
-                {currentQuestion.ikrMapping === 'knowledge' && (language === 'ru' ? 'Знания' : 'Knowledge')}
-                {currentQuestion.ikrMapping === 'reasoning' && (language === 'ru' ? 'Рассуждения' : 'Reasoning')}
-              </Badge>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {currentQuestion.ikrMapping === 'intelligence' && (language === 'ru' 
-                ? 'Этот вопрос поможет собрать исходные разведданные и информацию.'
-                : 'This question helps gather raw intelligence and information.'
-              )}
-              {currentQuestion.ikrMapping === 'knowledge' && (language === 'ru'
-                ? 'Этот вопрос поможет синтезировать знания из собранной информации.'
-                : 'This question helps synthesize knowledge from gathered information.'
-              )}
-              {currentQuestion.ikrMapping === 'reasoning' && (language === 'ru'
-                ? 'Этот вопрос поможет применить логические рассуждения для выводов.'
-                : 'This question helps apply logical reasoning for conclusions.'
-              )}
-            </p>
-          </CardContent>
-        </Card>
+          ) : (
+            <div>
+              <Label htmlFor="response">
+                {language === 'ru' ? 'Ваш ответ' : 'Your Answer'}
+                {currentQuestion.required && <span className="text-destructive">*</span>}
+              </Label>
+              <Input
+                id="response"
+                value={responses[currentQuestion.id] || ''}
+                onChange={(e) => updateResponse(currentQuestion.id, e.target.value)}
+                placeholder={currentQuestion.placeholder}
+                className="mt-2"
+              />
+            </div>
+          )}
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between pt-6 border-t">
-          <Button 
-            variant="outline" 
-            onClick={goToPrevious}
-            disabled={currentStep === 0}
-          >
-            <ArrowLeft size={16} className="mr-2" />
-            {language === 'ru' ? 'Назад' : 'Previous'}
-          </Button>
+          {/* Navigation */}
+          <div className="flex items-center justify-between pt-4">
+            <Button 
+              variant="outline" 
+              onClick={prevQuestion}
+              disabled={currentQuestionIndex === 0}
+            >
+              <CaretLeft size={16} className="mr-2" />
+              {language === 'ru' ? 'Назад' : 'Previous'}
+            </Button>
 
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={skipQuestion}>
-              {language === 'ru' ? 'Пропустить' : 'Skip'}
-            </Button>
-            
-            <Button onClick={goToNext}>
-              {currentStep === kiplingQuestions.length - 1 ? (
-                <>
-                  <CheckCircle size={16} className="mr-2" />
-                  {language === 'ru' ? 'Завершить' : 'Complete'}
-                </>
-              ) : (
-                <>
-                  {language === 'ru' ? 'Далее' : 'Next'}
-                  <ArrowRight size={16} className="ml-2" />
-                </>
+            <div className="flex items-center gap-2">
+              {isCurrentQuestionAnswered && (
+                <CheckCircle size={16} className="text-green-500" />
               )}
-            </Button>
+              <span className="text-sm text-muted-foreground">
+                {language === 'ru' ? 'Заполнено' : 'Completed'}: {completionStats.total}/{questions.length}
+              </span>
+            </div>
+
+            {currentQuestionIndex < questions.length - 1 ? (
+              <Button 
+                onClick={nextQuestion}
+                disabled={currentQuestion.required && !isCurrentQuestionAnswered}
+              >
+                {language === 'ru' ? 'Далее' : 'Next'}
+                <CaretRight size={16} className="ml-2" />
+              </Button>
+            ) : (
+              <Button 
+                onClick={completeQuestionnaire}
+                disabled={currentQuestion.required && !isCurrentQuestionAnswered}
+              >
+                {language === 'ru' ? 'Завершить' : 'Complete'}
+                <CheckCircle size={16} className="ml-2" />
+              </Button>
+            )}
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Quick Navigation */}
-        <Separator />
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium">
-            {language === 'ru' ? 'Быстрая навигация по категориям:' : 'Quick category navigation:'}
-          </h4>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-            {Object.entries(questionsByCategory).map(([category, questions]) => {
-              const answeredInCategory = questions.filter(q => responses?.[q.id]).length;
-              const firstQuestionIndex = kiplingQuestions.findIndex(q => q.category === category);
-              const isCurrentCategory = currentQuestion.category === category;
-              
-              return (
-                <Button
-                  key={category}
-                  variant={isCurrentCategory ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setCurrentStep(firstQuestionIndex)}
-                  className="h-auto p-2 flex flex-col items-center gap-1"
-                >
-                  {getCategoryIcon(category)}
-                  <span className="text-xs font-medium capitalize">{category}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {answeredInCategory}/{questions.length}
+      {/* Dimension Progress */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">
+            {language === 'ru' ? 'Прогресс по измерениям' : 'Progress by Dimensions'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {Object.entries(completionStats.byDimension).map(([dimension, stats]) => (
+              <div key={dimension} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {getDimensionIcon(dimension)}
+                    <span className="font-medium">{dimension.toUpperCase()}</span>
+                  </div>
+                  <Badge variant={stats.answered === stats.total ? 'default' : 'secondary'}>
+                    {stats.answered}/{stats.total}
                   </Badge>
-                </Button>
-              );
-            })}
+                </div>
+                <Progress 
+                  value={(stats.answered / stats.total) * 100} 
+                  className="h-1" 
+                />
+              </div>
+            ))}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Quick Navigation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">
+            {language === 'ru' ? 'Быстрая навигация' : 'Quick Navigation'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-32">
+            <div className="space-y-2">
+              {questions.map((question, index) => (
+                <div
+                  key={question.id}
+                  className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${
+                    index === currentQuestionIndex 
+                      ? 'bg-primary/10 border border-primary' 
+                      : 'hover:bg-muted'
+                  }`}
+                  onClick={() => setCurrentQuestionIndex(index)}
+                >
+                  <div className="flex items-center gap-2">
+                    {getDimensionIcon(question.dimension)}
+                    <span className="text-sm font-medium">{question.category}</span>
+                    {question.importance === 'high' && (
+                      <Star size={12} className="text-accent" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {responses[question.id] && (
+                      <CheckCircle size={16} className="text-green-500" />
+                    )}
+                    <Badge variant="outline" className="text-xs">
+                      {index + 1}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
