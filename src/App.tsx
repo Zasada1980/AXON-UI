@@ -27,6 +27,7 @@ import LocalAgentExecutor from './components/LocalAgentExecutor';
 import GlobalProjectSettings from './components/GlobalProjectSettings';
 import IntelligenceGathering from './components/IntelligenceGathering';
 import SourceCredibilityAssessment from './components/SourceCredibilityAssessment';
+import ProjectRequirementsTracker from './components/ProjectRequirementsTracker';
 import NotificationSystem, { 
   notifyTaskCompleted, 
   notifyBlockerDetected, 
@@ -2774,6 +2775,10 @@ Return as JSON with property "recommendations" containing array of recommendatio
                       <Gear size={14} />
                       Global Settings
                     </TabsTrigger>
+                    <TabsTrigger value="requirements-tracker" className="flex items-center gap-2">
+                      <ListChecks size={14} />
+                      {language === 'ru' ? 'ТЗ Трекер' : 'Requirements'}
+                    </TabsTrigger>
                     <TabsTrigger value="settings" className="flex items-center gap-2">
                       <Gear size={14} />
                       {t('settings')}
@@ -4125,6 +4130,23 @@ Return as JSON with property "recommendations" containing array of recommendatio
                   }}
                   onAnalyticsReportGenerated={(report) => {
                     toast.success(currentLanguage === 'ru' ? `Отчёт аналитики создан: ${report.title}` : `Analytics report generated: ${report.title}`);
+                  }}
+                />
+              </TabsContent>
+
+              {/* Project Requirements Tracker Tab */}
+              <TabsContent value="requirements-tracker" className="space-y-6">
+                <ProjectRequirementsTracker
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onProgressUpdate={(progress) => {
+                    toast.info(`Project progress updated: ${progress}%`);
+                  }}
+                  onRiskDetected={(risk) => {
+                    toast.warning(`Risk detected: ${risk.description}`);
+                  }}
+                  onMilestoneReached={(milestone) => {
+                    toast.success(`Milestone reached: ${milestone}`);
                   }}
                 />
               </TabsContent>
