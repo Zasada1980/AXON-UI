@@ -17,6 +17,7 @@ import AgentJournalManager from './components/AgentJournalManager';
 import UIEvolutionAudit from './components/UIEvolutionAudit';
 import NavigationGuide from './components/NavigationGuide';
 import ProjectIntegrationJournal from './components/ProjectIntegrationJournal';
+import ProjectWorkStatusReport from './components/ProjectWorkStatusReport';
 import FileUploadManager from './components/FileUploadManager';
 import MicroTaskExecutor from './components/MicroTaskExecutor';
 import UIIntegrationManager from './components/UIIntegrationManager';
@@ -4478,17 +4479,20 @@ Return as JSON with property "recommendations" containing array of recommendatio
 
               {/* Project Requirements Tracker Tab */}
               <TabsContent value="requirements-tracker" className="space-y-6">
-                <ProjectRequirementsTracker
+                <ProjectWorkStatusReport
                   language={currentLanguage}
                   projectId={project.id}
-                  onProgressUpdate={(progress) => {
-                    toast.info(`Project progress updated: ${progress}%`);
+                  onSpecificationCreated={(spec) => {
+                    toast.success(`Technical specification created: ${spec.title}`);
                   }}
-                  onRiskDetected={(risk) => {
-                    toast.warning(`Risk detected: ${risk.description}`);
+                  onReportGenerated={(report) => {
+                    toast.success(`Agent report generated: ${report.agentName}`);
                   }}
-                  onMilestoneReached={(milestone) => {
-                    toast.success(`Milestone reached: ${milestone}`);
+                  onBlockerResolved={(blocker) => {
+                    toast.success(`Blocker resolved: ${blocker.title}`);
+                  }}
+                  onProgressUpdate={(specId, progress) => {
+                    toast.info(`Progress updated: ${progress}%`);
                   }}
                 />
               </TabsContent>
