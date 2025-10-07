@@ -22,4 +22,18 @@ export default defineConfig({
       '@': resolve(projectRoot, 'src')
     }
   },
+  server: {
+    proxy: {
+      // If VITE_AXON_PROXY_TARGET is provided, proxy UI calls to backend
+      '/api/axon': {
+        target: process.env.VITE_AXON_PROXY_TARGET || undefined,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/axon/, ''),
+        // Only enable proxy when target exists
+        bypass: (_req, _res, _options) => {
+          return process.env.VITE_AXON_PROXY_TARGET ? undefined : '/api/axon-bypass'
+        },
+      },
+    },
+  },
 });

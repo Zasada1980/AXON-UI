@@ -33,6 +33,43 @@ npm install
 npm run dev
 ```
 
+### Интеграция с бэкендом AXON
+
+UI уже подготовлен к работе с реальным сервером AXON через адаптер и Vite-прокси.
+
+1) Создайте файл окружения на основе примера:
+
+```bash
+cp .env.example .env
+```
+
+Выберите режим:
+- Только демо (без бэкенда): VITE_AXON_MODE=mock
+- Прокси на реальный сервер: укажите VITE_AXON_PROXY_TARGET=http://localhost:8800
+
+2) Запуск
+
+```bash
+# Мок-режим (без бэкенда)
+npm run dev:mock
+
+# Прокси к локальному AXON (по умолчанию на 8800)
+npm run dev:proxy
+```
+
+3) Где в UI смотреть состояние
+- Диагностика: `src/components/SystemDiagnostics.tsx` — статус AXON backend (online/offline)
+- Ручные запросы: `src/components/ExternalAPIIntegrator.tsx`
+
+4) Точки расширения
+- Адаптер: `src/services/axonAdapter.ts` (health/analyze/chat с мок-фоллбеком)
+- Клиент: `src/lib/axonClient.ts` (использует VITE_AXON_BASE_URL или `/api/axon`)
+- Типы: `src/types/axon.ts`
+
+5) Vite proxy
+- Прокси для `/api/axon/*` настраивается в `vite.config.ts`
+- Установите `VITE_AXON_PROXY_TARGET`, чтобы запросы шли на ваш сервер
+
 ### Первое Использование
 1. Создайте новый проект анализа
 2. Заполните измерения Киплинга (Кто, Что, Когда, Где, Почему, Как)  

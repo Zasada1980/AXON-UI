@@ -36,17 +36,9 @@ import {
   ListChecks,
   Plus
 } from '@phosphor-icons/react';
+import { axon } from '@/services/axonAdapter'
 
-// Declare global spark object
-declare global {
-  interface Window {
-    spark: {
-      llmPrompt: (strings: TemplateStringsArray, ...values: any[]) => string;
-      llm: (prompt: string, modelName?: string, jsonMode?: boolean) => Promise<string>;
-    };
-  }
-}
-
+// Access spark runtime (provided by @github/spark)
 const spark = (globalThis as any).spark;
 
 interface AgentTemplate {
@@ -439,17 +431,27 @@ const AIOrchestrator: React.FC<AIOrchestrator> = ({
         previousResults: workflow.results,
         projectId: projectId
       };
-
-      // Create the prompt for the agent
-      const prompt = spark.llmPrompt`${agent.systemPrompt}
+      // Try AXON backend first, fallback to local spark
+      let response: string
+      try {
+        const chat = await axon.chat({
+          projectId,
+          model: agent.model,
+          messages: [
+            { role: 'system', content: agent.systemPrompt },
+            { role: 'user', content: `Current task: ${step.action}\nContext: ${JSON.stringify(context, null, 2)}\n\nPlease complete this task and provide a structured response.` },
+          ],
+        })
+        response = chat.message.content
+      } catch {
+        const prompt = spark.llmPrompt`${agent.systemPrompt}
 
 Current task: ${step.action}
 Context: ${JSON.stringify(context, null, 2)}
 
-Please complete this task according to your specialization and provide a structured response.`;
-
-      // Execute the agent
-      const response = await spark.llm(prompt, agent.model);
+Please complete this task according to your specialization and provide a structured response.`
+        response = await spark.llm(prompt, agent.model)
+      }
 
       const duration = Date.now() - startTime;
 
@@ -480,7 +482,7 @@ Please complete this task according to your specialization and provide a structu
         onAgentResponse(agent.id, response);
       }
 
-      toast.success(`${agent.name} completed: ${step.action}`);
+  toast.success(`${agent.name} completed: ${step.action}`);
 
     } catch (error) {
       console.error(`Step execution error for ${agent.name}:`, error);

@@ -20,6 +20,7 @@ import {
   Shield,
   Clock
 } from '@phosphor-icons/react';
+import { axon } from '@/services/axonAdapter'
 
 interface SystemIssue {
   id: string;
@@ -82,6 +83,7 @@ const SystemDiagnostics: React.FC<SystemDiagnosticsProps> = ({
   const [microTasks, setMicroTasks] = useState<MicroTask[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [autoFix, setAutoFix] = useState(true);
+  const [axonHealth, setAxonHealth] = useState<{ ok: boolean; version?: string; endpoint?: string } | null>(null)
 
   const t = (key: string) => {
     const translations: Record<string, { en: string; ru: string }> = {
@@ -219,6 +221,13 @@ const SystemDiagnostics: React.FC<SystemDiagnosticsProps> = ({
     setIsScanning(true);
     setIssues([]);
     setMicroTasks([]);
+    // Probe AXON backend health in parallel
+    try {
+      const health = await axon.health()
+      setAxonHealth({ ok: !!health.ok, version: health.version, endpoint: (import.meta as any).env?.VITE_AXON_PROXY_TARGET || (import.meta as any).env?.VITE_AXON_BASE_URL || '/api/axon' })
+    } catch {
+      setAxonHealth({ ok: false, endpoint: (import.meta as any).env?.VITE_AXON_BASE_URL || '/api/axon' })
+    }
 
     // Симуляция процесса сканирования
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -402,6 +411,21 @@ const SystemDiagnostics: React.FC<SystemDiagnosticsProps> = ({
                 </div>
               </div>
             ))}
+          </div>
+          {/* AXON backend indicator */}
+          <div className="mt-4 flex items-center justify-between rounded border p-3">
+            <div className="flex items-center gap-2">
+              <Shield size={16} />
+              <span className="text-sm font-medium">AXON backend</span>
+              {axonHealth?.ok ? (
+                <Badge variant="default">online{axonHealth?.version ? ` · v${axonHealth.version}` : ''}</Badge>
+              ) : (
+                <Badge variant="destructive">offline</Badge>
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {axonHealth?.endpoint}
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useKV } from '@github/spark/hooks';
 import KiplingQuestionnaire from '../components/KiplingQuestionnaire';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft } from '@phosphor-icons/react';
+import { axon } from '@/services/axonAdapter';
+import { toast } from 'sonner';
 
 type Language = 'en' | 'ru';
 
@@ -55,6 +57,7 @@ const translations: Record<string, { en: string; ru: string }> = {
 
 export default function KiplingAnalysisPage({ language, projectId, onNavigate }: Props) {
   const [projects, setProjects] = useKV<AnalysisProject[]>('axon-projects', []);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const t = (key: string): string => {
     return translations[key]?.[language] || key;
@@ -97,6 +100,39 @@ export default function KiplingAnalysisPage({ language, projectId, onNavigate }:
     setProjects(updatedProjects || []);
   };
 
+  const generateWithAxon = async () => {
+    if (!projectData) return;
+    try {
+      setIsGenerating(true);
+      const prompt = projectData.dimensions
+        .map((d) => `[${d.title}]\nQ: ${d.question}\nContent: ${d.content || '-'}\n`)
+        .join('\n');
+      const res = await axon.analyze({
+        projectId,
+        prompt,
+        mode: 'kipling',
+        language,
+      });
+
+      // Простая интеграция результата: добавим инсайт к каждому измерению и подтолкнём completeness
+      const updatedProjects = projects?.map((p) => {
+        if (p.id !== projectId) return p;
+        const newDims = p.dimensions.map((d) => ({
+          ...d,
+          insights: [...(d.insights || []), res.content.slice(0, 240)],
+          completeness: Math.min(100, Math.max(d.completeness || 0, 70)),
+        }));
+        return { ...p, dimensions: newDims, lastModified: new Date().toISOString() };
+      });
+      setProjects(updatedProjects || []);
+      toast.success(language === 'ru' ? 'Анализ получен от AXON' : 'Analysis received from AXON');
+    } catch (e: any) {
+      toast.error((language === 'ru' ? 'Ошибка запроса: ' : 'Request error: ') + String(e?.message || e));
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   if (!projectData) {
     return (
       <div className="text-center py-12">
@@ -128,13 +164,18 @@ export default function KiplingAnalysisPage({ language, projectId, onNavigate }:
           <h1 className="text-3xl font-bold text-foreground">{t('kiplingAnalysis')}</h1>
           <p className="text-muted-foreground mt-1">{projectData.title}</p>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={() => onNavigate('overview')}
-        >
-          <ArrowLeft size={16} className="mr-2" />
-          {t('backToOverview')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => onNavigate('overview')}
+          >
+            <ArrowLeft size={16} className="mr-2" />
+            {t('backToOverview')}
+          </Button>
+          <Button onClick={generateWithAxon} disabled={isGenerating}>
+            {isGenerating ? (language === 'ru' ? 'Генерация…' : 'Generating…') : (language === 'ru' ? 'Сгенерировать анализ (AXON)' : 'Generate (AXON)')}
+          </Button>
+        </div>
       </div>
 
       {/* Kipling Dimensions Grid */}

@@ -64,7 +64,12 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
   // Persistent storage for IKR analyses
   const [ikrAnalyses, setIkrAnalyses] = useKV<IKRAnalysis[]>(`ikr-analyses-${projectId}`, []);
   const [currentAnalysis, setCurrentAnalysis] = useKV<string | null>(`current-ikr-${projectId}`, null);
-  
+
+  // AXON analysis state
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<string>('');
+  const [analysisError, setAnalysisError] = useState<string>('');
+
   // UI state
   const [isCreatingAnalysis, setIsCreatingAnalysis] = useState(false);
   const [isEditingComponent, setIsEditingComponent] = useState<string | null>(null);
@@ -255,6 +260,30 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
     }
   };
 
+  // AXON analysis handler
+  const runAxonAnalysis = async () => {
+    setIsAnalyzing(true);
+    setAnalysisResult('');
+    setAnalysisError('');
+    try {
+      const { axon } = await import('@/services/axonAdapter');
+      const prompt = currentAnalysisData?.description || '';
+      const req = {
+        projectId,
+        prompt,
+        mode: 'ikr' as 'ikr',
+        language,
+      };
+      const res = await axon.analyze(req);
+      setAnalysisResult(res.content);
+    } catch (err: any) {
+      setAnalysisError(err?.message || 'AXON анализ не удался');
+      toast.error(err?.message || 'AXON анализ не удался');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   return (
     <div className="module-ikr min-h-screen bg-background">
       {/* Header */}
@@ -269,14 +298,25 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
               <p className="text-muted-foreground">{t('ikrDescription')}</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
             {currentAnalysisData && (
               <Badge variant="secondary" className="px-3 py-1">
                 {currentAnalysisData.overallCompleteness}% {t('completed')}
               </Badge>
             )}
-            
+
+            {/* AXON анализ кнопка */}
+            {currentAnalysisData && (
+              <Button onClick={runAxonAnalysis} disabled={isAnalyzing} variant="outline">
+                {isAnalyzing ? (
+                  <span className="flex items-center gap-2"><MagnifyingGlass size={16} className="animate-spin" /> Анализ AXON...</span>
+                ) : (
+                  <span className="flex items-center gap-2"><MagnifyingGlass size={16} /> AXON анализ</span>
+                )}
+              </Button>
+            )}
+
             <Dialog open={isCreatingAnalysis} onOpenChange={setIsCreatingAnalysis}>
               <DialogTrigger asChild>
                 <Button>
@@ -327,7 +367,6 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
       {/* Main Content */}
       <div className="container mx-auto p-6">
         {!currentAnalysisData ? (
-          // No analysis selected
           <div className="text-center py-12">
             <Target size={64} className="mx-auto text-muted-foreground mb-4" />
             <h2 className="text-2xl font-semibold mb-2">
@@ -339,7 +378,6 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                 : 'Start structured analysis using Intelligence-Knowledge-Reasoning methodology'
               }
             </p>
-            
             {(ikrAnalyses || []).length > 0 && (
               <div className="max-w-2xl mx-auto mb-8">
                 <h3 className="text-lg font-medium mb-4">
@@ -364,7 +402,6 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                 </div>
               </div>
             )}
-            
             <Button onClick={() => setIsCreatingAnalysis(true)} size="lg">
               <Plus size={20} className="mr-2" />
               {t('createAnalysis')}
@@ -416,6 +453,25 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                     </p>
                   </div>
                 </div>
+                {/* AXON анализ результат/ошибка */}
+                {(isAnalyzing || analysisResult || analysisError) && (
+                  <div className="mt-6">
+                    {isAnalyzing && (
+                      <div className="flex items-center gap-2 text-blue-500"><MagnifyingGlass size={16} className="animate-spin" /> Анализ AXON выполняется...</div>
+                    )}
+                    {analysisResult && (
+                      <div className="mt-2 p-3 rounded bg-green-50 text-green-900 text-sm whitespace-pre-line border border-green-200">
+                        <b>Результат AXON:</b>
+                        <div>{analysisResult}</div>
+                      </div>
+                    )}
+                    {analysisError && (
+                      <div className="mt-2 p-3 rounded bg-red-50 text-red-900 text-sm border border-red-200">
+                        <b>Ошибка AXON:</b> {analysisError}
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -454,14 +510,14 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                         {t(component.priority)}
                       </Badge>
                     </div>
-                    
+
                     <div>
                       <Progress value={component.completeness} className="w-full" />
                       <p className="text-xs text-muted-foreground mt-1">
                         {component.completeness}% {t('completed')}
                       </p>
                     </div>
-                    
+
                     {component.content && (
                       <div className="text-sm text-muted-foreground line-clamp-3">
                         {component.content}
