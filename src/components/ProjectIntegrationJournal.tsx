@@ -33,7 +33,10 @@ import {
   Graph,
   Database,
   Gear,
-  Activity
+  Activity,
+  Play,
+  Pause,
+  ArrowRight
 } from '@phosphor-icons/react';
 
 // Типы для интеграционного журнала
@@ -55,6 +58,52 @@ interface IntegrationEntry {
   attachments: string[];
   relatedComponents: string[];
   integrationPoints: string[];
+  evolutionStage?: EvolutionStage;
+  autoCompleted?: boolean;
+  completionTrigger?: 'manual' | 'dependency' | 'evolution' | 'milestone';
+  parentPhase?: string;
+  subTasks?: string[];
+}
+
+// Типы для системы отслеживания эволюции
+interface EvolutionStage {
+  id: string;
+  name: string;
+  phase: 'planning' | 'development' | 'integration' | 'testing' | 'deployment' | 'optimization';
+  order: number;
+  prerequisites: string[];
+  deliverables: string[];
+  criteria: CompletionCriteria[];
+  autoTriggers: AutoTrigger[];
+}
+
+interface CompletionCriteria {
+  id: string;
+  description: string;
+  type: 'dependency' | 'milestone' | 'test' | 'review' | 'metric';
+  required: boolean;
+  satisfied: boolean;
+  validatedAt?: string;
+  validatedBy?: string;
+}
+
+interface AutoTrigger {
+  id: string;
+  condition: 'dependencies_met' | 'milestone_reached' | 'test_passed' | 'time_elapsed' | 'manual_approval';
+  parameters: Record<string, any>;
+  action: 'mark_completed' | 'start_next_stage' | 'notify' | 'escalate';
+  enabled: boolean;
+}
+
+interface EvolutionTracker {
+  currentStage: string;
+  completedStages: string[];
+  nextStages: string[];
+  overallProgress: number;
+  stageProgress: Record<string, number>;
+  autoCompletionEnabled: boolean;
+  lastUpdate: string;
+  evolutionPath: string[];
 }
 
 interface ProjectMap {
@@ -74,6 +123,19 @@ interface ProjectMap {
   };
   integrationPlan: IntegrationPhase[];
   riskAssessment: RiskItem[];
+  evolutionTracker: EvolutionTracker;
+  evolutionStages: EvolutionStage[];
+  autoCompletionSettings: AutoCompletionSettings;
+}
+
+interface AutoCompletionSettings {
+  enabled: boolean;
+  mode: 'strict' | 'flexible' | 'manual';
+  notificationsEnabled: boolean;
+  autoAdvanceStages: boolean;
+  requireManualApproval: boolean;
+  escalationEnabled: boolean;
+  checkInterval: number; // в минутах
 }
 
 interface ArchitectureLayer {
@@ -153,6 +215,8 @@ const translations = {
   integrationJournal: { en: 'Integration Journal', ru: 'Журнал Интеграции' },
   projectMap: { en: 'Project Map', ru: 'Карта Проекта' },
   functionalityMap: { en: 'Functionality Map', ru: 'Карта Функционала' },
+  evolutionTracker: { en: 'Evolution Tracker', ru: 'Отслеживание Эволюции' },
+  autoCompletion: { en: 'Auto-Completion', ru: 'Автозавершение' },
   
   // Типы записей
   task: { en: 'Task', ru: 'Задача' },
@@ -184,6 +248,50 @@ const translations = {
   high: { en: 'High', ru: 'Высокий' },
   critical: { en: 'Critical', ru: 'Критический' },
   
+  // Фазы эволюции
+  planning: { en: 'Planning', ru: 'Планирование' },
+  development: { en: 'Development', ru: 'Разработка' },
+  integrationPhase: { en: 'Integration', ru: 'Интеграция' },
+  testingPhase: { en: 'Testing', ru: 'Тестирование' },
+  deploymentPhase: { en: 'Deployment', ru: 'Развёртывание' },
+  optimization: { en: 'Optimization', ru: 'Оптимизация' },
+  
+  // Настройки автозавершения
+  enableAutoCompletion: { en: 'Enable Auto-Completion', ru: 'Включить Автозавершение' },
+  completionMode: { en: 'Completion Mode', ru: 'Режим Завершения' },
+  strict: { en: 'Strict', ru: 'Строгий' },
+  flexible: { en: 'Flexible', ru: 'Гибкий' },
+  manual: { en: 'Manual', ru: 'Ручной' },
+  autoAdvanceStages: { en: 'Auto-Advance Stages', ru: 'Автопереход Этапов' },
+  requireApproval: { en: 'Require Manual Approval', ru: 'Требовать Ручное Утверждение' },
+  notifications: { en: 'Notifications', ru: 'Уведомления' },
+  escalation: { en: 'Escalation', ru: 'Эскалация' },
+  checkInterval: { en: 'Check Interval (minutes)', ru: 'Интервал Проверки (мин)' },
+  
+  // Эволюционные критерии
+  evolutionCriteria: { en: 'Evolution Criteria', ru: 'Критерии Эволюции' },
+  completionCriteria: { en: 'Completion Criteria', ru: 'Критерии Завершения' },
+  autoTriggers: { en: 'Auto Triggers', ru: 'Автотриггеры' },
+  currentStage: { en: 'Current Stage', ru: 'Текущий Этап' },
+  nextStages: { en: 'Next Stages', ru: 'Следующие Этапы' },
+  completedStages: { en: 'Completed Stages', ru: 'Завершённые Этапы' },
+  stageProgress: { en: 'Stage Progress', ru: 'Прогресс Этапа' },
+  overallProgress: { en: 'Overall Progress', ru: 'Общий Прогресс' },
+  evolutionPath: { en: 'Evolution Path', ru: 'Путь Эволюции' },
+  
+  // Триггеры автозавершения
+  dependenciesMet: { en: 'Dependencies Met', ru: 'Зависимости Выполнены' },
+  milestoneReached: { en: 'Milestone Reached', ru: 'Веха Достигнута' },
+  testPassed: { en: 'Test Passed', ru: 'Тест Пройден' },
+  timeElapsed: { en: 'Time Elapsed', ru: 'Время Истекло' },
+  manualApproval: { en: 'Manual Approval', ru: 'Ручное Утверждение' },
+  
+  // Действия автозавершения
+  markCompleted: { en: 'Mark Completed', ru: 'Отметить Завершённым' },
+  startNextStage: { en: 'Start Next Stage', ru: 'Начать Следующий Этап' },
+  notify: { en: 'Notify', ru: 'Уведомить' },
+  escalate: { en: 'Escalate', ru: 'Эскалировать' },
+  
   // Действия
   createEntry: { en: 'Create Entry', ru: 'Создать Запись' },
   editEntry: { en: 'Edit Entry', ru: 'Редактировать' },
@@ -191,6 +299,9 @@ const translations = {
   exportJournal: { en: 'Export Journal', ru: 'Экспорт Журнала' },
   importData: { en: 'Import Data', ru: 'Импорт Данных' },
   generateReport: { en: 'Generate Report', ru: 'Генерация Отчета' },
+  validateCriteria: { en: 'Validate Criteria', ru: 'Валидировать Критерии' },
+  runEvolutionCheck: { en: 'Run Evolution Check', ru: 'Запустить Проверку Эволюции' },
+  configureAutoCompletion: { en: 'Configure Auto-Completion', ru: 'Настроить Автозавершение' },
   
   // Поля формы
   title: { en: 'Title', ru: 'Заголовок' },
@@ -205,6 +316,9 @@ const translations = {
   estimatedHours: { en: 'Estimated Hours', ru: 'Оценка (часы)' },
   actualHours: { en: 'Actual Hours', ru: 'Фактически (часы)' },
   notes: { en: 'Notes', ru: 'Заметки' },
+  evolutionStage: { en: 'Evolution Stage', ru: 'Этап Эволюции' },
+  autoCompleted: { en: 'Auto-Completed', ru: 'Автозавершено' },
+  completionTrigger: { en: 'Completion Trigger', ru: 'Триггер Завершения' },
   
   // Архитектура
   architecture: { en: 'Architecture', ru: 'Архитектура' },
@@ -228,6 +342,11 @@ const translations = {
   entryCreated: { en: 'Entry created successfully', ru: 'Запись успешно создана' },
   entryUpdated: { en: 'Entry updated successfully', ru: 'Запись успешно обновлена' },
   entryDeleted: { en: 'Entry deleted successfully', ru: 'Запись успешно удалена' },
+  entryAutoCompleted: { en: 'Entry auto-completed based on evolution criteria', ru: 'Запись автоматически завершена согласно критериям эволюции' },
+  stageAdvanced: { en: 'Evolution stage advanced automatically', ru: 'Этап эволюции продвинут автоматически' },
+  criteriaValidated: { en: 'Evolution criteria validated', ru: 'Критерии эволюции валидированы' },
+  evolutionCheckCompleted: { en: 'Evolution check completed', ru: 'Проверка эволюции завершена' },
+  autoCompletionConfigured: { en: 'Auto-completion settings configured', ru: 'Настройки автозавершения сконфигурированы' },
   dataExported: { en: 'Data exported successfully', ru: 'Данные успешно экспортированы' },
   dataImported: { en: 'Data imported successfully', ru: 'Данные успешно импортированы' }
 };
@@ -251,6 +370,8 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
   const [selectedEntryType, setSelectedEntryType] = useState<IntegrationEntry['type']>('task');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [isConfiguringAutoCompletion, setIsConfiguringAutoCompletion] = useState(false);
+  const [evolutionCheckRunning, setEvolutionCheckRunning] = useState(false);
   
   // Форма создания/редактирования записи
   const [formData, setFormData] = useState<Partial<IntegrationEntry>>({
@@ -263,7 +384,10 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
     notes: [],
     attachments: [],
     relatedComponents: [],
-    integrationPoints: []
+    integrationPoints: [],
+    evolutionStage: undefined,
+    autoCompleted: false,
+    completionTrigger: 'manual'
   });
 
   // Инициализация карты проекта при первом запуске
@@ -273,7 +397,495 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
     }
   }, [projectMap]);
 
+  // Инициализация автопроверки эволюции
+  useEffect(() => {
+    if (projectMap?.autoCompletionSettings.enabled) {
+      const interval = setInterval(() => {
+        runEvolutionCheck();
+      }, (projectMap.autoCompletionSettings.checkInterval || 5) * 60 * 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [projectMap?.autoCompletionSettings]);
+
+  // Автопроверка эволюции при изменении записей
+  useEffect(() => {
+    if (projectMap?.autoCompletionSettings.enabled && entries) {
+      runEvolutionCheck();
+    }
+  }, [entries, projectMap?.autoCompletionSettings.enabled]);
+
+  // Функция автоматической проверки эволюции
+  const runEvolutionCheck = async () => {
+    if (!projectMap || evolutionCheckRunning) return;
+    
+    setEvolutionCheckRunning(true);
+    
+    try {
+      let hasChanges = false;
+      const updatedEntries = [...(entries || [])];
+      const currentStage = projectMap.evolutionTracker.currentStage;
+      const currentStageConfig = projectMap.evolutionStages.find(s => s.id === currentStage);
+      
+      if (!currentStageConfig) return;
+
+      // Проверка критериев завершения текущего этапа
+      const updatedCriteria = [...currentStageConfig.criteria];
+      let allCriteriaSatisfied = true;
+
+      for (let i = 0; i < updatedCriteria.length; i++) {
+        const criteria = updatedCriteria[i];
+        
+        if (!criteria.satisfied) {
+          const satisfied = await validateCriteria(criteria);
+          
+          if (satisfied) {
+            updatedCriteria[i] = {
+              ...criteria,
+              satisfied: true,
+              validatedAt: new Date().toISOString(),
+              validatedBy: 'auto-system'
+            };
+            hasChanges = true;
+          }
+        }
+
+        if (criteria.required && !updatedCriteria[i].satisfied) {
+          allCriteriaSatisfied = false;
+        }
+      }
+
+      // Автозавершение записей на основе триггеров
+      for (const entry of updatedEntries) {
+        if (entry.status !== 'completed' && entry.evolutionStage?.id === currentStage) {
+          const shouldComplete = await checkAutoCompletionTriggers(entry, currentStageConfig);
+          
+          if (shouldComplete) {
+            const entryIndex = updatedEntries.findIndex(e => e.id === entry.id);
+            if (entryIndex !== -1) {
+              updatedEntries[entryIndex] = {
+                ...entry,
+                status: 'completed',
+                autoCompleted: true,
+                completionTrigger: 'evolution',
+                actualHours: entry.actualHours || entry.estimatedHours,
+                notes: [...entry.notes, `Auto-completed on ${new Date().toLocaleString()} based on evolution criteria`]
+              };
+              hasChanges = true;
+            }
+          }
+        }
+      }
+
+      // Переход к следующему этапу, если все критерии выполнены
+      if (allCriteriaSatisfied && projectMap.autoCompletionSettings.autoAdvanceStages) {
+        const nextStageId = getNextEvolutionStage(currentStage);
+        
+        if (nextStageId) {
+          const updatedTracker = {
+            ...projectMap.evolutionTracker,
+            currentStage: nextStageId,
+            completedStages: [...projectMap.evolutionTracker.completedStages, currentStage],
+            nextStages: getNextStages(nextStageId),
+            lastUpdate: new Date().toISOString()
+          };
+
+          setProjectMap({
+            ...projectMap,
+            evolutionTracker: updatedTracker,
+            evolutionStages: projectMap.evolutionStages.map(stage => 
+              stage.id === currentStage 
+                ? { ...stage, criteria: updatedCriteria }
+                : stage
+            ),
+            lastUpdated: new Date().toISOString()
+          });
+
+          toast.success(t('stageAdvanced') + `: ${nextStageId}`);
+          hasChanges = true;
+        }
+      }
+
+      if (hasChanges) {
+        setEntries(updatedEntries);
+        toast.success(t('evolutionCheckCompleted'));
+      }
+      
+    } catch (error) {
+      console.error('Evolution check error:', error);
+    } finally {
+      setEvolutionCheckRunning(false);
+    }
+  };
+
+  // Валидация критериев завершения
+  const validateCriteria = async (criteria: CompletionCriteria): Promise<boolean> => {
+    switch (criteria.type) {
+      case 'dependency':
+        return checkDependenciesCompleted(criteria.id);
+      
+      case 'milestone':
+        return checkMilestoneReached(criteria.id);
+      
+      case 'test':
+        return checkTestsPassed(criteria.id);
+      
+      case 'review':
+        return checkReviewCompleted(criteria.id);
+      
+      case 'metric':
+        return checkMetricsSatisfied(criteria.id);
+      
+      default:
+        return false;
+    }
+  };
+
+  // Проверка автотриггеров для завершения записей
+  const checkAutoCompletionTriggers = async (entry: IntegrationEntry, stageConfig: EvolutionStage): Promise<boolean> => {
+    for (const trigger of stageConfig.autoTriggers) {
+      if (!trigger.enabled) continue;
+
+      switch (trigger.condition) {
+        case 'dependencies_met':
+          if (await checkEntryDependencies(entry)) return true;
+          break;
+        
+        case 'milestone_reached':
+          if (await checkEntryMilestone(entry, trigger.parameters)) return true;
+          break;
+        
+        case 'test_passed':
+          if (await checkEntryTests(entry, trigger.parameters)) return true;
+          break;
+        
+        case 'time_elapsed':
+          if (checkTimeElapsed(entry, trigger.parameters)) return true;
+          break;
+        
+        case 'manual_approval':
+          // Требует ручного утверждения
+          break;
+      }
+    }
+    
+    return false;
+  };
+
+  // Вспомогательные функции проверки критериев
+  const checkDependenciesCompleted = (criteriaId: string): boolean => {
+    const relatedEntries = (entries || []).filter(e => 
+      e.tags.includes(criteriaId) || e.relatedComponents.includes(criteriaId)
+    );
+    return relatedEntries.length > 0 && relatedEntries.every(e => e.status === 'completed');
+  };
+
+  const checkMilestoneReached = (criteriaId: string): boolean => {
+    const milestoneEntries = (entries || []).filter(e => 
+      e.type === 'milestone' && (e.id === criteriaId || e.tags.includes(criteriaId))
+    );
+    return milestoneEntries.some(e => e.status === 'completed');
+  };
+
+  const checkTestsPassed = (criteriaId: string): boolean => {
+    const testEntries = (entries || []).filter(e => 
+      e.type === 'test' && (e.id === criteriaId || e.tags.includes(criteriaId))
+    );
+    return testEntries.length > 0 && testEntries.every(e => e.status === 'completed');
+  };
+
+  const checkReviewCompleted = (criteriaId: string): boolean => {
+    const reviewEntries = (entries || []).filter(e => 
+      e.category === 'documentation' && e.tags.includes(criteriaId) && e.status === 'approved'
+    );
+    return reviewEntries.length > 0;
+  };
+
+  const checkMetricsSatisfied = (criteriaId: string): boolean => {
+    // Простая проверка - если есть завершённые записи по метрикам
+    const metricEntries = (entries || []).filter(e => 
+      e.tags.includes('metrics') && e.tags.includes(criteriaId)
+    );
+    return metricEntries.some(e => e.status === 'completed');
+  };
+
+  const checkEntryDependencies = async (entry: IntegrationEntry): Promise<boolean> => {
+    if (entry.dependencies.length === 0) return true;
+    
+    const dependentEntries = (entries || []).filter(e => 
+      entry.dependencies.includes(e.id)
+    );
+    
+    return dependentEntries.every(e => e.status === 'completed');
+  };
+
+  const checkEntryMilestone = async (entry: IntegrationEntry, parameters: any): Promise<boolean> => {
+    const milestoneId = parameters.milestoneId;
+    const milestoneEntry = (entries || []).find(e => 
+      e.id === milestoneId || (e.type === 'milestone' && e.tags.includes(milestoneId))
+    );
+    
+    return milestoneEntry?.status === 'completed';
+  };
+
+  const checkEntryTests = async (entry: IntegrationEntry, parameters: any): Promise<boolean> => {
+    const testType = parameters.testType;
+    const relatedTests = (entries || []).filter(e => 
+      e.type === 'test' && 
+      e.relatedComponents.includes(entry.id) &&
+      (testType ? e.tags.includes(testType) : true)
+    );
+    
+    return relatedTests.length > 0 && relatedTests.every(e => e.status === 'completed');
+  };
+
+  const checkTimeElapsed = (entry: IntegrationEntry, parameters: any): boolean => {
+    const requiredHours = parameters.hours || 0;
+    const entryAge = Date.now() - new Date(entry.timestamp).getTime();
+    const hoursElapsed = entryAge / (1000 * 60 * 60);
+    
+    return hoursElapsed >= requiredHours;
+  };
+
+  const getNextEvolutionStage = (currentStageId: string): string | null => {
+    if (!projectMap) return null;
+    
+    const currentStage = projectMap.evolutionStages.find(s => s.id === currentStageId);
+    if (!currentStage) return null;
+    
+    const nextStage = projectMap.evolutionStages.find(s => s.order === currentStage.order + 1);
+    return nextStage?.id || null;
+  };
+
+  const getNextStages = (currentStageId: string): string[] => {
+    if (!projectMap) return [];
+    
+    const currentStage = projectMap.evolutionStages.find(s => s.id === currentStageId);
+    if (!currentStage) return [];
+    
+    return projectMap.evolutionStages
+      .filter(s => s.order === currentStage.order + 1)
+      .map(s => s.id);
+  };
+
+  // Обновление настроек автозавершения
+  const updateAutoCompletionSettings = (settings: Partial<AutoCompletionSettings>) => {
+    if (!projectMap) return;
+
+    setProjectMap({
+      ...projectMap,
+      autoCompletionSettings: {
+        ...projectMap.autoCompletionSettings,
+        ...settings
+      },
+      lastUpdated: new Date().toISOString()
+    });
+
+    toast.success(t('autoCompletionConfigured'));
+  };
+
   const initializeProjectMap = () => {
+    const defaultEvolutionStages: EvolutionStage[] = [
+      {
+        id: 'planning',
+        name: 'Планирование',
+        phase: 'planning',
+        order: 1,
+        prerequisites: [],
+        deliverables: ['architecture_design', 'requirements_analysis', 'integration_plan'],
+        criteria: [
+          {
+            id: 'requirements_complete',
+            description: 'Требования полностью определены',
+            type: 'milestone',
+            required: true,
+            satisfied: false
+          },
+          {
+            id: 'architecture_approved',
+            description: 'Архитектура утверждена',
+            type: 'review',
+            required: true,
+            satisfied: false
+          }
+        ],
+        autoTriggers: [
+          {
+            id: 'auto_advance_development',
+            condition: 'milestone_reached',
+            parameters: { milestoneId: 'planning_complete' },
+            action: 'start_next_stage',
+            enabled: true
+          }
+        ]
+      },
+      {
+        id: 'development',
+        name: 'Разработка',
+        phase: 'development',
+        order: 2,
+        prerequisites: ['planning'],
+        deliverables: ['ui_components', 'backend_services', 'database_schema'],
+        criteria: [
+          {
+            id: 'components_developed',
+            description: 'Все компоненты разработаны',
+            type: 'milestone',
+            required: true,
+            satisfied: false
+          },
+          {
+            id: 'unit_tests_passed',
+            description: 'Юнит-тесты пройдены',
+            type: 'test',
+            required: true,
+            satisfied: false
+          }
+        ],
+        autoTriggers: [
+          {
+            id: 'auto_mark_components',
+            condition: 'test_passed',
+            parameters: { testType: 'unit' },
+            action: 'mark_completed',
+            enabled: true
+          }
+        ]
+      },
+      {
+        id: 'integration',
+        name: 'Интеграция',
+        phase: 'integration',
+        order: 3,
+        prerequisites: ['development'],
+        deliverables: ['integrated_system', 'api_connections', 'data_flows'],
+        criteria: [
+          {
+            id: 'integration_tests_passed',
+            description: 'Интеграционные тесты пройдены',
+            type: 'test',
+            required: true,
+            satisfied: false
+          },
+          {
+            id: 'system_functional',
+            description: 'Система функциональна',
+            type: 'milestone',
+            required: true,
+            satisfied: false
+          }
+        ],
+        autoTriggers: [
+          {
+            id: 'auto_advance_testing',
+            condition: 'dependencies_met',
+            parameters: {},
+            action: 'start_next_stage',
+            enabled: true
+          }
+        ]
+      },
+      {
+        id: 'testing',
+        name: 'Тестирование',
+        phase: 'testing',
+        order: 4,
+        prerequisites: ['integration'],
+        deliverables: ['test_reports', 'performance_metrics', 'security_validation'],
+        criteria: [
+          {
+            id: 'e2e_tests_passed',
+            description: 'E2E тесты пройдены',
+            type: 'test',
+            required: true,
+            satisfied: false
+          },
+          {
+            id: 'performance_validated',
+            description: 'Производительность валидирована',
+            type: 'metric',
+            required: true,
+            satisfied: false
+          }
+        ],
+        autoTriggers: [
+          {
+            id: 'auto_mark_testing_complete',
+            condition: 'test_passed',
+            parameters: { testType: 'e2e' },
+            action: 'mark_completed',
+            enabled: true
+          }
+        ]
+      },
+      {
+        id: 'deployment',
+        name: 'Развёртывание',
+        phase: 'deployment',
+        order: 5,
+        prerequisites: ['testing'],
+        deliverables: ['production_deployment', 'monitoring_setup', 'documentation'],
+        criteria: [
+          {
+            id: 'deployment_successful',
+            description: 'Развёртывание успешно',
+            type: 'milestone',
+            required: true,
+            satisfied: false
+          },
+          {
+            id: 'monitoring_active',
+            description: 'Мониторинг активен',
+            type: 'dependency',
+            required: true,
+            satisfied: false
+          }
+        ],
+        autoTriggers: [
+          {
+            id: 'auto_complete_deployment',
+            condition: 'milestone_reached',
+            parameters: { milestoneId: 'deployment_complete' },
+            action: 'mark_completed',
+            enabled: true
+          }
+        ]
+      },
+      {
+        id: 'optimization',
+        name: 'Оптимизация',
+        phase: 'optimization',
+        order: 6,
+        prerequisites: ['deployment'],
+        deliverables: ['performance_optimizations', 'user_feedback_integration', 'maintenance_plan'],
+        criteria: [
+          {
+            id: 'performance_improved',
+            description: 'Производительность улучшена',
+            type: 'metric',
+            required: false,
+            satisfied: false
+          },
+          {
+            id: 'user_satisfaction',
+            description: 'Удовлетворённость пользователей',
+            type: 'review',
+            required: true,
+            satisfied: false
+          }
+        ],
+        autoTriggers: [
+          {
+            id: 'auto_finalize_project',
+            condition: 'manual_approval',
+            parameters: {},
+            action: 'mark_completed',
+            enabled: true
+          }
+        ]
+      }
+    ];
+
     const initialMap: ProjectMap = {
       id: projectId,
       name: 'AXON Integration Project',
@@ -315,7 +927,27 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
         connections: []
       },
       integrationPlan: [],
-      riskAssessment: []
+      riskAssessment: [],
+      evolutionTracker: {
+        currentStage: 'planning',
+        completedStages: [],
+        nextStages: ['development'],
+        overallProgress: 0,
+        stageProgress: {},
+        autoCompletionEnabled: true,
+        lastUpdate: new Date().toISOString(),
+        evolutionPath: ['planning', 'development', 'integration', 'testing', 'deployment', 'optimization']
+      },
+      evolutionStages: defaultEvolutionStages,
+      autoCompletionSettings: {
+        enabled: true,
+        mode: 'flexible',
+        notificationsEnabled: true,
+        autoAdvanceStages: true,
+        requireManualApproval: false,
+        escalationEnabled: true,
+        checkInterval: 5
+      }
     };
     
     setProjectMap(initialMap);
@@ -344,7 +976,12 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
       notes: formData.notes || [],
       attachments: formData.attachments || [],
       relatedComponents: formData.relatedComponents || [],
-      integrationPoints: formData.integrationPoints || []
+      integrationPoints: formData.integrationPoints || [],
+      evolutionStage: formData.evolutionStage || projectMap?.evolutionStages.find(s => s.id === projectMap.evolutionTracker.currentStage),
+      autoCompleted: false,
+      completionTrigger: 'manual',
+      parentPhase: projectMap?.evolutionTracker.currentStage,
+      subTasks: []
     };
 
     setEntries(current => [...(current || []), newEntry]);
@@ -398,7 +1035,10 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
       notes: [],
       attachments: [],
       relatedComponents: [],
-      integrationPoints: []
+      integrationPoints: [],
+      evolutionStage: projectMap?.evolutionStages.find(s => s.id === projectMap.evolutionTracker.currentStage),
+      autoCompleted: false,
+      completionTrigger: 'manual'
     });
   };
 
@@ -467,8 +1107,9 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="journal">{t('integrationJournal')}</TabsTrigger>
+              <TabsTrigger value="evolution">{t('evolutionTracker')}</TabsTrigger>
               <TabsTrigger value="map">{t('projectMap')}</TabsTrigger>
               <TabsTrigger value="phases">{t('integrationPhases')}</TabsTrigger>
               <TabsTrigger value="analytics">{t('overview')}</TabsTrigger>
@@ -669,6 +1310,34 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
                           </div>
                         </div>
 
+                        <div>
+                          <Label htmlFor="entry-evolution-stage">{t('evolutionStage')}</Label>
+                          <Select 
+                            value={formData.evolutionStage?.id || projectMap?.evolutionTracker.currentStage} 
+                            onValueChange={(value) => {
+                              const stage = projectMap?.evolutionStages.find(s => s.id === value);
+                              setFormData({...formData, evolutionStage: stage});
+                            }}
+                          >
+                            <SelectTrigger className="mt-2">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {projectMap?.evolutionStages.map(stage => (
+                                <SelectItem key={stage.id} value={stage.id}>
+                                  {stage.name} ({t(stage.phase + 'Phase' as keyof typeof translations)})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {language === 'ru' 
+                              ? 'Этап эволюции определяет автоматические критерии завершения'
+                              : 'Evolution stage determines automatic completion criteria'
+                            }
+                          </p>
+                        </div>
+
                         <div className="flex justify-end gap-2">
                           <Button variant="outline" onClick={() => setIsCreatingEntry(false)}>
                             {language === 'ru' ? 'Отмена' : 'Cancel'}
@@ -710,6 +1379,16 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
                                 <span className="text-sm text-muted-foreground">{t(entry.status)}</span>
                                 <div className={`w-2 h-2 rounded-full ${getPriorityColor(entry.priority)}`} />
                                 <span className="text-sm text-muted-foreground">{t(entry.priority)}</span>
+                                {entry.autoCompleted && (
+                                  <Badge variant="default" className="text-xs">
+                                    {t('autoCompleted')}
+                                  </Badge>
+                                )}
+                                {entry.evolutionStage && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {entry.evolutionStage.name}
+                                  </Badge>
+                                )}
                               </div>
                               
                               <h4 className="font-medium mb-1">{entry.title}</h4>
@@ -774,6 +1453,224 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
                   )}
                 </div>
               </ScrollArea>
+            </TabsContent>
+
+            {/* Отслеживание эволюции */}
+            <TabsContent value="evolution" className="space-y-4">
+              <div className="grid gap-6">
+                {/* Текущий статус эволюции */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Target size={20} />
+                        {t('evolutionTracker')}
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => runEvolutionCheck()}
+                          disabled={evolutionCheckRunning}
+                        >
+                          <Activity size={14} className={`mr-2 ${evolutionCheckRunning ? 'animate-spin' : ''}`} />
+                          {t('runEvolutionCheck')}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsConfiguringAutoCompletion(true)}
+                        >
+                          <Gear size={14} className="mr-2" />
+                          {t('configureAutoCompletion')}
+                        </Button>
+                      </div>
+                    </div>
+                    <CardDescription>
+                      {language === 'ru' 
+                        ? 'Автоматическое отслеживание прогресса и завершение этапов согласно эволюции проекта'
+                        : 'Automatic progress tracking and stage completion according to project evolution'
+                      }
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {/* Прогресс эволюции */}
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">{t('currentStage')}</p>
+                                <p className="text-xl font-bold">{projectMap?.evolutionTracker.currentStage}</p>
+                              </div>
+                              <CheckCircle size={20} className="text-primary" />
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">{t('overallProgress')}</p>
+                                <p className="text-xl font-bold">{Math.round(projectMap?.evolutionTracker.overallProgress || 0)}%</p>
+                              </div>
+                              <Target size={20} className="text-accent" />
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">{t('autoCompletion')}</p>
+                                <p className="text-xl font-bold">
+                                  {projectMap?.autoCompletionSettings.enabled ? 'ON' : 'OFF'}
+                                </p>
+                              </div>
+                              <div className={`w-3 h-3 rounded-full ${
+                                projectMap?.autoCompletionSettings.enabled ? 'bg-green-500' : 'bg-gray-500'
+                              }`} />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Этапы эволюции */}
+                      <div>
+                        <h4 className="font-medium mb-4 flex items-center gap-2">
+                          <GitBranch size={20} />
+                          {t('evolutionPath')}
+                        </h4>
+                        <div className="space-y-3">
+                          {projectMap?.evolutionStages.map((stage, index) => {
+                            const isCompleted = projectMap.evolutionTracker.completedStages.includes(stage.id);
+                            const isCurrent = projectMap.evolutionTracker.currentStage === stage.id;
+                            const stageEntries = (entries || []).filter(e => e.evolutionStage?.id === stage.id);
+                            const completedEntries = stageEntries.filter(e => e.status === 'completed');
+                            const progress = stageEntries.length > 0 ? (completedEntries.length / stageEntries.length) * 100 : 0;
+
+                            return (
+                              <div key={stage.id} className={`border rounded-lg p-4 ${
+                                isCurrent ? 'border-primary bg-primary/5' : 
+                                isCompleted ? 'border-green-500 bg-green-50' : ''
+                              }`}>
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                                      isCompleted ? 'bg-green-500 text-white' :
+                                      isCurrent ? 'bg-primary text-primary-foreground' :
+                                      'bg-muted text-muted-foreground'
+                                    }`}>
+                                      {isCompleted ? <CheckCircle size={16} /> : stage.order}
+                                    </div>
+                                    <div>
+                                      <h5 className="font-medium">{stage.name}</h5>
+                                      <p className="text-sm text-muted-foreground">
+                                        {t(stage.phase + 'Phase' as keyof typeof translations)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <Badge variant={
+                                      isCompleted ? 'default' :
+                                      isCurrent ? 'secondary' : 'outline'
+                                    }>
+                                      {isCompleted ? t('completed') : 
+                                       isCurrent ? t('inProgress') : t('planned')}
+                                    </Badge>
+                                  </div>
+                                </div>
+
+                                {/* Прогресс этапа */}
+                                <div className="mb-3">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-sm text-muted-foreground">
+                                      {t('stageProgress')}: {completedEntries.length}/{stageEntries.length} {t('task')}s
+                                    </span>
+                                    <span className="text-sm font-medium">{Math.round(progress)}%</span>
+                                  </div>
+                                  <div className="w-full bg-secondary rounded-full h-2">
+                                    <div 
+                                      className="bg-primary h-2 rounded-full transition-all duration-300"
+                                      style={{ width: `${progress}%` }}
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Критерии завершения */}
+                                <div>
+                                  <h6 className="text-sm font-medium mb-2">{t('completionCriteria')}:</h6>
+                                  <div className="space-y-1">
+                                    {stage.criteria.map(criteria => (
+                                      <div key={criteria.id} className="flex items-center gap-2 text-sm">
+                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                                          criteria.satisfied ? 'bg-green-500' : 'bg-muted'
+                                        }`}>
+                                          {criteria.satisfied && <CheckCircle size={12} className="text-white" />}
+                                        </div>
+                                        <span className={criteria.satisfied ? 'line-through text-muted-foreground' : ''}>
+                                          {criteria.description}
+                                        </span>
+                                        {criteria.required && (
+                                          <Badge variant="outline" className="text-xs">Required</Badge>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Автозавершённые записи */}
+                      <div>
+                        <h4 className="font-medium mb-4 flex items-center gap-2">
+                          <CheckCircle size={20} />
+                          {language === 'ru' ? 'Автозавершённые записи' : 'Auto-Completed Entries'}
+                        </h4>
+                        <div className="space-y-2">
+                          {(entries || []).filter(e => e.autoCompleted).length === 0 ? (
+                            <div className="text-center py-6">
+                              <CheckCircle size={48} className="mx-auto text-muted-foreground mb-4" />
+                              <p className="text-muted-foreground">
+                                {language === 'ru' 
+                                  ? 'Нет автозавершённых записей'
+                                  : 'No auto-completed entries'
+                                }
+                              </p>
+                            </div>
+                          ) : (
+                            (entries || [])
+                              .filter(e => e.autoCompleted)
+                              .slice(0, 5)
+                              .map(entry => (
+                                <div key={entry.id} className="flex items-center justify-between p-3 border rounded-lg bg-green-50">
+                                  <div className="flex items-center gap-3">
+                                    <CheckCircle size={16} className="text-green-500" />
+                                    <div>
+                                      <h6 className="font-medium">{entry.title}</h6>
+                                      <p className="text-xs text-muted-foreground">
+                                        {t('completionTrigger')}: {t(entry.completionTrigger || 'manual')}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {t('autoCompleted')}
+                                  </Badge>
+                                </div>
+                              ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Карта проекта */}
@@ -962,12 +1859,26 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Blocked</p>
+                        <p className="text-sm font-medium text-muted-foreground">Auto-Completed</p>
                         <p className="text-2xl font-bold">
-                          {(entries || []).filter(e => e.status === 'blocked').length}
+                          {(entries || []).filter(e => e.autoCompleted).length}
                         </p>
                       </div>
-                      <Warning size={24} className="text-red-500" />
+                      <CheckCircle size={24} className="text-green-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Evolution Stage</p>
+                        <p className="text-lg font-bold">
+                          {projectMap?.evolutionTracker.currentStage || 'N/A'}
+                        </p>
+                      </div>
+                      <Target size={24} className="text-primary" />
                     </div>
                   </CardContent>
                 </Card>
@@ -1008,6 +1919,152 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Диалог настройки автозавершения */}
+      <Dialog open={isConfiguringAutoCompletion} onOpenChange={setIsConfiguringAutoCompletion}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Gear size={20} />
+              {t('configureAutoCompletion')}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'ru' 
+                ? 'Настройте параметры автоматического завершения этапов и задач'
+                : 'Configure automatic completion settings for stages and tasks'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          
+          {projectMap && (
+            <div className="space-y-6">
+              {/* Основные настройки */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>{t('enableAutoCompletion')}</Label>
+                  <Button
+                    variant={projectMap.autoCompletionSettings.enabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateAutoCompletionSettings({ 
+                      enabled: !projectMap.autoCompletionSettings.enabled 
+                    })}
+                  >
+                    {projectMap.autoCompletionSettings.enabled ? 'ON' : 'OFF'}
+                  </Button>
+                </div>
+
+                <div>
+                  <Label>{t('completionMode')}</Label>
+                  <Select 
+                    value={projectMap.autoCompletionSettings.mode}
+                    onValueChange={(value: 'strict' | 'flexible' | 'manual') => 
+                      updateAutoCompletionSettings({ mode: value })
+                    }
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="strict">{t('strict')}</SelectItem>
+                      <SelectItem value="flexible">{t('flexible')}</SelectItem>
+                      <SelectItem value="manual">{t('manual')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {language === 'ru' 
+                      ? 'Строгий: все критерии обязательны. Гибкий: основные критерии. Ручной: только с утверждением'
+                      : 'Strict: all criteria required. Flexible: main criteria. Manual: approval only'
+                    }
+                  </p>
+                </div>
+
+                <div>
+                  <Label>{t('checkInterval')}</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={projectMap.autoCompletionSettings.checkInterval}
+                    onChange={(e) => updateAutoCompletionSettings({ 
+                      checkInterval: parseInt(e.target.value) || 5 
+                    })}
+                    className="mt-2"
+                  />
+                </div>
+              </div>
+
+              {/* Дополнительные настройки */}
+              <Separator />
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>{t('autoAdvanceStages')}</Label>
+                  <Button
+                    variant={projectMap.autoCompletionSettings.autoAdvanceStages ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateAutoCompletionSettings({ 
+                      autoAdvanceStages: !projectMap.autoCompletionSettings.autoAdvanceStages 
+                    })}
+                  >
+                    {projectMap.autoCompletionSettings.autoAdvanceStages ? 'ON' : 'OFF'}
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label>{t('requireApproval')}</Label>
+                  <Button
+                    variant={projectMap.autoCompletionSettings.requireManualApproval ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateAutoCompletionSettings({ 
+                      requireManualApproval: !projectMap.autoCompletionSettings.requireManualApproval 
+                    })}
+                  >
+                    {projectMap.autoCompletionSettings.requireManualApproval ? 'ON' : 'OFF'}
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label>{t('notifications')}</Label>
+                  <Button
+                    variant={projectMap.autoCompletionSettings.notificationsEnabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateAutoCompletionSettings({ 
+                      notificationsEnabled: !projectMap.autoCompletionSettings.notificationsEnabled 
+                    })}
+                  >
+                    {projectMap.autoCompletionSettings.notificationsEnabled ? 'ON' : 'OFF'}
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label>{t('escalation')}</Label>
+                  <Button
+                    variant={projectMap.autoCompletionSettings.escalationEnabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateAutoCompletionSettings({ 
+                      escalationEnabled: !projectMap.autoCompletionSettings.escalationEnabled 
+                    })}
+                  >
+                    {projectMap.autoCompletionSettings.escalationEnabled ? 'ON' : 'OFF'}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsConfiguringAutoCompletion(false)}>
+                  {language === 'ru' ? 'Закрыть' : 'Close'}
+                </Button>
+                <Button onClick={() => {
+                  runEvolutionCheck();
+                  setIsConfiguringAutoCompletion(false);
+                }}>
+                  {t('runEvolutionCheck')}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
