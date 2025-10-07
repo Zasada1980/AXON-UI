@@ -1,20 +1,21 @@
-# AXON Intelligence Analysis Platform - PRD
+# AXON Intelligence Analysis Platform - PRD (АНАЛИТИК Update)
 
 ## Core Purpose & Success
 
-**Mission Statement**: AXON is a comprehensive intelligence analysis platform that enables systematic analysis using the IKR directive (Intelligence-Knowledge-Reasoning) and Kipling protocol (Who, What, When, Where, Why, How), enhanced with AI-powered audit capabilities and automated workflow management.
+**Mission Statement**: AXON is a comprehensive cognitive intelligence analysis platform that enables systematic analysis using the IKR directive (Intelligence-Knowledge-Reasoning) and Kipling protocol (Who, What, When, Where, Why, How), enhanced with AI-powered audit capabilities, automated workflow management, and expert analytical frameworks designed specifically for intelligence professionals.
 
 **Success Indicators**:
-- Users can complete comprehensive intelligence analysis projects with >80% completeness
-- AI audit agents identify and resolve system issues automatically
-- Micro-task execution reduces manual workload by >60%
-- Real-time system health monitoring maintains >95% uptime
-- Multi-language support serves both English and Russian users effectively
+- Users can complete comprehensive intelligence analysis projects with >90% completeness using expert-guided workflows
+- AI audit agents identify and resolve system issues automatically with 95%+ accuracy
+- Interactive Kipling questionnaire reduces analysis time by >70% while maintaining methodological rigor
+- Expert analysis templates provide immediate high-quality baseline analysis
+- Real-time system health monitoring maintains >99% uptime with auto-recovery
+- Multi-language support serves both English and Russian intelligence communities effectively
 
 **Experience Qualities**: 
-1. **Professional** - Enterprise-grade analysis capabilities with military/intelligence precision
-2. **Intelligent** - AI-powered automation and insights generation
-3. **Resilient** - Self-healing systems with comprehensive error recovery
+1. **Expert-Grade** - Professional intelligence analysis capabilities with pre-loaded expert knowledge
+2. **Cognitively Intelligent** - AI-powered automation with human expert guidance integration
+3. **Methodologically Rigorous** - Adherence to established intelligence analysis protocols (IKR + Kipling)
 
 ## Project Classification & Approach
 
@@ -24,10 +25,12 @@
 
 ## Essential Features
 
-### Core Analysis Framework
-- **Kipling Protocol Implementation**: Six-dimensional analysis framework (Who, What, When, Where, Why, How)
-- **IKR Directive Support**: Three-stage process (Intelligence gathering, Knowledge synthesis, Reasoning)
-- **Project Management**: Multi-project workspace with completion tracking and export capabilities
+### Core Analysis Framework (Enhanced for АНАЛИТИК)
+- **Interactive Kipling Questionnaire**: Comprehensive 5W1H questionnaire system with expert guidance and progressive disclosure
+- **Expert Analysis Integration**: Pre-loaded expert analysis based on cognitive agents architecture with immediate application capability
+- **IKR Directive Support**: Three-stage process (Intelligence gathering, Knowledge synthesis, Reasoning) with methodological rigor
+- **Project Management**: Multi-project workspace with completion tracking, export capabilities, and expert templates
+- **Source Credibility Assessment**: Advanced source evaluation and verification systems for intelligence quality assurance
 
 ### AI-Powered Automation
 - **Multi-Agent Audit System**: Security, bias detection, performance, and compliance agents
