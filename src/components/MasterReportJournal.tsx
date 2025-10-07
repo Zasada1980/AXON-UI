@@ -166,10 +166,15 @@ export default function MasterReportJournal({
   const [selectedReport, setSelectedReport] = useState<MasterReportEntry | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isExecutingBlock, setIsExecutingBlock] = useState(false);
+  const [isMarkingStages, setIsMarkingStages] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
+  
+  // Состояние для отслеживания завершенных этапов
+  const [completedStages, setCompletedStages] = useKV<Record<string, string[]>>(`completed-stages-${projectId}`, {});
+  const [stageProgress, setStageProgress] = useKV<Record<string, number>>(`stage-progress-${projectId}`, {});
 
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
@@ -220,6 +225,30 @@ export default function MasterReportJournal({
       nextBlockReady: {
         en: 'Next task block ready for execution',
         ru: 'Следующий блок задач готов к выполнению'
+      },
+      markCompletedStages: {
+        en: 'Mark Completed Stages',
+        ru: 'Отметить Завершенные Этапы'
+      },
+      stageCompletion: {
+        en: 'Stage Completion Progress',
+        ru: 'Прогресс Завершения Этапов'
+      },
+      stagesMarked: {
+        en: 'Completed stages marked in all journal files',
+        ru: 'Завершенные этапы отмечены во всех файлах журнала'
+      },
+      continueWorkOnBlock: {
+        en: 'Continue Work on Block',
+        ru: 'Продолжить Работу над Блоком'
+      },
+      workContinued: {
+        en: 'Work on current block continued',
+        ru: 'Работа над текущим блоком продолжена'
+      },
+      analyzingStageProgress: {
+        en: 'Analyzing stage progress across all modules',
+        ru: 'Анализ прогресса этапов по всем модулям'
       }
     };
     return translations[key]?.[language] || key;
@@ -450,6 +479,247 @@ export default function MasterReportJournal({
     }
   };
 
+  // Функция для отметки завершенных этапов во всех журналах
+  const markCompletedStagesInAllJournals = async () => {
+    setIsMarkingStages(true);
+    
+    try {
+      toast.info(t('analyzingStageProgress'));
+      
+      // Анализируем все отчеты и блоки задач для определения завершенных этапов
+      const allSystemModules = [
+        'ProjectIntegrationJournal',
+        'AgentJournalManager', 
+        'ProjectWorkStatusReport',
+        'SystemDiagnostics',
+        'TaskIntegrationTracker',
+        'AdvancedAnalytics',
+        'AIOrchestrator',
+        'ErrorMonitoring',
+        'UIEvolutionAudit',
+        'MicroTaskExecutor',
+        'UIIntegrationManager',
+        'E2ETestingSystem',
+        'AdvancedCognitiveAnalysis',
+        'CollaborativeAnalysis',
+        'AuthenticationSystem',
+        'LocalAgentExecutor',
+        'GlobalProjectSettings'
+      ];
+
+      const stageAnalysisPrompt = spark.llmPrompt`Проанализируй все модули системы и определи завершенные этапы работы:
+
+      Модули системы: ${allSystemModules.join(', ')}
+      Текущие отчеты: ${masterReports?.length || 0}
+      Блоки задач: ${taskBlocks?.length || 0}
+      Проект ID: ${projectId}
+
+      Для каждого модуля определи:
+      1. Какие этапы разработки завершены (анализ, проектирование, реализация, тестирование, интеграция)
+      2. Уровень готовности каждого этапа (0-100%)
+      3. Блокирующие факторы для незавершенных этапов
+      4. Рекомендации по продолжению работы
+
+      Отметь в журналах:
+      - ✅ Полностью завершенные этапы
+      - 🔄 Этапы в процессе выполнения  
+      - ⏸️ Заблокированные этапы
+      - 📋 Этапы ожидающие планирования
+
+      Формат ответа: JSON объект с анализом этапов для каждого модуля.`;
+
+      const stageAnalysis = await spark.llm(stageAnalysisPrompt, 'gpt-4o-mini', true);
+      const analysisResult = JSON.parse(stageAnalysis);
+
+      // Обновляем состояние завершенных этапов
+      const newCompletedStages: Record<string, string[]> = {};
+      const newStageProgress: Record<string, number> = {};
+
+      Object.entries(analysisResult.modules || {}).forEach(([moduleName, moduleData]: [string, any]) => {
+        newCompletedStages[moduleName] = moduleData.completedStages || [];
+        newStageProgress[moduleName] = moduleData.overallProgress || 0;
+      });
+
+      setCompletedStages(newCompletedStages);
+      setStageProgress(newStageProgress);
+
+      // Создаем отчет о завершенных этапах
+      const stageCompletionReport: MasterReportEntry = {
+        id: `stage-completion-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        reportType: 'system',
+        sourceModule: 'MasterReportJournal',
+        title: 'Stage Completion Analysis Report',
+        summary: `Marked completed stages across ${allSystemModules.length} system modules`,
+        detailedReport: {
+          modules: analysisResult.modules,
+          completionSummary: {
+            totalModules: allSystemModules.length,
+            fullyCompleted: Object.values(newStageProgress).filter(p => p >= 100).length,
+            inProgress: Object.values(newStageProgress).filter(p => p > 0 && p < 100).length,
+            notStarted: Object.values(newStageProgress).filter(p => p === 0).length
+          },
+          nextActions: analysisResult.nextActions || [],
+          blockers: analysisResult.blockers || []
+        },
+        status: 'generated',
+        priority: 'high',
+        tags: ['stage-completion', 'system-analysis', 'progress-tracking'],
+        relatedProjectId: projectId,
+        actionItems: (analysisResult.actionItems || []).map((item: any, index: number) => ({
+          id: `stage-action-${index}`,
+          description: item.description || item,
+          assignedTo: item.assignedTo || 'development-team',
+          dueDate: item.dueDate,
+          status: 'pending' as const,
+          priority: item.priority || 'medium' as const,
+          createdAt: new Date().toISOString()
+        })),
+        approvals: [],
+        metrics: {
+          completionRate: Math.round(Object.values(newStageProgress).reduce((sum, p) => sum + p, 0) / allSystemModules.length),
+          qualityScore: 95,
+          processingTime: 10,
+          accuracyLevel: 92,
+          riskLevel: Object.values(newStageProgress).some(p => p < 50) ? 'medium' as const : 'low' as const
+        },
+        attachments: []
+      };
+
+      // Добавляем отчет в журнал
+      setMasterReports(current => [...(current || []), stageCompletionReport]);
+
+      toast.success(t('stagesMarked'), {
+        description: `${Object.keys(newCompletedStages).length} modules analyzed`
+      });
+
+      // Вызываем callback
+      onReportJournaled(stageCompletionReport);
+
+    } catch (error) {
+      console.error('Error marking completed stages:', error);
+      toast.error('Failed to mark completed stages');
+    } finally {
+      setIsMarkingStages(false);
+    }
+  };
+
+  // Функция для продолжения работы над текущим блоком
+  const continueWorkOnCurrentBlock = async () => {
+    if (!currentTaskBlock) {
+      toast.warning('No active task block to continue');
+      return;
+    }
+
+    setIsExecutingBlock(true);
+
+    try {
+      // Анализируем текущий прогресс блока
+      const progressAnalysisPrompt = spark.llmPrompt`Проанализируй текущий прогресс блока задач "${currentTaskBlock.name}" и определи следующие шаги:
+
+      Блок задач: ${JSON.stringify(currentTaskBlock, null, 2)}
+      Завершенные этапы: ${JSON.stringify(completedStages, null, 2)}
+      Прогресс этапов: ${JSON.stringify(stageProgress, null, 2)}
+
+      Определи:
+      1. Какие спецификации можно продолжить или завершить
+      2. Приоритетные задачи для текущего этапа
+      3. Зависимости которые нужно разрешить
+      4. Конкретные действия для продолжения работы
+      5. Обновленные временные рамки
+
+      Создай план продолжения работы с конкретными шагами и ресурсами.
+      
+      Формат ответа: JSON объект с планом продолжения работы.`;
+
+      const continuationPlan = await spark.llm(progressAnalysisPrompt, 'gpt-4o-mini', true);
+      const planData = JSON.parse(continuationPlan);
+
+      // Обновляем блок задач с новой информацией
+      const updatedBlock: TaskBlock = {
+        ...currentTaskBlock,
+        status: 'in_progress',
+        notes: `${currentTaskBlock.notes}\n\n--- Continuation Plan ${new Date().toISOString()} ---\n${planData.continuationNotes || ''}`,
+        specifications: currentTaskBlock.specifications.map(spec => {
+          const specUpdate = planData.specificationUpdates?.[spec.id];
+          return specUpdate ? { ...spec, ...specUpdate } : spec;
+        })
+      };
+
+      // Обновляем блок в состоянии
+      setTaskBlocks(current => 
+        (current || []).map(block => 
+          block.id === currentTaskBlock.id ? updatedBlock : block
+        )
+      );
+      setCurrentTaskBlock(updatedBlock);
+
+      // Создаем отчет о продолжении работы
+      const continuationReport: MasterReportEntry = {
+        id: `continuation-${currentTaskBlock.id}-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        reportType: 'task',
+        sourceModule: 'MasterReportJournal',
+        title: `Work Continuation: ${currentTaskBlock.name}`,
+        summary: `Continued work on task block with updated plan and priorities`,
+        detailedReport: {
+          originalBlock: currentTaskBlock,
+          updatedBlock: updatedBlock,
+          continuationPlan: planData,
+          nextSteps: planData.nextSteps || [],
+          updatedTimeline: planData.timeline || {}
+        },
+        status: 'generated',
+        priority: currentTaskBlock.priority,
+        tags: ['continuation', 'task-execution', 'progress-update'],
+        relatedProjectId: projectId,
+        actionItems: (planData.immediateActions || []).map((action: any, index: number) => ({
+          id: `continuation-action-${index}`,
+          description: action.description || action,
+          assignedTo: action.assignedTo || 'development-team',
+          dueDate: action.dueDate,
+          status: 'pending' as const,
+          priority: action.priority || 'medium' as const,
+          createdAt: new Date().toISOString()
+        })),
+        approvals: [],
+        metrics: {
+          completionRate: planData.estimatedCompletion || 
+            Math.round((updatedBlock.specifications.filter(s => s.acceptanceCriteria.length > 0).length / updatedBlock.specifications.length) * 100),
+          qualityScore: 90,
+          processingTime: 15,
+          accuracyLevel: 88,
+          riskLevel: planData.riskAssessment || 'medium' as const
+        },
+        attachments: []
+      };
+
+      // Добавляем отчет в журнал
+      setMasterReports(current => [...(current || []), continuationReport]);
+
+      toast.success(t('workContinued'), {
+        description: `Block "${currentTaskBlock.name}" updated with continuation plan`
+      });
+
+      // Вызываем callbacks
+      onTaskBlockExecuted(updatedBlock);
+      onReportJournaled(continuationReport);
+      onSystemUpdate({
+        type: 'task_block_continuation',
+        blockId: currentTaskBlock.id,
+        status: 'continued',
+        timestamp: new Date().toISOString(),
+        continuationPlan: planData
+      });
+
+    } catch (error) {
+      console.error('Error continuing work on block:', error);
+      toast.error('Failed to continue work on current block');
+    } finally {
+      setIsExecutingBlock(false);
+    }
+  };
+
   // Функция для просмотра детального отчета
   const viewDetailedReport = (report: MasterReportEntry) => {
     setSelectedReport(report);
@@ -491,6 +761,20 @@ export default function MasterReportJournal({
             </Button>
             
             <Button 
+              onClick={markCompletedStagesInAllJournals}
+              disabled={isMarkingStages}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              {isMarkingStages ? (
+                <Clock size={16} className="animate-spin" />
+              ) : (
+                <CheckCircle size={16} />
+              )}
+              {t('markCompletedStages')}
+            </Button>
+            
+            <Button 
               onClick={executeNextTaskBlock}
               disabled={isExecutingBlock}
               variant="outline"
@@ -504,6 +788,22 @@ export default function MasterReportJournal({
               {t('executeNextBlock')}
             </Button>
 
+            {currentTaskBlock && (
+              <Button 
+                onClick={continueWorkOnCurrentBlock}
+                disabled={isExecutingBlock}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                {isExecutingBlock ? (
+                  <Clock size={16} className="animate-spin" />
+                ) : (
+                  <ArrowRight size={16} />
+                )}
+                {t('continueWorkOnBlock')}
+              </Button>
+            )}
+
             <div className="flex items-center gap-2 ml-auto">
               <Badge variant="secondary">
                 {language === 'ru' ? 'Отчетов' : 'Reports'}: {masterReports?.length || 0}
@@ -511,6 +811,11 @@ export default function MasterReportJournal({
               <Badge variant="outline">
                 {language === 'ru' ? 'Блоков' : 'Blocks'}: {taskBlocks?.length || 0}
               </Badge>
+              {Object.keys(completedStages || {}).length > 0 && (
+                <Badge variant="default">
+                  {language === 'ru' ? 'Этапов' : 'Stages'}: {Object.keys(completedStages || {}).length}
+                </Badge>
+              )}
             </div>
           </div>
         </CardContent>
@@ -585,6 +890,10 @@ export default function MasterReportJournal({
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <Activity size={16} />
             {t('systemAnalysis')}
+          </TabsTrigger>
+          <TabsTrigger value="stages" className="flex items-center gap-2">
+            <Target size={16} />
+            {t('stageCompletion')}
           </TabsTrigger>
         </TabsList>
 
@@ -772,6 +1081,116 @@ export default function MasterReportJournal({
                   <div className="text-xs text-muted-foreground">
                     {taskBlocks?.filter(b => b.status === 'completed').length || 0} of {taskBlocks?.length || 0} blocks completed
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Вкладка завершения этапов */}
+        <TabsContent value="stages">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Module Stage Progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-64">
+                  <div className="space-y-3">
+                    {Object.entries(stageProgress || {}).map(([moduleName, progress]) => (
+                      <div key={moduleName} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">{moduleName}</span>
+                          <Badge variant={progress >= 100 ? 'default' : progress >= 50 ? 'secondary' : 'outline'}>
+                            {Math.round(progress)}%
+                          </Badge>
+                        </div>
+                        <Progress value={progress} className="h-2" />
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          {completedStages?.[moduleName]?.map((stage, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              ✅ {stage}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Overall Progress Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">System Completion</span>
+                    <Badge variant="secondary">
+                      {Object.keys(stageProgress || {}).length ? 
+                        Math.round(Object.values(stageProgress || {}).reduce((sum, p) => sum + p, 0) / Object.keys(stageProgress || {}).length) : 0
+                      }%
+                    </Badge>
+                  </div>
+                  <Progress 
+                    value={Object.keys(stageProgress || {}).length ? 
+                      Object.values(stageProgress || {}).reduce((sum, p) => sum + p, 0) / Object.keys(stageProgress || {}).length : 0
+                    } 
+                  />
+                  
+                  <div className="grid gap-2 md:grid-cols-3">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-500">
+                        {Object.values(stageProgress || {}).filter(p => p >= 100).length}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {language === 'ru' ? 'Завершены' : 'Completed'}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-500">
+                        {Object.values(stageProgress || {}).filter(p => p > 0 && p < 100).length}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {language === 'ru' ? 'В процессе' : 'In Progress'}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-gray-500">
+                        {Object.values(stageProgress || {}).filter(p => p === 0).length}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {language === 'ru' ? 'Не начаты' : 'Not Started'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {currentTaskBlock && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h4 className="font-medium mb-2">Current Block Status</h4>
+                        <div className="p-3 bg-muted rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-sm">{currentTaskBlock.name}</span>
+                            <Badge variant={
+                              currentTaskBlock.status === 'completed' ? 'default' :
+                              currentTaskBlock.status === 'in_progress' ? 'secondary' :
+                              'outline'
+                            }>
+                              {currentTaskBlock.status}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {currentTaskBlock.specifications.length} specifications • 
+                            {currentTaskBlock.estimatedDuration} estimated
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
