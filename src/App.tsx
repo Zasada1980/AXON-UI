@@ -29,6 +29,7 @@ import IntelligenceGathering from './components/IntelligenceGathering';
 import SourceCredibilityAssessment from './components/SourceCredibilityAssessment';
 import ProjectRequirementsTracker from './components/ProjectRequirementsTracker';
 import AuthenticationSystem from './components/AuthenticationSystem';
+import TaskIntegrationTracker from './components/TaskIntegrationTracker';
 import NotificationSystem, { 
   notifyTaskCompleted, 
   notifyBlockerDetected, 
@@ -2784,6 +2785,10 @@ Return as JSON with property "recommendations" containing array of recommendatio
                       <ListChecks size={14} />
                       {language === 'ru' ? 'ТЗ Трекер' : 'Requirements'}
                     </TabsTrigger>
+                    <TabsTrigger value="task-integration" className="flex items-center gap-2">
+                      <Target size={14} />
+                      {language === 'ru' ? 'Блоки Задач' : 'Task Blocks'}
+                    </TabsTrigger>
                     <TabsTrigger value="settings" className="flex items-center gap-2">
                       <Gear size={14} />
                       {t('settings')}
@@ -4171,6 +4176,26 @@ Return as JSON with property "recommendations" containing array of recommendatio
                   }}
                   onMilestoneReached={(milestone) => {
                     toast.success(`Milestone reached: ${milestone}`);
+                  }}
+                />
+              </TabsContent>
+
+              {/* Task Integration Tracker Tab */}
+              <TabsContent value="task-integration" className="space-y-6">
+                <TaskIntegrationTracker
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onTaskCompleted={(task) => {
+                    toast.success(`Task completed: ${task.name}`);
+                    notifyTaskCompleted(`Integration task completed: ${task.name}`, project.id);
+                  }}
+                  onBlockCompleted={(block) => {
+                    toast.success(`Block completed: ${block.name}`);
+                    notifyIntegrationComplete(`Task block completed: ${block.name}`, project.id);
+                  }}
+                  onBlockerDetected={(blocker, taskId) => {
+                    toast.warning(`Blocker detected: ${blocker}`);
+                    notifyBlockerDetected(`Task blocked: ${blocker}`, project.id);
                   }}
                 />
               </TabsContent>
