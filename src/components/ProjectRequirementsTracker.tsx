@@ -1,982 +1,760 @@
 import React, { useState, useEffect } from 'react';
 import { useKV } from '@github/spark/hooks';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
   ListChecks,
-  Target,
-  Warning,
-  CheckCircle,
-  Clock,
-  TrendUp,
-  Flag,
   Plus,
-  PencilSimple,
-  Trash,
-  Calendar,
+  FileText,
+  CheckCircle,
+  Warning,
+  Clock,
+  Target,
   Users,
-  Brain,
-  Shield,
-  Lightning,
-  Eye,
   Gear,
-  ChartLine,
-  ArrowUp,
-  ArrowDown,
-  Minus,
-  PlayCircle,
-  PauseCircle,
-  StopCircle
+  Download,
+  Upload,
+  ArrowClockwise,
+  WarningOctagon,
+  Star,
+  TrendUp,
+  Shield,
+  Database
 } from '@phosphor-icons/react';
 
-// Типы для системы управления ТЗ
+// Declare global spark object
+declare global {
+  interface Window {
+    spark: {
+      llmPrompt: (strings: TemplateStringsArray, ...values: any[]) => string;
+      llm: (prompt: string, modelName?: string, jsonMode?: boolean) => Promise<string>;
+    };
+  }
+}
+
+const spark = (globalThis as any).spark;
+
 interface Requirement {
   id: string;
   title: string;
   description: string;
-  category: 'functional' | 'technical' | 'security' | 'performance' | 'ui-ux' | 'integration';
+  category: 'functional' | 'non-functional' | 'business' | 'technical' | 'security';
   priority: 'critical' | 'high' | 'medium' | 'low';
-  status: 'not-started' | 'in-progress' | 'blocked' | 'completed' | 'cancelled';
-  progress: number;
+  status: 'draft' | 'approved' | 'in-progress' | 'testing' | 'completed' | 'blocked';
+  assignee?: string;
   estimatedHours: number;
   actualHours: number;
-  assignee?: string;
-  dueDate?: string;
+  progress: number;
   dependencies: string[];
+  acceptanceCriteria: string[];
+  testCases: TestCase[];
+  blockers: Blocker[];
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  dueDate?: string;
   completedAt?: string;
   notes: string;
 }
 
-interface Milestone {
+interface TestCase {
+  id: string;
+  title: string;
+  description: string;
+  steps: string[];
+  expectedResult: string;
+  actualResult?: string;
+  status: 'pending' | 'passed' | 'failed' | 'skipped';
+  executedAt?: string;
+  executedBy?: string;
+}
+
+interface Blocker {
+  id: string;
+  title: string;
+  description: string;
+  type: 'technical' | 'resource' | 'dependency' | 'external' | 'approval';
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  status: 'open' | 'in-progress' | 'resolved' | 'escalated';
+  assignee?: string;
+  reportedAt: string;
+  resolvedAt?: string;
+  resolution?: string;
+}
+
+interface ProjectMilestone {
   id: string;
   title: string;
   description: string;
   targetDate: string;
-  completionDate?: string;
-  progress: number;
-  requirements: string[];
-  status: 'upcoming' | 'active' | 'completed' | 'delayed';
+  status: 'upcoming' | 'in-progress' | 'completed' | 'delayed';
+  requirementIds: string[];
+  completionPercentage: number;
 }
 
-interface Risk {
+interface TechnicalSpecification {
   id: string;
   title: string;
   description: string;
-  probability: 'low' | 'medium' | 'high';
-  impact: 'low' | 'medium' | 'high';
-  status: 'identified' | 'mitigating' | 'resolved' | 'accepted';
-  mitigation: string;
-  owner: string;
+  version: string;
+  status: 'draft' | 'review' | 'approved' | 'deprecated';
+  requirements: string[];
+  architecture: {
+    components: string[];
+    dependencies: string[];
+    dataFlow: string;
+  };
+  implementation: {
+    technologies: string[];
+    patterns: string[];
+    considerations: string[];
+  };
+  testing: {
+    strategy: string;
+    coverage: number;
+    automationLevel: number;
+  };
   createdAt: string;
-}
-
-interface ProjectMetrics {
-  totalRequirements: number;
-  completedRequirements: number;
-  overallProgress: number;
-  estimatedCompletion: string;
-  riskLevel: 'low' | 'medium' | 'high';
-  teamVelocity: number;
-  blockedRequirements: number;
-  criticalRequirements: number;
+  updatedAt: string;
+  approvedBy?: string;
+  approvedAt?: string;
 }
 
 interface ProjectRequirementsTrackerProps {
   language: 'en' | 'ru';
   projectId: string;
-  onProgressUpdate: (progress: number) => void;
-  onRiskDetected: (risk: Risk) => void;
-  onMilestoneReached: (milestone: string) => void;
+  onSpecificationCreated?: (spec: TechnicalSpecification) => void;
+  onRequirementUpdated?: (requirement: Requirement) => void;
+  onMilestoneCompleted?: (milestone: ProjectMilestone) => void;
+  onBlockerResolved?: (blocker: Blocker) => void;
+  onProgressUpdate?: (requirementId: string, progress: number) => void;
 }
 
 const ProjectRequirementsTracker: React.FC<ProjectRequirementsTrackerProps> = ({
   language,
   projectId,
-  onProgressUpdate,
-  onRiskDetected,
-  onMilestoneReached
+  onSpecificationCreated,
+  onRequirementUpdated,
+  onMilestoneCompleted,
+  onBlockerResolved,
+  onProgressUpdate
 }) => {
-  // Переводы
-  const t = (key: string) => {
-    const translations: Record<string, Record<string, string>> = {
-      requirementsTracker: { en: 'Requirements Tracker', ru: 'Трекер Требований' },
-      projectRequirements: { en: 'Project Requirements Management', ru: 'Управление Требованиями Проекта' },
-      overview: { en: 'Overview', ru: 'Обзор' },
-      requirements: { en: 'Requirements', ru: 'Требования' },
-      milestones: { en: 'Milestones', ru: 'Вехи' },
-      risks: { en: 'Risks', ru: 'Риски' },
-      analytics: { en: 'Analytics', ru: 'Аналитика' },
-      
-      // Статусы
-      notStarted: { en: 'Not Started', ru: 'Не Начато' },
-      inProgress: { en: 'In Progress', ru: 'В Работе' },
-      blocked: { en: 'Blocked', ru: 'Заблокировано' },
-      completed: { en: 'Completed', ru: 'Выполнено' },
-      cancelled: { en: 'Cancelled', ru: 'Отменено' },
-      
-      // Приоритеты
-      critical: { en: 'Critical', ru: 'Критический' },
-      high: { en: 'High', ru: 'Высокий' },
-      medium: { en: 'Medium', ru: 'Средний' },
-      low: { en: 'Low', ru: 'Низкий' },
-      
-      // Категории
-      functional: { en: 'Functional', ru: 'Функциональные' },
-      technical: { en: 'Technical', ru: 'Технические' },
-      security: { en: 'Security', ru: 'Безопасность' },
-      performance: { en: 'Performance', ru: 'Производительность' },
-      uiUx: { en: 'UI/UX', ru: 'UI/UX' },
-      integration: { en: 'Integration', ru: 'Интеграция' },
-      
-      // Действия
-      addRequirement: { en: 'Add Requirement', ru: 'Добавить Требование' },
-      editRequirement: { en: 'Edit Requirement', ru: 'Редактировать' },
-      deleteRequirement: { en: 'Delete Requirement', ru: 'Удалить' },
-      createMilestone: { en: 'Create Milestone', ru: 'Создать Веху' },
-      addRisk: { en: 'Add Risk', ru: 'Добавить Риск' },
-      
-      // Метрики
-      totalProgress: { en: 'Total Progress', ru: 'Общий Прогресс' },
-      completedTasks: { en: 'Completed Tasks', ru: 'Выполненные Задачи' },
-      activeRisks: { en: 'Active Risks', ru: 'Активные Риски' },
-      upcomingMilestones: { en: 'Upcoming Milestones', ru: 'Предстоящие Вехи' },
-      teamVelocity: { en: 'Team Velocity', ru: 'Скорость Команды' },
-      
-      // Формы
-      title: { en: 'Title', ru: 'Название' },
-      description: { en: 'Description', ru: 'Описание' },
-      category: { en: 'Category', ru: 'Категория' },
-      priority: { en: 'Priority', ru: 'Приоритет' },
-      status: { en: 'Status', ru: 'Статус' },
-      progress: { en: 'Progress', ru: 'Прогресс' },
-      estimatedHours: { en: 'Estimated Hours', ru: 'Оценка Часов' },
-      actualHours: { en: 'Actual Hours', ru: 'Фактические Часы' },
-      assignee: { en: 'Assignee', ru: 'Исполнитель' },
-      dueDate: { en: 'Due Date', ru: 'Срок' },
-      notes: { en: 'Notes', ru: 'Заметки' },
-      save: { en: 'Save', ru: 'Сохранить' },
-      cancel: { en: 'Cancel', ru: 'Отмена' }
-    };
-    return translations[key]?.[language] || key;
-  };
-
-  // Состояния
   const [requirements, setRequirements] = useKV<Requirement[]>(`requirements-${projectId}`, []);
-  const [milestones, setMilestones] = useKV<Milestone[]>(`milestones-${projectId}`, []);
-  const [risks, setRisks] = useKV<Risk[]>(`risks-${projectId}`, []);
-  const [metrics, setMetrics] = useState<ProjectMetrics>({
-    totalRequirements: 0,
-    completedRequirements: 0,
-    overallProgress: 0,
-    estimatedCompletion: '',
-    riskLevel: 'low',
-    teamVelocity: 0,
-    blockedRequirements: 0,
-    criticalRequirements: 0
-  });
+  const [specifications, setSpecifications] = useKV<TechnicalSpecification[]>(`specs-${projectId}`, []);
+  const [milestones, setMilestones] = useKV<ProjectMilestone[]>(`milestones-${projectId}`, []);
+  const [blockers, setBlockers] = useKV<Blocker[]>(`blockers-${projectId}`, []);
 
-  // Состояния UI
-  const [activeTab, setActiveTab] = useState('overview');
-  const [showAddRequirement, setShowAddRequirement] = useState(false);
-  const [showAddMilestone, setShowAddMilestone] = useState(false);
-  const [showAddRisk, setShowAddRisk] = useState(false);
-  const [editingRequirement, setEditingRequirement] = useState<Requirement | null>(null);
-  const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-
-  // Форма нового требования
+  const [activeTab, setActiveTab] = useState<'requirements' | 'specifications' | 'milestones' | 'blockers' | 'analytics'>('requirements');
+  const [selectedRequirement, setSelectedRequirement] = useState<string | null>(null);
+  const [isCreatingRequirement, setIsCreatingRequirement] = useState(false);
+  const [isCreatingSpec, setIsCreatingSpec] = useState(false);
   const [newRequirement, setNewRequirement] = useState<Partial<Requirement>>({
     title: '',
     description: '',
     category: 'functional',
     priority: 'medium',
-    status: 'not-started',
-    progress: 0,
-    estimatedHours: 8,
+    status: 'draft',
+    estimatedHours: 0,
     actualHours: 0,
+    progress: 0,
     dependencies: [],
+    acceptanceCriteria: [],
+    testCases: [],
+    blockers: [],
     tags: [],
     notes: ''
   });
 
-  // Автоматическое обновление метрик
-  useEffect(() => {
-    calculateMetrics();
-  }, [requirements, milestones, risks]);
-
-  // Расчет метрик проекта
-  const calculateMetrics = () => {
-    const total = requirements?.length || 0;
-    const completed = requirements?.filter(r => r.status === 'completed').length || 0;
-    const blocked = requirements?.filter(r => r.status === 'blocked').length || 0;
-    const critical = requirements?.filter(r => r.priority === 'critical').length || 0;
-    
-    const overallProgress = total > 0 ? Math.round((completed / total) * 100) : 0;
-    
-    // Расчет уровня риска
-    const activeRisks = risks?.filter(r => r.status !== 'resolved') || [];
-    const highRisks = activeRisks.filter(r => r.probability === 'high' || r.impact === 'high');
-    const riskLevel = highRisks.length > 0 ? 'high' : activeRisks.length > 2 ? 'medium' : 'low';
-    
-    // Расчет скорости команды (выполненные за последние 7 дней)
-    const lastWeek = new Date();
-    lastWeek.setDate(lastWeek.getDate() - 7);
-    const recentlyCompleted = requirements?.filter(r => 
-      r.completedAt && new Date(r.completedAt) > lastWeek
-    ).length || 0;
-    
-    const newMetrics: ProjectMetrics = {
-      totalRequirements: total,
-      completedRequirements: completed,
-      overallProgress,
-      estimatedCompletion: calculateEstimatedCompletion(),
-      riskLevel,
-      teamVelocity: recentlyCompleted,
-      blockedRequirements: blocked,
-      criticalRequirements: critical
-    };
-    
-    setMetrics(newMetrics);
-    onProgressUpdate(overallProgress);
-    
-    // Проверка рисков и вех
-    checkForNewRisks();
-    checkMilestones();
-  };
-
-  // Расчет ожидаемой даты завершения
-  const calculateEstimatedCompletion = (): string => {
-    if (!requirements || requirements.length === 0) return '';
-    
-    const remaining = requirements.filter(r => r.status !== 'completed').length;
-    const velocity = metrics.teamVelocity || 1;
-    const weeksToComplete = Math.ceil(remaining / velocity);
-    
-    const estimatedDate = new Date();
-    estimatedDate.setDate(estimatedDate.getDate() + (weeksToComplete * 7));
-    
-    return estimatedDate.toLocaleDateString();
-  };
-
-  // Проверка новых рисков
-  const checkForNewRisks = () => {
-    if (!requirements) return;
-    
-    // Автоматическое обнаружение рисков
-    const blockedTasks = requirements.filter(r => r.status === 'blocked');
-    const overdueTasks = requirements.filter(r => 
-      r.dueDate && new Date(r.dueDate) < new Date() && r.status !== 'completed'
-    );
-    
-    if (blockedTasks.length > 2) {
-      const risk: Risk = {
-        id: `auto-risk-${Date.now()}`,
-        title: 'Multiple Blocked Tasks',
-        description: `${blockedTasks.length} tasks are currently blocked`,
-        probability: 'high',
-        impact: 'medium',
-        status: 'identified',
-        mitigation: 'Review and resolve blocking issues',
-        owner: 'Project Manager',
-        createdAt: new Date().toISOString()
-      };
-      onRiskDetected(risk);
-    }
-    
-    if (overdueTasks.length > 0) {
-      const risk: Risk = {
-        id: `auto-risk-overdue-${Date.now()}`,
-        title: 'Overdue Tasks Detected',
-        description: `${overdueTasks.length} tasks are overdue`,
-        probability: 'high',
-        impact: 'high',
-        status: 'identified',
-        mitigation: 'Review task priorities and resource allocation',
-        owner: 'Project Manager',
-        createdAt: new Date().toISOString()
-      };
-      onRiskDetected(risk);
-    }
-  };
-
-  // Проверка достижения вех
-  const checkMilestones = () => {
-    if (!milestones) return;
-    
-    milestones.forEach(milestone => {
-      if (milestone.status === 'active') {
-        const milestoneRequirements = requirements?.filter(r => 
-          milestone.requirements.includes(r.id)
-        ) || [];
-        
-        const completedInMilestone = milestoneRequirements.filter(r => 
-          r.status === 'completed'
-        ).length;
-        
-        const milestoneProgress = milestoneRequirements.length > 0 
-          ? (completedInMilestone / milestoneRequirements.length) * 100 
-          : 0;
-        
-        if (milestoneProgress === 100 && milestone.status === 'active') {
-          onMilestoneReached(milestone.title);
-          
-          // Обновить статус вехи
-          setMilestones(current => 
-            current?.map(m => 
-              m.id === milestone.id 
-                ? { ...m, status: 'completed', completionDate: new Date().toISOString() }
-                : m
-            ) || []
-          );
-        }
+  const t = (key: string): string => {
+    const translations: Record<string, Record<string, string>> = {
+      requirements: {
+        en: 'Requirements',
+        ru: 'Требования'
+      },
+      specifications: {
+        en: 'Technical Specifications',
+        ru: 'Технические Спецификации'
+      },
+      milestones: {
+        en: 'Project Milestones',
+        ru: 'Вехи Проекта'
+      },
+      blockers: {
+        en: 'Blockers & Issues',
+        ru: 'Блокеры и Проблемы'
+      },
+      analytics: {
+        en: 'Requirements Analytics',
+        ru: 'Аналитика Требований'
+      },
+      createRequirement: {
+        en: 'Create Requirement',
+        ru: 'Создать Требование'
+      },
+      title: {
+        en: 'Title',
+        ru: 'Название'
+      },
+      description: {
+        en: 'Description',
+        ru: 'Описание'
+      },
+      category: {
+        en: 'Category',
+        ru: 'Категория'
+      },
+      priority: {
+        en: 'Priority',
+        ru: 'Приоритет'
+      },
+      status: {
+        en: 'Status',
+        ru: 'Статус'
+      },
+      progress: {
+        en: 'Progress',
+        ru: 'Прогресс'
+      },
+      functional: {
+        en: 'Functional',
+        ru: 'Функциональное'
+      },
+      'non-functional': {
+        en: 'Non-Functional',
+        ru: 'Нефункциональное'
+      },
+      business: {
+        en: 'Business',
+        ru: 'Бизнес'
+      },
+      technical: {
+        en: 'Technical',
+        ru: 'Техническое'
+      },
+      security: {
+        en: 'Security',
+        ru: 'Безопасность'
+      },
+      critical: {
+        en: 'Critical',
+        ru: 'Критический'
+      },
+      high: {
+        en: 'High',
+        ru: 'Высокий'
+      },
+      medium: {
+        en: 'Medium',
+        ru: 'Средний'
+      },
+      low: {
+        en: 'Low',
+        ru: 'Низкий'
+      },
+      draft: {
+        en: 'Draft',
+        ru: 'Черновик'
+      },
+      approved: {
+        en: 'Approved',
+        ru: 'Утвержден'
+      },
+      'in-progress': {
+        en: 'In Progress',
+        ru: 'В Работе'
+      },
+      testing: {
+        en: 'Testing',
+        ru: 'Тестирование'
+      },
+      completed: {
+        en: 'Completed',
+        ru: 'Завершен'
+      },
+      blocked: {
+        en: 'Blocked',
+        ru: 'Заблокирован'
+      },
+      generateReport: {
+        en: 'Generate Report',
+        ru: 'Создать Отчет'
+      },
+      exportData: {
+        en: 'Export Data',
+        ru: 'Экспорт Данных'
+      },
+      importData: {
+        en: 'Import Data',
+        ru: 'Импорт Данных'
+      },
+      totalRequirements: {
+        en: 'Total Requirements',
+        ru: 'Всего Требований'
+      },
+      completedRequirements: {
+        en: 'Completed',
+        ru: 'Завершено'
+      },
+      activeBlockers: {
+        en: 'Active Blockers',
+        ru: 'Активные Блокеры'
+      },
+      overallProgress: {
+        en: 'Overall Progress',
+        ru: 'Общий Прогресс'
       }
-    });
+    };
+
+    return translations[key]?.[language] || key;
   };
 
-  // Создание нового требования
-  const createRequirement = () => {
-    if (!newRequirement.title) {
-      toast.error('Title is required');
+  // Calculate overall project statistics
+  const calculateProjectStats = () => {
+    const total = (requirements || []).length;
+    const completed = (requirements || []).filter(r => r.status === 'completed').length;
+    const inProgress = (requirements || []).filter(r => r.status === 'in-progress').length;
+    const blocked = (requirements || []).filter(r => r.status === 'blocked').length;
+    const activeBlockers = (blockers || []).filter(b => b.status === 'open' || b.status === 'in-progress').length;
+    
+    const overallProgress = total > 0 ? 
+      (requirements || []).reduce((sum, r) => sum + r.progress, 0) / total : 0;
+
+    return {
+      total,
+      completed,
+      inProgress,
+      blocked,
+      activeBlockers,
+      overallProgress: Math.round(overallProgress)
+    };
+  };
+
+  const stats = calculateProjectStats();
+
+  // Create new requirement
+  const createRequirement = async () => {
+    if (!newRequirement.title?.trim()) {
+      toast.error(language === 'ru' ? 'Название обязательно' : 'Title is required');
       return;
     }
-    
+
     const requirement: Requirement = {
       id: `req-${Date.now()}`,
-      title: newRequirement.title,
+      title: newRequirement.title!,
       description: newRequirement.description || '',
-      category: newRequirement.category as Requirement['category'],
-      priority: newRequirement.priority as Requirement['priority'],
-      status: 'not-started',
-      progress: 0,
-      estimatedHours: newRequirement.estimatedHours || 8,
+      category: newRequirement.category || 'functional',
+      priority: newRequirement.priority || 'medium',
+      status: 'draft',
+      estimatedHours: newRequirement.estimatedHours || 0,
       actualHours: 0,
+      progress: 0,
       dependencies: [],
+      acceptanceCriteria: [],
+      testCases: [],
+      blockers: [],
       tags: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       notes: newRequirement.notes || ''
     };
-    
+
     setRequirements(current => [...(current || []), requirement]);
     setNewRequirement({
       title: '',
       description: '',
       category: 'functional',
       priority: 'medium',
-      status: 'not-started',
-      progress: 0,
-      estimatedHours: 8,
+      status: 'draft',
+      estimatedHours: 0,
       actualHours: 0,
+      progress: 0,
       dependencies: [],
+      acceptanceCriteria: [],
+      testCases: [],
+      blockers: [],
       tags: [],
       notes: ''
     });
-    setShowAddRequirement(false);
-    
-    toast.success(`Requirement created: ${requirement.title}`);
+    setIsCreatingRequirement(false);
+
+    toast.success(language === 'ru' ? 'Требование создано' : 'Requirement created');
+    onRequirementUpdated?.(requirement);
   };
 
-  // Обновление требования
-  const updateRequirement = (id: string, updates: Partial<Requirement>) => {
-    setRequirements(current => 
-      current?.map(r => 
-        r.id === id 
-          ? { ...r, ...updates, updatedAt: new Date().toISOString() }
-          : r
-      ) || []
+  // Update requirement progress
+  const updateRequirementProgress = (requirementId: string, progress: number) => {
+    setRequirements(current =>
+      (current || []).map(req =>
+        req.id === requirementId
+          ? {
+              ...req,
+              progress,
+              status: progress === 100 ? 'completed' : progress > 0 ? 'in-progress' : req.status,
+              updatedAt: new Date().toISOString(),
+              completedAt: progress === 100 ? new Date().toISOString() : undefined
+            }
+          : req
+      )
     );
-  };
 
-  // Получение иконки для категории
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'functional': return <ListChecks size={16} />;
-      case 'technical': return <Gear size={16} />;
-      case 'security': return <Shield size={16} />;
-      case 'performance': return <Lightning size={16} />;
-      case 'ui-ux': return <Eye size={16} />;
-      case 'integration': return <Target size={16} />;
-      default: return <ListChecks size={16} />;
+    onProgressUpdate?.(requirementId, progress);
+    
+    if (progress === 100) {
+      toast.success(language === 'ru' ? 'Требование завершено!' : 'Requirement completed!');
     }
   };
 
-  // Получение цвета для приоритета
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'critical': return 'destructive';
-      case 'high': return 'destructive';
-      case 'medium': return 'default';
-      case 'low': return 'secondary';
-      default: return 'outline';
+  // Generate AI-powered requirements analysis
+  const generateRequirementsAnalysis = async () => {
+    try {
+      const requirementsData = {
+        total: stats.total,
+        completed: stats.completed,
+        inProgress: stats.inProgress,
+        blocked: stats.blocked,
+        activeBlockers: stats.activeBlockers,
+        overallProgress: stats.overallProgress,
+        requirements: (requirements || []).map(r => ({
+          title: r.title,
+          category: r.category,
+          priority: r.priority,
+          status: r.status,
+          progress: r.progress,
+          estimatedHours: r.estimatedHours,
+          actualHours: r.actualHours
+        }))
+      };
+
+      const prompt = spark.llmPrompt`Analyze this project requirements data and generate insights:
+
+${JSON.stringify(requirementsData, null, 2)}
+
+Provide analysis in ${language === 'ru' ? 'Russian' : 'English'} covering:
+1. Overall project health assessment
+2. Risk areas and potential bottlenecks
+3. Resource allocation recommendations
+4. Timeline predictions
+5. Quality indicators
+6. Actionable next steps
+
+Return as JSON with properties: health, risks, recommendations, timeline, quality, nextSteps`;
+
+      const response = await spark.llm(prompt, 'gpt-4o-mini', true);
+      const analysis = JSON.parse(response);
+
+      toast.success(language === 'ru' ? 'Анализ завершен' : 'Analysis completed');
+      
+      // Display analysis results in a dialog or new section
+      console.log('Requirements Analysis:', analysis);
+      
+    } catch (error) {
+      toast.error(language === 'ru' ? 'Ошибка анализа' : 'Analysis failed');
+      console.error('Analysis error:', error);
     }
   };
 
-  // Получение цвета для статуса
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'text-green-500';
-      case 'in-progress': return 'text-blue-500';
-      case 'blocked': return 'text-red-500';
-      case 'cancelled': return 'text-gray-500';
-      default: return 'text-muted-foreground';
-    }
-  };
+  // Export requirements data
+  const exportRequirementsData = () => {
+    const exportData = {
+      projectId,
+      exportDate: new Date().toISOString(),
+      requirements: requirements || [],
+      specifications: specifications || [],
+      milestones: milestones || [],
+      blockers: blockers || [],
+      statistics: stats
+    };
 
-  // Фильтрация требований
-  const filteredRequirements = requirements?.filter(req => {
-    const categoryMatch = filterCategory === 'all' || req.category === filterCategory;
-    const statusMatch = filterStatus === 'all' || req.status === filterStatus;
-    return categoryMatch && statusMatch;
-  }) || [];
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json'
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `requirements-${projectId}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.success(language === 'ru' ? 'Данные экспортированы' : 'Data exported');
+  };
 
   return (
     <div className="space-y-6">
+      {/* Header with Statistics */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ListChecks size={24} className="text-primary" />
-            {t('requirementsTracker')}
+            {language === 'ru' ? 'Трекер Требований Проекта' : 'Project Requirements Tracker'}
           </CardTitle>
           <CardDescription>
-            {t('projectRequirements')}
+            {language === 'ru' 
+              ? 'Управление требованиями, спецификациями и прогрессом проекта'
+              : 'Manage project requirements, specifications, and progress tracking'
+            }
           </CardDescription>
         </CardHeader>
-      </Card>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <ChartLine size={16} />
-            {t('overview')}
-          </TabsTrigger>
-          <TabsTrigger value="requirements" className="flex items-center gap-2">
-            <ListChecks size={16} />
-            {t('requirements')}
-          </TabsTrigger>
-          <TabsTrigger value="milestones" className="flex items-center gap-2">
-            <Flag size={16} />
-            {t('milestones')}
-          </TabsTrigger>
-          <TabsTrigger value="risks" className="flex items-center gap-2">
-            <Warning size={16} />
-            {t('risks')}
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <TrendUp size={16} />
-            {t('analytics')}
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* Метрики */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t('totalProgress')}</p>
-                    <p className="text-2xl font-bold text-primary">
-                      {metrics.overallProgress}%
-                    </p>
-                  </div>
-                  <ChartLine size={24} className="text-primary" />
-                </div>
-                <Progress value={metrics.overallProgress} className="mt-2" />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t('completedTasks')}</p>
-                    <p className="text-2xl font-bold text-green-500">
-                      {metrics.completedRequirements}/{metrics.totalRequirements}
-                    </p>
-                  </div>
-                  <CheckCircle size={24} className="text-green-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t('teamVelocity')}</p>
-                    <p className="text-2xl font-bold text-blue-500">
-                      {metrics.teamVelocity}
-                    </p>
-                  </div>
-                  <TrendUp size={24} className="text-blue-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t('activeRisks')}</p>
-                    <p className={`text-2xl font-bold ${
-                      metrics.riskLevel === 'high' ? 'text-red-500' :
-                      metrics.riskLevel === 'medium' ? 'text-yellow-500' : 'text-green-500'
-                    }`}>
-                      {risks?.filter(r => r.status !== 'resolved').length || 0}
-                    </p>
-                  </div>
-                  <Warning size={24} className={
-                    metrics.riskLevel === 'high' ? 'text-red-500' :
-                    metrics.riskLevel === 'medium' ? 'text-yellow-500' : 'text-green-500'
-                  } />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Индикаторы состояния */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Статус Требований</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {['not-started', 'in-progress', 'blocked', 'completed'].map(status => {
-                    const count = requirements?.filter(r => r.status === status).length || 0;
-                    const percentage = metrics.totalRequirements > 0 
-                      ? (count / metrics.totalRequirements) * 100 
-                      : 0;
-                    
-                    return (
-                      <div key={status} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full ${getStatusColor(status)}`} />
-                          <span className="text-sm">{t(status.replace('-', ''))}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">{count}</span>
-                          <div className="w-16">
-                            <Progress value={percentage} className="h-2" />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Критические Индикаторы</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Warning size={16} className="text-red-500" />
-                      <span className="text-sm">Заблокированные задачи</span>
-                    </div>
-                    <Badge variant={metrics.blockedRequirements > 0 ? 'destructive' : 'secondary'}>
-                      {metrics.blockedRequirements}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Flag size={16} className="text-orange-500" />
-                      <span className="text-sm">Критические требования</span>
-                    </div>
-                    <Badge variant={metrics.criticalRequirements > 0 ? 'destructive' : 'secondary'}>
-                      {metrics.criticalRequirements}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Calendar size={16} className="text-blue-500" />
-                      <span className="text-sm">Ожидаемое завершение</span>
-                    </div>
-                    <span className="text-sm font-medium">
-                      {metrics.estimatedCompletion || 'TBD'}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Requirements Tab */}
-        <TabsContent value="requirements" className="space-y-6">
-          {/* Фильтры и действия */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Select value={filterCategory} onValueChange={setFilterCategory}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Фильтр по категории" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все категории</SelectItem>
-                  <SelectItem value="functional">{t('functional')}</SelectItem>
-                  <SelectItem value="technical">{t('technical')}</SelectItem>
-                  <SelectItem value="security">{t('security')}</SelectItem>
-                  <SelectItem value="performance">{t('performance')}</SelectItem>
-                  <SelectItem value="ui-ux">{t('uiUx')}</SelectItem>
-                  <SelectItem value="integration">{t('integration')}</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Фильтр по статусу" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все статусы</SelectItem>
-                  <SelectItem value="not-started">{t('notStarted')}</SelectItem>
-                  <SelectItem value="in-progress">{t('inProgress')}</SelectItem>
-                  <SelectItem value="blocked">{t('blocked')}</SelectItem>
-                  <SelectItem value="completed">{t('completed')}</SelectItem>
-                </SelectContent>
-              </Select>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">{stats.total}</div>
+              <div className="text-sm text-muted-foreground">{t('totalRequirements')}</div>
             </div>
-
-            <Dialog open={showAddRequirement} onOpenChange={setShowAddRequirement}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus size={16} className="mr-2" />
-                  {t('addRequirement')}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>{t('addRequirement')}</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="title">{t('title')}</Label>
-                    <Input
-                      id="title"
-                      value={newRequirement.title || ''}
-                      onChange={(e) => setNewRequirement({...newRequirement, title: e.target.value})}
-                      placeholder="Введите название требования"
-                    />
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <Label htmlFor="description">{t('description')}</Label>
-                    <Textarea
-                      id="description"
-                      value={newRequirement.description || ''}
-                      onChange={(e) => setNewRequirement({...newRequirement, description: e.target.value})}
-                      placeholder="Подробное описание требования"
-                      rows={3}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="category">{t('category')}</Label>
-                      <Select
-                        value={newRequirement.category}
-                        onValueChange={(value) => setNewRequirement({...newRequirement, category: value as Requirement['category']})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="functional">{t('functional')}</SelectItem>
-                          <SelectItem value="technical">{t('technical')}</SelectItem>
-                          <SelectItem value="security">{t('security')}</SelectItem>
-                          <SelectItem value="performance">{t('performance')}</SelectItem>
-                          <SelectItem value="ui-ux">{t('uiUx')}</SelectItem>
-                          <SelectItem value="integration">{t('integration')}</SelectItem>
-                        </SelectContent>
-                      </Select>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-500">{stats.completed}</div>
+              <div className="text-sm text-muted-foreground">{t('completedRequirements')}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-500">{stats.inProgress}</div>
+              <div className="text-sm text-muted-foreground">{t('in-progress')}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-500">{stats.activeBlockers}</div>
+              <div className="text-sm text-muted-foreground">{t('activeBlockers')}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-accent">{stats.overallProgress}%</div>
+              <div className="text-sm text-muted-foreground">{t('overallProgress')}</div>
+            </div>
+          </div>
+          
+          <Separator className="my-4" />
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Progress value={stats.overallProgress} className="w-48" />
+              <span className="text-sm text-muted-foreground">
+                {stats.overallProgress}% {language === 'ru' ? 'завершено' : 'complete'}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button onClick={generateRequirementsAnalysis} variant="outline" size="sm">
+                <TrendUp size={16} className="mr-2" />
+                {t('generateReport')}
+              </Button>
+              <Button onClick={exportRequirementsData} variant="outline" size="sm">
+                <Download size={16} className="mr-2" />
+                {t('exportData')}
+              </Button>
+              <Dialog open={isCreatingRequirement} onOpenChange={setIsCreatingRequirement}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus size={16} className="mr-2" />
+                    {t('createRequirement')}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>{t('createRequirement')}</DialogTitle>
+                    <DialogDescription>
+                      {language === 'ru' 
+                        ? 'Создайте новое требование для проекта'
+                        : 'Create a new requirement for the project'
+                      }
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="req-title">{t('title')}</Label>
+                      <Input
+                        id="req-title"
+                        value={newRequirement.title || ''}
+                        onChange={(e) => setNewRequirement(prev => ({...prev, title: e.target.value}))}
+                        placeholder={language === 'ru' ? 'Название требования' : 'Requirement title'}
+                      />
                     </div>
                     
-                    <div className="grid gap-2">
-                      <Label htmlFor="priority">{t('priority')}</Label>
-                      <Select
-                        value={newRequirement.priority}
-                        onValueChange={(value) => setNewRequirement({...newRequirement, priority: value as Requirement['priority']})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="critical">{t('critical')}</SelectItem>
-                          <SelectItem value="high">{t('high')}</SelectItem>
-                          <SelectItem value="medium">{t('medium')}</SelectItem>
-                          <SelectItem value="low">{t('low')}</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div>
+                      <Label htmlFor="req-description">{t('description')}</Label>
+                      <Textarea
+                        id="req-description"
+                        value={newRequirement.description || ''}
+                        onChange={(e) => setNewRequirement(prev => ({...prev, description: e.target.value}))}
+                        placeholder={language === 'ru' ? 'Подробное описание требования' : 'Detailed requirement description'}
+                        rows={3}
+                      />
                     </div>
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <Label htmlFor="estimatedHours">{t('estimatedHours')}</Label>
-                    <Input
-                      id="estimatedHours"
-                      type="number"
-                      value={newRequirement.estimatedHours || 8}
-                      onChange={(e) => setNewRequirement({...newRequirement, estimatedHours: parseInt(e.target.value)})}
-                    />
-                  </div>
-                  
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setShowAddRequirement(false)}>
-                      {t('cancel')}
-                    </Button>
-                    <Button onClick={createRequirement}>
-                      {t('save')}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {/* Список требований */}
-          <ScrollArea className="h-96">
-            <div className="space-y-4">
-              {filteredRequirements.map(requirement => (
-                <Card key={requirement.id} className="cursor-pointer hover:shadow-md transition-all">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          {getCategoryIcon(requirement.category)}
-                          <h4 className="font-medium">{requirement.title}</h4>
-                          <Badge variant={getPriorityColor(requirement.priority)}>
-                            {t(requirement.priority)}
-                          </Badge>
-                          <Badge variant="outline">
-                            {t(requirement.status.replace('-', ''))}
-                          </Badge>
-                        </div>
-                        
-                        <p className="text-sm text-muted-foreground mb-3">
-                          {requirement.description}
-                        </p>
-                        
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>Прогресс: {requirement.progress}%</span>
-                          <span>Оценка: {requirement.estimatedHours}ч</span>
-                          <span>Факт: {requirement.actualHours}ч</span>
-                          {requirement.dueDate && (
-                            <span>Срок: {new Date(requirement.dueDate).toLocaleDateString()}</span>
-                          )}
-                        </div>
-                        
-                        <Progress value={requirement.progress} className="mt-2 h-2" />
+                    
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <Label htmlFor="req-category">{t('category')}</Label>
+                        <Select
+                          value={newRequirement.category}
+                          onValueChange={(value: any) => setNewRequirement(prev => ({...prev, category: value}))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="functional">{t('functional')}</SelectItem>
+                            <SelectItem value="non-functional">{t('non-functional')}</SelectItem>
+                            <SelectItem value="business">{t('business')}</SelectItem>
+                            <SelectItem value="technical">{t('technical')}</SelectItem>
+                            <SelectItem value="security">{t('security')}</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       
-                      <div className="flex items-center gap-2 ml-4">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setEditingRequirement(requirement)}
+                      <div>
+                        <Label htmlFor="req-priority">{t('priority')}</Label>
+                        <Select
+                          value={newRequirement.priority}
+                          onValueChange={(value: any) => setNewRequirement(prev => ({...prev, priority: value}))}
                         >
-                          <PencilSimple size={14} />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setRequirements(current => 
-                              current?.filter(r => r.id !== requirement.id) || []
-                            );
-                            toast.success('Requirement deleted');
-                          }}
-                        >
-                          <Trash size={14} />
-                        </Button>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="critical">{t('critical')}</SelectItem>
+                            <SelectItem value="high">{t('high')}</SelectItem>
+                            <SelectItem value="medium">{t('medium')}</SelectItem>
+                            <SelectItem value="low">{t('low')}</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </ScrollArea>
-        </TabsContent>
-
-        {/* Milestones Tab */}
-        <TabsContent value="milestones" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium">{t('milestones')}</h3>
-            <Button onClick={() => setShowAddMilestone(true)}>
-              <Plus size={16} className="mr-2" />
-              {t('createMilestone')}
-            </Button>
-          </div>
-          
-          <div className="space-y-4">
-            {milestones?.map(milestone => (
-              <Card key={milestone.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-medium">{milestone.title}</h4>
-                      <p className="text-sm text-muted-foreground">{milestone.description}</p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <span>Целевая дата: {new Date(milestone.targetDate).toLocaleDateString()}</span>
-                        <span>Требований: {milestone.requirements.length}</span>
-                      </div>
-                    </div>
-                    <Badge variant={
-                      milestone.status === 'completed' ? 'default' :
-                      milestone.status === 'active' ? 'secondary' :
-                      milestone.status === 'delayed' ? 'destructive' : 'outline'
-                    }>
-                      {milestone.status}
-                    </Badge>
-                  </div>
-                  <Progress value={milestone.progress} className="mt-3 h-2" />
-                </CardContent>
-              </Card>
-            )) || []}
-          </div>
-        </TabsContent>
-
-        {/* Risks Tab */}
-        <TabsContent value="risks" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium">{t('risks')}</h3>
-            <Button onClick={() => setShowAddRisk(true)}>
-              <Plus size={16} className="mr-2" />
-              {t('addRisk')}
-            </Button>
-          </div>
-          
-          <div className="space-y-4">
-            {risks?.map(risk => (
-              <Card key={risk.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-medium">{risk.title}</h4>
-                      <p className="text-sm text-muted-foreground">{risk.description}</p>
-                      <div className="flex items-center gap-4 mt-2">
-                        <Badge variant={
-                          risk.probability === 'high' ? 'destructive' :
-                          risk.probability === 'medium' ? 'default' : 'secondary'
-                        }>
-                          Вероятность: {risk.probability}
-                        </Badge>
-                        <Badge variant={
-                          risk.impact === 'high' ? 'destructive' :
-                          risk.impact === 'medium' ? 'default' : 'secondary'
-                        }>
-                          Влияние: {risk.impact}
-                        </Badge>
-                      </div>
-                    </div>
-                    <Badge variant={
-                      risk.status === 'resolved' ? 'default' :
-                      risk.status === 'mitigating' ? 'secondary' : 'outline'
-                    }>
-                      {risk.status}
-                    </Badge>
-                  </div>
-                  {risk.mitigation && (
-                    <div className="mt-3 p-2 bg-muted/50 rounded-md">
-                      <p className="text-sm"><strong>Митигация:</strong> {risk.mitigation}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )) || []}
-          </div>
-        </TabsContent>
-
-        {/* Analytics Tab */}
-        <TabsContent value="analytics" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Тренды Выполнения</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Скорость команды (задач/неделя)</span>
-                    <span className="font-medium">{metrics.teamVelocity}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Средняя продолжительность задачи</span>
-                    <span className="font-medium">
-                      {requirements && requirements.length > 0 
-                        ? Math.round(
-                            requirements.reduce((sum, r) => sum + r.actualHours, 0) / 
-                            requirements.filter(r => r.actualHours > 0).length || 1
-                          ) 
-                        : 0}ч
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Точность оценок</span>
-                    <span className="font-medium">
-                      {requirements && requirements.length > 0 
-                        ? Math.round(
-                            (requirements.filter(r => r.actualHours <= r.estimatedHours * 1.2).length / 
-                            requirements.filter(r => r.actualHours > 0).length || 1) * 100
-                          ) 
-                        : 0}%
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Распределение по Категориям</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {['functional', 'technical', 'security', 'performance', 'ui-ux', 'integration'].map(category => {
-                    const count = requirements?.filter(r => r.category === category).length || 0;
-                    const percentage = metrics.totalRequirements > 0 
-                      ? (count / metrics.totalRequirements) * 100 
-                      : 0;
                     
-                    return (
-                      <div key={category} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {getCategoryIcon(category)}
-                          <span className="text-sm">{t(category.replace('-', ''))}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">{count}</span>
-                          <div className="w-16">
-                            <Progress value={percentage} className="h-2" />
+                    <div>
+                      <Label htmlFor="req-hours">
+                        {language === 'ru' ? 'Оценка часов' : 'Estimated Hours'}
+                      </Label>
+                      <Input
+                        id="req-hours"
+                        type="number"
+                        value={newRequirement.estimatedHours || 0}
+                        onChange={(e) => setNewRequirement(prev => ({...prev, estimatedHours: parseInt(e.target.value) || 0}))}
+                        min="0"
+                      />
+                    </div>
+                    
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsCreatingRequirement(false)}
+                      >
+                        {language === 'ru' ? 'Отмена' : 'Cancel'}
+                      </Button>
+                      <Button onClick={createRequirement}>
+                        {language === 'ru' ? 'Создать' : 'Create'}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Requirements List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText size={20} />
+            {t('requirements')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(requirements || []).length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {language === 'ru' 
+                ? 'Нет требований. Создайте первое требование для начала работы.'
+                : 'No requirements yet. Create your first requirement to get started.'
+              }
+            </div>
+          ) : (
+            <ScrollArea className="h-96">
+              <div className="space-y-4">
+                {(requirements || []).map(requirement => (
+                  <Card key={requirement.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-medium">{requirement.title}</h4>
+                            <Badge variant={
+                              requirement.priority === 'critical' ? 'destructive' :
+                              requirement.priority === 'high' ? 'default' :
+                              'secondary'
+                            }>
+                              {t(requirement.priority)}
+                            </Badge>
+                            <Badge variant="outline">
+                              {t(requirement.category)}
+                            </Badge>
+                            <Badge variant={
+                              requirement.status === 'completed' ? 'default' :
+                              requirement.status === 'blocked' ? 'destructive' :
+                              'secondary'
+                            }>
+                              {t(requirement.status)}
+                            </Badge>
+                          </div>
+                          
+                          <p className="text-sm text-muted-foreground mb-3">
+                            {requirement.description}
+                          </p>
+                          
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                              <Progress value={requirement.progress} className="w-24" />
+                              <span className="text-sm text-muted-foreground">
+                                {requirement.progress}%
+                              </span>
+                            </div>
+                            
+                            <div className="text-xs text-muted-foreground">
+                              {language === 'ru' ? 'Часы:' : 'Hours:'} 
+                              {requirement.actualHours} / {requirement.estimatedHours}
+                            </div>
+                            
+                            {requirement.blockers.length > 0 && (
+                              <div className="flex items-center gap-1 text-destructive">
+                                <WarningOctagon size={14} />
+                                <span className="text-xs">
+                                  {requirement.blockers.length} {language === 'ru' ? 'блокеров' : 'blockers'}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={requirement.progress}
+                            onChange={(e) => updateRequirementProgress(requirement.id, parseInt(e.target.value))}
+                            className="w-20"
+                          />
+                          {requirement.status === 'completed' && (
+                            <CheckCircle size={20} className="text-green-500" />
+                          )}
+                        </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
