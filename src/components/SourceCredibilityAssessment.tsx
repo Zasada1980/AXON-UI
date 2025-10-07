@@ -606,7 +606,7 @@ const SourceCredibilityAssessment: React.FC<Props> = ({
                             <span className="text-sm font-medium">{t('riskFactors')}</span>
                           </div>
                           <div className="flex flex-wrap gap-1">
-                            {source.riskFactors.map((risk, i) => (
+                            {(source.riskFactors || []).map((risk, i) => (
                               <Badge key={i} variant="destructive" className="text-xs">
                                 {risk}
                               </Badge>

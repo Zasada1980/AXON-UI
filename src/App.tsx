@@ -1238,7 +1238,7 @@ function App() {
     }
     
     // Ensure existing agents have API config (backward compatibility)
-    if (proj.auditAgents.some(agent => !agent.apiConfig)) {
+    if (proj.auditAgents && Array.isArray(proj.auditAgents) && proj.auditAgents.some(agent => !agent.apiConfig)) {
       const updatedProject = {
         ...proj,
         auditAgents: proj.auditAgents.map((agent, index) => {
@@ -2063,9 +2063,13 @@ Respond naturally and helpfully.`;
 
   // Calculate overall project completeness
   const calculateCompleteness = (proj: AnalysisProject) => {
-    const dimensionCompleteness = proj.dimensions.reduce((sum, d) => sum + d.completeness, 0) / proj.dimensions.length;
-    const ikrCompleteness = Object.values(proj.ikrDirective).reduce((sum, value) => 
-      sum + (value.length > 50 ? 100 : value.length * 2), 0
+    const dimensions = proj.dimensions || [];
+    const dimensionCompleteness = dimensions.length > 0 
+      ? dimensions.reduce((sum, d) => sum + (d.completeness || 0), 0) / dimensions.length
+      : 0;
+    const ikrDirective = proj.ikrDirective || { intelligence: '', knowledge: '', reasoning: '' };
+    const ikrCompleteness = Object.values(ikrDirective).reduce((sum, value) => 
+      sum + ((value || '').length > 50 ? 100 : (value || '').length * 2), 0
     ) / 3;
     return Math.round((dimensionCompleteness + ikrCompleteness) / 2);
   };
@@ -2273,22 +2277,22 @@ Return as a JSON object with a single property called "insights" containing an a
         version: '1.0.0'
       },
       executiveSummary: {
-        totalDimensions: project.dimensions.length,
-        completedDimensions: project.dimensions.filter(d => d.content.length > 0).length,
-        totalInsights: project.dimensions.reduce((sum, d) => sum + d.insights.length, 0),
-        auditSessions: project.auditSessions.length,
-        completedAudits: project.auditSessions.filter(s => s.status === 'completed').length,
-        chatMessages: project.chatSessions.reduce((sum, s) => sum + s.messages.length, 0)
+        totalDimensions: (project.dimensions || []).length,
+        completedDimensions: (project.dimensions || []).filter(d => d.content && d.content.length > 0).length,
+        totalInsights: (project.dimensions || []).reduce((sum, d) => sum + ((d.insights || []).length), 0),
+        auditSessions: (project.auditSessions || []).length,
+        completedAudits: (project.auditSessions || []).filter(s => s.status === 'completed').length,
+        chatMessages: (project.chatSessions || []).reduce((sum, s) => sum + ((s.messages || []).length), 0)
       },
       analysisFramework: {
-        kiplingProtocol: project.dimensions.map(d => ({
-          dimension: d.title,
-          question: d.question,
-          analysis: d.content,
-          insights: d.insights,
-          priority: d.priority,
-          completeness: d.completeness,
-          wordCount: d.content.split(' ').length,
+        kiplingProtocol: (project.dimensions || []).map(d => ({
+          dimension: d.title || '',
+          question: d.question || '',
+          analysis: d.content || '',
+          insights: d.insights || [],
+          priority: d.priority || 'medium',
+          completeness: d.completeness || 0,
+          wordCount: (d.content || '').split(' ').length,
           lastModified: project.lastModified
         })),
         ikrDirective: {
@@ -2309,8 +2313,8 @@ Return as a JSON object with a single property called "insights" containing an a
           }
         }
       },
-      aiAuditResults: project.auditSessions.map(session => {
-        const agent = project.auditAgents.find(a => a.id === session.agentId);
+      aiAuditResults: (project.auditSessions || []).map(session => {
+        const agent = (project.auditAgents || []).find(a => a.id === session.agentId);
         return {
           sessionId: session.id,
           agentName: agent?.name || 'Unknown Agent',
@@ -2327,14 +2331,14 @@ Return as a JSON object with a single property called "insights" containing an a
         };
       }),
       chatAnalytics: {
-        totalSessions: project.chatSessions.length,
-        totalMessages: project.chatSessions.reduce((sum, s) => sum + s.messages.length, 0),
-        userMessages: project.chatSessions.reduce((sum, s) => 
-          sum + s.messages.filter(m => m.type === 'user').length, 0),
-        aiResponses: project.chatSessions.reduce((sum, s) => 
-          sum + s.messages.filter(m => m.type === 'assistant').length, 0),
-        averageSessionLength: project.chatSessions.length > 0 ? 
-          project.chatSessions.reduce((sum, s) => sum + s.messages.length, 0) / project.chatSessions.length : 0
+        totalSessions: (project.chatSessions || []).length,
+        totalMessages: (project.chatSessions || []).reduce((sum, s) => sum + ((s.messages || []).length), 0),
+        userMessages: (project.chatSessions || []).reduce((sum, s) => 
+          sum + ((s.messages || []).filter(m => m.type === 'user').length), 0),
+        aiResponses: (project.chatSessions || []).reduce((sum, s) => 
+          sum + ((s.messages || []).filter(m => m.type === 'assistant').length), 0),
+        averageSessionLength: (project.chatSessions || []).length > 0 ? 
+          (project.chatSessions || []).reduce((sum, s) => sum + ((s.messages || []).length), 0) / (project.chatSessions || []).length : 0
       },
       systemHealth: {
         projectCreated: project.createdAt,
@@ -2965,7 +2969,7 @@ Return as JSON with property "recommendations" containing array of recommendatio
                         <div>
                           <p className="text-sm text-muted-foreground">Active Insights</p>
                           <p className="text-2xl font-bold text-accent">
-                            {project.dimensions.reduce((sum, d) => sum + d.insights.length, 0)}
+                            {(project.dimensions || []).reduce((sum, d) => sum + ((d.insights || []).length), 0)}
                           </p>
                         </div>
                         <Brain size={16} className="text-accent" />
@@ -2979,7 +2983,7 @@ Return as JSON with property "recommendations" containing array of recommendatio
                         <div>
                           <p className="text-sm text-muted-foreground">AI Audits</p>
                           <p className="text-2xl font-bold text-secondary">
-                            {project.auditSessions.filter(s => s.status === 'completed').length}
+                            {(project.auditSessions || []).filter(s => s.status === 'completed').length}
                           </p>
                         </div>
                         <Shield size={16} className="text-secondary" />
@@ -3019,10 +3023,10 @@ Return as JSON with property "recommendations" containing array of recommendatio
                         <div>
                           <div className="flex justify-between text-sm mb-1">
                             <span>Kipling Dimensions</span>
-                            <span>{project.dimensions.filter(d => d.content.length > 0).length}/{project.dimensions.length}</span>
+                            <span>{(project.dimensions || []).filter(d => (d.content || '').length > 0).length}/{(project.dimensions || []).length}</span>
                           </div>
                           <Progress 
-                            value={(project.dimensions.filter(d => d.content.length > 0).length / project.dimensions.length) * 100} 
+                            value={((project.dimensions || []).filter(d => (d.content || '').length > 0).length / Math.max(1, (project.dimensions || []).length)) * 100} 
                             className="h-2"
                           />
                         </div>

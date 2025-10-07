@@ -131,7 +131,7 @@ const ErrorMonitoring: React.FC<ErrorMonitoringProps> = ({
 
   const checkSystemHealth = () => {
     // Simulate system health check
-    const currentMetrics = metrics || [];
+    const currentMetrics = Array.isArray(metrics) ? metrics : [];
     const newMetrics = currentMetrics.map(metric => {
       const variation = (Math.random() - 0.5) * 20;
       let newValue = Math.max(0, metric.value + variation);

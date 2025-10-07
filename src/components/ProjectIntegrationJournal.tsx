@@ -493,7 +493,7 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
           setProjectMap({
             ...projectMap,
             evolutionTracker: updatedTracker,
-            evolutionStages: projectMap.evolutionStages.map(stage => 
+            evolutionStages: (projectMap.evolutionStages || []).map(stage => 
               stage.id === currentStage 
                 ? { ...stage, criteria: updatedCriteria }
                 : stage
@@ -663,7 +663,7 @@ const ProjectIntegrationJournal: React.FC<ProjectIntegrationJournalProps> = ({
     const currentStage = projectMap.evolutionStages.find(s => s.id === currentStageId);
     if (!currentStage) return [];
     
-    return projectMap.evolutionStages
+    return (projectMap.evolutionStages || [])
       .filter(s => s.order === currentStage.order + 1)
       .map(s => s.id);
   };
