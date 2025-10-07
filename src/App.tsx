@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useKV } from '@github/spark/hooks';
 import NavigationMenu from './components/NavigationMenu';
-import ProjectDashboard from './components/ProjectDashboard';
-import KiplingQuestionnaire from './components/KiplingQuestionnaire';
-import IntelligenceGathering from './components/IntelligenceGathering';
-import SourceCredibilityAssessment from './components/SourceCredibilityAssessment';
-import SystemDiagnostics from './components/SystemDiagnostics';
-import FileUploadManager from './components/FileUploadManager';
+import ProjectOverview from './pages/ProjectOverview';
+import KiplingAnalysisPage from './pages/KiplingAnalysisPage';
+import IntelligencePage from './pages/IntelligencePage';
+import FilesPage from './pages/FilesPage';
+import DiagnosticsPage from './pages/DiagnosticsPage';
+import UnderDevelopmentPage from './pages/UnderDevelopmentPage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -338,139 +338,57 @@ function App() {
     switch (currentPage) {
       case 'overview':
         return (
-          <ProjectDashboard
+          <ProjectOverview
             language={currentLanguage}
-            project={projectData}
+            projectId={projectData.id}
             onNavigate={handleNavigate}
-            systemHealth={systemHealth}
-            calculateCompleteness={calculateCompleteness}
           />
         );
         
       case 'intelligence':
         return (
-          <div className="space-y-6">
-            <IntelligenceGathering
-              language={currentLanguage}
-              projectId={projectData.id}
-              onIntelligenceGathered={(data) => {
-                toast.success(`Intelligence collected: ${data.method}`, {
-                  description: `${data.dataCollected} data points gathered`
-                });
-              }}
-              onGapIdentified={(gap) => {
-                toast.info(`Information gap identified: ${gap.area}`, {
-                  description: `Priority: ${gap.priority} - ${gap.estimatedResolution}`
-                });
-              }}
-            />
-            
-            <SourceCredibilityAssessment
-              language={currentLanguage}
-              projectId={projectData.id}
-              onSourceAssessed={(source) => {
-                toast.success(`Source assessed: ${source.name}`, {
-                  description: `Credibility score: ${source.credibilityScore.overall}%`
-                });
-              }}
-              onVerificationCompleted={(verification) => {
-                toast.info(`Verification completed: ${verification.method}`, {
-                  description: `Status: ${verification.status}`
-                });
-              }}
-            />
-          </div>
+          <IntelligencePage
+            language={currentLanguage}
+            projectId={projectData.id}
+            onNavigate={handleNavigate}
+          />
         );
         
       case 'kipling':
         return (
-          <div className="space-y-6">
-            <div className="grid gap-6">
-              {projectData.dimensions.map(dimension => (
-                <Card key={dimension.id}>
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <CardTitle className="text-xl">{dimension.title}</CardTitle>
-                        <CardDescription>{dimension.question}</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor={`content-${dimension.id}`}>Analysis Content</Label>
-                      <Textarea
-                        id={`content-${dimension.id}`}
-                        value={dimension.content}
-                        onChange={(e) => {
-                          // Update dimension logic would go here
-                          console.log('Updating dimension:', dimension.id, e.target.value);
-                        }}
-                        placeholder={`Analysis for: ${dimension.question}`}
-                        rows={6}
-                        className="mt-2"
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Progress value={dimension.completeness} className="w-32" />
-                        <span className="text-sm text-muted-foreground">
-                          {Math.round(dimension.completeness)}% complete
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+          <KiplingAnalysisPage
+            language={currentLanguage}
+            projectId={projectData.id}
+            onNavigate={handleNavigate}
+          />
         );
         
       case 'files':
         return (
-          <FileUploadManager
+          <FilesPage
             language={currentLanguage}
             projectId={projectData.id}
-            onFileUploaded={(file) => {
-              toast.success(`File uploaded: ${file.name}`);
-            }}
-            onFileAnalyzed={(analysis) => {
-              toast.success(`File analysis completed: ${analysis.analysisType}`);
-            }}
+            onNavigate={handleNavigate}
           />
         );
         
       case 'diagnostics':
         return (
-          <SystemDiagnostics
+          <DiagnosticsPage
             language={currentLanguage}
-            onIssueDetected={(issue) => {
-              toast.warning(`System issue detected: ${issue.description}`);
-            }}
-            onTaskCompleted={(task) => {
-              toast.success(`Task completed: ${task.title}`);
-            }}
+            projectId={projectData.id}
+            onNavigate={handleNavigate}
           />
         );
         
       default:
         return (
-          <div className="text-center py-12">
-            <Gear size={64} className="mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-2xl font-semibold mb-2">
-              {currentLanguage === 'ru' ? 'Страница в разработке' : 'Page Under Development'}
-            </h2>
-            <p className="text-muted-foreground mb-6">
-              {currentLanguage === 'ru' 
-                ? 'Эта страница будет доступна в следующем обновлении' 
-                : 'This page will be available in the next update'
-              }
-            </p>
-            <Button onClick={() => setCurrentPage('overview')}>
-              {currentLanguage === 'ru' ? 'Вернуться к обзору' : 'Back to Overview'}
-            </Button>
-          </div>
+          <UnderDevelopmentPage
+            language={currentLanguage}
+            projectId={projectData?.id || ''}
+            onNavigate={handleNavigate}
+            pageName={currentLanguage === 'ru' ? 'Страница в разработке' : 'Page Under Development'}
+          />
         );
     }
   };
@@ -482,11 +400,11 @@ function App() {
         <div className="fixed inset-0 z-50 bg-background">
           <NavigationMenu
             language={currentLanguage}
-            currentPage={currentPage}
+            currentPage={currentPage || 'overview'}
             onNavigate={handleNavigate}
             onBack={() => setShowNavigationMenu(false)}
             systemHealth={systemHealth}
-            projectTitle={projectData?.title}
+            projectTitle={projectData?.title || 'Untitled Project'}
           />
         </div>
       )}

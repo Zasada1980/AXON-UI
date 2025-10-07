@@ -1,10 +1,14 @@
-# AXON Intelligence Analysis Platform - PRD (АНАЛИТИК Update)
+# AXON Intelligence Analysis Platform - PRD (Page-Based Navigation Update)
 
 ## Core Purpose & Success
 
-**Mission Statement**: AXON is a comprehensive cognitive intelligence analysis platform that enables systematic analysis using the IKR directive (Intelligence-Knowledge-Reasoning) and Kipling protocol (Who, What, When, Where, Why, How), enhanced with AI-powered audit capabilities, automated workflow management, and expert analytical frameworks designed specifically for intelligence professionals.
+**Mission Statement**: AXON is a comprehensive cognitive intelligence analysis platform that enables systematic analysis using the IKR directive (Intelligence-Knowledge-Reasoning) and Kipling protocol (Who, What, When, Where, Why, How), enhanced with AI-powered audit capabilities, automated workflow management, and expert analytical frameworks designed specifically for intelligence professionals. Now restructured with dedicated page-based navigation for optimal user experience and component isolation.
 
 **Success Indicators**:
+- Users can navigate seamlessly between different analysis modules without performance degradation
+- Each dedicated page loads only necessary components, improving overall system responsiveness
+- Navigation provides clear context and easy movement between functional areas
+- Page-based architecture supports scalable feature development and maintenance
 - Users can complete comprehensive intelligence analysis projects with >90% completeness using expert-guided workflows
 - AI audit agents identify and resolve system issues automatically with 95%+ accuracy
 - Interactive Kipling questionnaire reduces analysis time by >70% while maintaining methodological rigor
@@ -14,20 +18,44 @@
 
 **Experience Qualities**: 
 1. **Expert-Grade** - Professional intelligence analysis capabilities with pre-loaded expert knowledge
-2. **Cognitively Intelligent** - AI-powered automation with human expert guidance integration
+2. **Cognitively Intelligent** - AI-powered automation with human expert guidance integration  
 3. **Methodologically Rigorous** - Adherence to established intelligence analysis protocols (IKR + Kipling)
+4. **Performance-Optimized** - Page-based architecture ensures fast loading and responsive interactions
 
 ## Project Classification & Approach
 
-**Complexity Level**: Complex Application (advanced functionality, multi-agent systems, comprehensive state management)
+**Complexity Level**: Complex Application (advanced functionality, multi-agent systems, comprehensive state management, page-based navigation)
 
-**Primary User Activity**: Creating (systematic intelligence analysis with AI assistance)
+**Primary User Activity**: Creating (systematic intelligence analysis with AI assistance) across dedicated functional pages
+
+## Architecture Update: Page-Based Navigation System
+
+### Navigation Structure
+- **Project Overview Page**: Central dashboard with project metrics, quick actions, and system health
+- **Kipling Analysis Page**: Dedicated space for comprehensive 5W1H analysis with full-screen editing
+- **Intelligence Gathering Page**: Focused environment for data collection and source assessment
+- **File Management Page**: Dedicated file upload, analysis, and management interface
+- **System Diagnostics Page**: Comprehensive system health monitoring and troubleshooting
+- **Under Development Pages**: Placeholder structure for future modules
+
+### Technical Benefits
+- **Component Isolation**: Each page loads only required components and data
+- **Performance Optimization**: Reduced initial bundle size and faster page transitions
+- **Scalability**: Easy addition of new functional areas without affecting existing pages
+- **Maintainability**: Clear separation of concerns between different functional domains
+- **User Experience**: Focused interfaces without visual clutter from unrelated features
 
 ## Essential Features
 
-### Core Analysis Framework (Enhanced for АНАЛИТИК)
-- **Interactive Kipling Questionnaire**: Comprehensive 5W1H questionnaire system with expert guidance and progressive disclosure
-- **Expert Analysis Integration**: Pre-loaded expert analysis based on cognitive agents architecture with immediate application capability
+### Enhanced Navigation System
+- **Contextual Navigation Menu**: Full-screen overlay with categorized module access
+- **Breadcrumb Context**: Clear indication of current page and easy return navigation
+- **Progressive Navigation**: Smart routing based on project completion status
+- **Mobile-Responsive Design**: Optimized navigation experience across all devices
+
+### Core Analysis Framework (Page-Based Implementation)
+- **Interactive Kipling Questionnaire**: Dedicated full-page interface for comprehensive 5W1H analysis
+- **Expert Analysis Integration**: Pre-loaded expert analysis with focused editing environment
 - **IKR Directive Support**: Three-stage process (Intelligence gathering, Knowledge synthesis, Reasoning) with methodological rigor
 - **Project Management**: Multi-project workspace with completion tracking, export capabilities, and expert templates
 - **Source Credibility Assessment**: Advanced source evaluation and verification systems for intelligence quality assurance

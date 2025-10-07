@@ -64,7 +64,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
   onNavigate,
   onBack,
   systemHealth,
-  projectTitle
+  projectTitle = ''
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');

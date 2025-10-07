@@ -155,12 +155,26 @@
   opacity: 1;
 }
 
-/* Module-specific styling classes */
+/* Module-specific color overrides for pages */
 .module-overview {
   --color-module-primary: var(--overview-primary, oklch(55% 0.2 200));
   --color-module-secondary: var(--overview-secondary, oklch(35% 0.1 220));
   --color-module-accent: var(--overview-accent, oklch(65% 0.25 180));
   --color-module-background: var(--overview-background, oklch(16% 0.03 220));
+}
+
+.module-intelligence {
+  --color-module-primary: var(--intelligence-primary, oklch(58% 0.19 160));
+  --color-module-secondary: var(--intelligence-secondary, oklch(38% 0.11 180));
+  --color-module-accent: var(--intelligence-accent, oklch(68% 0.23 140));
+  --color-module-background: var(--intelligence-background, oklch(17% 0.028 160));
+}
+
+.module-files {
+  --color-module-primary: var(--files-primary, oklch(60% 0.18 90));
+  --color-module-secondary: var(--files-secondary, oklch(40% 0.12 110));
+  --color-module-accent: var(--files-accent, oklch(70% 0.22 70));
+  --color-module-background: var(--files-background, oklch(18% 0.025 90));
 }
 
 .module-kipling {
