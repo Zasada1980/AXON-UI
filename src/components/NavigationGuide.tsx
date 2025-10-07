@@ -1,735 +1,815 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import {
-  Question,
-  MagnifyingGlass,
-  List,
+  Book,
+  MagnifyingGlass as Search,
   Play,
+  CaretRight as ChevronRight,
+  CaretLeft as ChevronLeft,
   CheckCircle,
-  ArrowRight,
-  ArrowLeft,
-  BookOpen,
-  Lightbulb,
-  Warning,
   Info,
+  Lightbulb,
   Target,
   Users,
+  Shield,
   Robot,
   Brain,
   Gear,
-  Shield,
-  ChartLine,
-  Eye
+  Star,
+  ArrowRight,
+  Circle,
+  FileText,
+  Question as HelpCircle,
+  PlayCircle
 } from '@phosphor-icons/react';
-
-interface HelpStep {
-  id: string;
-  title: string;
-  description: string;
-  action?: string;
-  example?: string;
-  warning?: string;
-  tips?: string[];
-}
-
-interface HelpSection {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  steps: HelpStep[];
-  category: 'basic' | 'advanced' | 'troubleshooting';
-  estimatedTime: number; // minutes
-  prerequisites?: string[];
-  relatedSections?: string[];
-}
 
 interface NavigationGuideProps {
   language: 'en' | 'ru';
   currentModule?: string;
-  onSectionSelect?: (sectionId: string) => void;
-  onStepComplete?: (stepId: string) => void;
 }
 
-const translations = {
-  // Navigation
-  helpSystem: { en: 'Help System', ru: 'Система Помощи' },
-  quickStart: { en: 'Quick Start', ru: 'Быстрый Старт' },
-  tutorialMode: { en: 'Tutorial Mode', ru: 'Режим Обучения' },
-  searchHelp: { en: 'Search Help', ru: 'Поиск Помощи' },
-  searchPlaceholder: { en: 'Search instructions...', ru: 'Поиск инструкций...' },
-  categories: { en: 'Categories', ru: 'Категории' },
-  basicUsage: { en: 'Basic Usage', ru: 'Базовое Использование' },
-  advancedFeatures: { en: 'Advanced Features', ru: 'Расширенные Возможности' },
-  troubleshooting: { en: 'Troubleshooting', ru: 'Решение Проблем' },
-  stepByStep: { en: 'Step by Step', ru: 'Пошагово' },
-  previousStep: { en: 'Previous Step', ru: 'Предыдущий Шаг' },
-  nextStep: { en: 'Next Step', ru: 'Следующий Шаг' },
-  finishTutorial: { en: 'Finish Tutorial', ru: 'Завершить Обучение' },
-  backToHelp: { en: 'Back to Help', ru: 'Назад к Помощи' },
-  relatedTopics: { en: 'Related Topics', ru: 'Связанные Темы' },
-  helpfulTips: { en: 'Helpful Tips', ru: 'Полезные Советы' },
-  commonIssues: { en: 'Common Issues', ru: 'Частые Проблемы' },
-  estimatedTime: { en: 'Estimated Time', ru: 'Примерное Время' },
-  prerequisites: { en: 'Prerequisites', ru: 'Предварительные Требования' },
-  
-  // Tutorial Steps
-  step: { en: 'Step', ru: 'Шаг' },
-  of: { en: 'of', ru: 'из' },
-  completed: { en: 'Completed', ru: 'Завершено' },
-  inProgress: { en: 'In Progress', ru: 'В Процессе' },
-  notStarted: { en: 'Not Started', ru: 'Не Начато' },
-  
-  // Categories
-  gettingStarted: { en: 'Getting Started', ru: 'Начало Работы' },
-  projectManagement: { en: 'Project Management', ru: 'Управление Проектами' },
-  analysisTools: { en: 'Analysis Tools', ru: 'Инструменты Анализа' },
-  aiFeatures: { en: 'AI Features', ru: 'Возможности ИИ' },
-  systemSettings: { en: 'System Settings', ru: 'Настройки Системы' },
-  
-  // Action words
-  minutes: { en: 'minutes', ru: 'минут' },
-  optional: { en: 'Optional', ru: 'Опционально' },
-  required: { en: 'Required', ru: 'Обязательно' },
-  recommended: { en: 'Recommended', ru: 'Рекомендуется' }
-};
+interface GuideStep {
+  id: string;
+  title: string;
+  description: string;
+  action?: string;
+  target?: string;
+  completed?: boolean;
+}
+
+interface GuideSection {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  estimatedTime: string;
+  steps: GuideStep[];
+  category: string;
+  prerequisites?: string[];
+}
+
+interface TutorialProgress {
+  sectionId: string;
+  stepId: string;
+  completed: boolean;
+  timestamp: string;
+}
 
 const NavigationGuide: React.FC<NavigationGuideProps> = ({
   language,
-  currentModule,
-  onSectionSelect,
-  onStepComplete
+  currentModule = 'overview'
 }) => {
-  const t = (key: string) => translations[key]?.[language] || key;
-  
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('getting-started');
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
   const [tutorialMode, setTutorialMode] = useState(false);
-  const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<'all' | 'basic' | 'advanced' | 'troubleshooting'>('all');
+  const [currentTutorialStep, setCurrentTutorialStep] = useState(0);
+  const [progress, setProgress] = useState<TutorialProgress[]>([]);
 
-  // Generate comprehensive help sections
-  const helpSections: HelpSection[] = [
+  // Comprehensive guide sections
+  const guideSections: GuideSection[] = [
     {
       id: 'project-creation',
-      title: language === 'ru' ? 'Создание проекта' : 'Creating a Project',
+      title: language === 'ru' ? 'Создание проекта' : 'Project Creation',
       description: language === 'ru' 
-        ? 'Узнайте, как создать новый проект анализа и настроить его параметры'
-        : 'Learn how to create a new analysis project and configure its settings',
-      icon: 'plus',
-      category: 'basic',
-      estimatedTime: 5,
+        ? 'Изучите основы создания и настройки нового проекта анализа'
+        : 'Learn the basics of creating and setting up a new analysis project',
+      icon: <Play size={20} />,
+      difficulty: 'beginner',
+      estimatedTime: language === 'ru' ? '5 минут' : '5 minutes',
+      category: 'getting-started',
       steps: [
         {
-          id: 'create-project-1',
-          title: language === 'ru' ? 'Нажмите кнопку "Новый Анализ"' : 'Click "New Analysis" Button',
+          id: 'step-1',
+          title: language === 'ru' ? 'Нажмите "Новый Анализ"' : 'Click "New Analysis"',
           description: language === 'ru' 
-            ? 'Найдите и нажмите кнопку "Новый Анализ" в правом верхнем углу экрана'
-            : 'Find and click the "New Analysis" button in the top right corner of the screen',
+            ? 'Найдите кнопку "Новый Анализ" в правом верхнем углу и нажмите на неё'
+            : 'Find the "New Analysis" button in the top right corner and click it',
           action: 'click',
-          example: language === 'ru' 
-            ? 'Кнопка находится рядом с селектором языка'
-            : 'The button is located next to the language selector'
+          target: 'new-analysis-button'
         },
         {
-          id: 'create-project-2',
-          title: language === 'ru' ? 'Заполните информацию о проекте' : 'Fill Project Information',
+          id: 'step-2',
+          title: language === 'ru' ? 'Введите название проекта' : 'Enter Project Title',
           description: language === 'ru' 
-            ? 'Введите название проекта и его описание в открывшемся диалоге'
-            : 'Enter the project title and description in the opened dialog',
-          tips: [
-            language === 'ru' 
-              ? 'Используйте описательные названия для легкого поиска'
-              : 'Use descriptive names for easy searching',
-            language === 'ru' 
-              ? 'Описание поможет вспомнить цель анализа позже'
-              : 'Description will help remember the analysis purpose later'
-          ]
+            ? 'Дайте вашему проекту описательное название, которое отражает суть анализа'
+            : 'Give your project a descriptive title that reflects the nature of your analysis',
+          action: 'input',
+          target: 'project-title-input'
         },
         {
-          id: 'create-project-3',
-          title: language === 'ru' ? 'Создайте проект' : 'Create the Project',
+          id: 'step-3',
+          title: language === 'ru' ? 'Добавьте описание' : 'Add Description',
           description: language === 'ru' 
-            ? 'Нажмите кнопку "Создать Проект" для завершения'
-            : 'Click "Create Project" button to complete',
-          example: language === 'ru' 
-            ? 'Проект: "Анализ безопасности системы"'
-            : 'Project: "System Security Analysis"'
+            ? 'Кратко опишите цели и контекст вашего анализа'
+            : 'Briefly describe the goals and context of your analysis',
+          action: 'textarea',
+          target: 'project-description'
+        },
+        {
+          id: 'step-4',
+          title: language === 'ru' ? 'Создайте проект' : 'Create Project',
+          description: language === 'ru' 
+            ? 'Нажмите кнопку "Создать Проект" для завершения создания'
+            : 'Click the "Create Project" button to complete creation',
+          action: 'click',
+          target: 'create-project-button'
         }
       ]
     },
     {
       id: 'kipling-analysis',
-      title: language === 'ru' ? 'Анализ по протоколу Киплинга' : 'Kipling Protocol Analysis',
+      title: language === 'ru' ? 'Протокол Киплинга' : 'Kipling Protocol',
       description: language === 'ru' 
-        ? 'Систематический анализ по методу 6 вопросов: Кто, Что, Когда, Где, Почему, Как'
-        : 'Systematic analysis using the 6 questions method: Who, What, When, Where, Why, How',
-      icon: 'users',
-      category: 'basic',
-      estimatedTime: 15,
+        ? 'Освойте систематический анализ по методу 6 вопросов Киплинга'
+        : 'Master systematic analysis using Kipling\'s 6 questions method',
+      icon: <Users size={20} />,
+      difficulty: 'beginner',
+      estimatedTime: language === 'ru' ? '15 минут' : '15 minutes',
+      category: 'analysis-framework',
+      prerequisites: ['project-creation'],
       steps: [
         {
           id: 'kipling-1',
-          title: language === 'ru' ? 'Перейдите на вкладку Kipling' : 'Navigate to Kipling Tab',
+          title: language === 'ru' ? 'Перейдите на вкладку Киплинга' : 'Navigate to Kipling Tab',
           description: language === 'ru' 
-            ? 'Откройте вкладку "Протокол Киплинга" для начала анализа'
-            : 'Open the "Kipling Protocol" tab to start analysis',
-          action: 'navigate'
+            ? 'Нажмите на вкладку "Протокол Киплинга" в верхней навигации'
+            : 'Click on the "Kipling Protocol" tab in the top navigation',
+          action: 'navigate',
+          target: 'kipling-tab'
         },
         {
           id: 'kipling-2',
-          title: language === 'ru' ? 'Изучите измерения' : 'Study the Dimensions',
+          title: language === 'ru' ? 'Начните с "Кто"' : 'Start with "Who"',
           description: language === 'ru' 
-            ? 'Ознакомьтесь с каждым из 6 измерений и их вопросами'
-            : 'Familiarize yourself with each of the 6 dimensions and their questions',
-          tips: [
-            language === 'ru' 
-              ? 'Кто: участники, заинтересованные стороны'
-              : 'Who: participants, stakeholders',
-            language === 'ru' 
-              ? 'Что: основные события и проблемы'
-              : 'What: main events and issues'
-          ]
+            ? 'Определите ключевых участников, заинтересованные стороны и лиц, принимающих решения'
+            : 'Identify key participants, stakeholders and decision makers',
+          action: 'input',
+          target: 'who-dimension'
         },
         {
           id: 'kipling-3',
-          title: language === 'ru' ? 'Заполните анализ' : 'Fill the Analysis',
+          title: language === 'ru' ? 'Опишите "Что"' : 'Describe "What"',
           description: language === 'ru' 
-            ? 'Добавьте детальную информацию в каждое измерение'
-            : 'Add detailed information to each dimension',
-          warning: language === 'ru' 
-            ? 'Не оставляйте измерения пустыми - это снизит качество анализа'
-            : 'Do not leave dimensions empty - this will reduce analysis quality'
+            ? 'Укажите основные события, проблемы и вопросы, требующие решения'
+            : 'Specify main events, problems and issues that need resolution',
+          action: 'input',
+          target: 'what-dimension'
         },
         {
           id: 'kipling-4',
+          title: language === 'ru' ? 'Установите "Когда"' : 'Establish "When"',
+          description: language === 'ru' 
+            ? 'Определите временные рамки, сроки принятия решений и критические моменты'
+            : 'Define timeframes, decision deadlines and critical moments',
+          action: 'input',
+          target: 'when-dimension'
+        },
+        {
+          id: 'kipling-5',
+          title: language === 'ru' ? 'Локализуйте "Где"' : 'Locate "Where"',
+          description: language === 'ru' 
+            ? 'Укажите географические или контекстуальные места событий'
+            : 'Specify geographical or contextual locations of events',
+          action: 'input',
+          target: 'where-dimension'
+        },
+        {
+          id: 'kipling-6',
+          title: language === 'ru' ? 'Объясните "Почему"' : 'Explain "Why"',
+          description: language === 'ru' 
+            ? 'Раскройте причины, мотивы и движущие силы ситуации'
+            : 'Reveal causes, motives and driving forces of the situation',
+          action: 'input',
+          target: 'why-dimension'
+        },
+        {
+          id: 'kipling-7',
+          title: language === 'ru' ? 'Опишите "Как"' : 'Describe "How"',
+          description: language === 'ru' 
+            ? 'Укажите методы, процессы и механизмы выполнения'
+            : 'Specify methods, processes and execution mechanisms',
+          action: 'input',
+          target: 'how-dimension'
+        },
+        {
+          id: 'kipling-8',
           title: language === 'ru' ? 'Генерируйте выводы' : 'Generate Insights',
           description: language === 'ru' 
-            ? 'Используйте кнопку "Создать Выводы" для получения рекомендаций ИИ'
-            : 'Use "Generate Insights" button to get AI recommendations',
-          action: 'click'
+            ? 'Используйте ИИ для создания аналитических выводов по каждому измерению'
+            : 'Use AI to generate analytical insights for each dimension',
+          action: 'click',
+          target: 'generate-insights-button'
+        }
+      ]
+    },
+    {
+      id: 'ikr-directive',
+      title: language === 'ru' ? 'Директива IKR' : 'IKR Directive',
+      description: language === 'ru' 
+        ? 'Применение трёхэтапного процесса Intelligence-Knowledge-Reasoning'
+        : 'Apply the three-stage Intelligence-Knowledge-Reasoning process',
+      icon: <Target size={20} />,
+      difficulty: 'intermediate',
+      estimatedTime: language === 'ru' ? '20 минут' : '20 minutes',
+      category: 'analysis-framework',
+      prerequisites: ['kipling-analysis'],
+      steps: [
+        {
+          id: 'ikr-1',
+          title: language === 'ru' ? 'Откройте вкладку IKR' : 'Open IKR Tab',
+          description: language === 'ru' 
+            ? 'Перейдите к директиве IKR для углубленного анализа'
+            : 'Navigate to the IKR directive for in-depth analysis',
+          action: 'navigate',
+          target: 'ikr-tab'
+        },
+        {
+          id: 'ikr-2',
+          title: language === 'ru' ? 'Сбор разведданных (Intelligence)' : 'Intelligence Collection',
+          description: language === 'ru' 
+            ? 'Документируйте источники, методы сбора и исходную информацию'
+            : 'Document sources, collection methods and raw information',
+          action: 'textarea',
+          target: 'intelligence-section'
+        },
+        {
+          id: 'ikr-3',
+          title: language === 'ru' ? 'Синтез знаний (Knowledge)' : 'Knowledge Synthesis',
+          description: language === 'ru' 
+            ? 'Объедините данные в связанные паттерны и взаимосвязи'
+            : 'Combine data into connected patterns and relationships',
+          action: 'textarea',
+          target: 'knowledge-section'
+        },
+        {
+          id: 'ikr-4',
+          title: language === 'ru' ? 'Стратегические рассуждения (Reasoning)' : 'Strategic Reasoning',
+          description: language === 'ru' 
+            ? 'Сформулируйте выводы, прогнозы и рекомендации'
+            : 'Formulate conclusions, predictions and recommendations',
+          action: 'textarea',
+          target: 'reasoning-section'
         }
       ]
     },
     {
       id: 'ai-audit-setup',
-      title: language === 'ru' ? 'Настройка аудита ИИ' : 'AI Audit Setup',
+      title: language === 'ru' ? 'Настройка ИИ аудита' : 'AI Audit Setup',
       description: language === 'ru' 
-        ? 'Настройка и запуск агентов аудита для анализа проекта'
-        : 'Setting up and running audit agents for project analysis',
-      icon: 'robot',
-      category: 'advanced',
-      estimatedTime: 10,
-      prerequisites: ['project-creation'],
+        ? 'Настройка и запуск автоматизированных агентов аудита'
+        : 'Setup and run automated audit agents',
+      icon: <Shield size={20} />,
+      difficulty: 'intermediate',
+      estimatedTime: language === 'ru' ? '10 минут' : '10 minutes',
+      category: 'ai-features',
       steps: [
         {
           id: 'audit-1',
-          title: language === 'ru' ? 'Откройте вкладку аудита' : 'Open Audit Tab',
+          title: language === 'ru' ? 'Перейдите к аудиту ИИ' : 'Navigate to AI Audit',
           description: language === 'ru' 
-            ? 'Перейдите на вкладку "Аудит ИИ"'
-            : 'Navigate to the "AI Audit" tab',
-          action: 'navigate'
+            ? 'Откройте вкладку "ИИ Аудит" для работы с агентами'
+            : 'Open the "AI Audit" tab to work with agents',
+          action: 'navigate',
+          target: 'audit-tab'
         },
         {
           id: 'audit-2',
-          title: language === 'ru' ? 'Выберите агента' : 'Select an Agent',
+          title: language === 'ru' ? 'Выберите агента' : 'Select Agent',
           description: language === 'ru' 
-            ? 'Выберите подходящий тип агента для вашего анализа'
-            : 'Choose the appropriate agent type for your analysis',
-          tips: [
-            language === 'ru' 
-              ? 'Агент Безопасности - для анализа уязвимостей'
-              : 'Security Agent - for vulnerability analysis',
-            language === 'ru' 
-              ? 'Агент Предвзятости - для обнаружения bias'
-              : 'Bias Agent - for bias detection'
-          ]
+            ? 'Нажмите на одного из доступных агентов аудита'
+            : 'Click on one of the available audit agents',
+          action: 'click',
+          target: 'audit-agent'
         },
         {
           id: 'audit-3',
           title: language === 'ru' ? 'Настройте API' : 'Configure API',
           description: language === 'ru' 
-            ? 'Нажмите кнопку "API" и введите ключ облачного провайдера'
-            : 'Click "API" button and enter cloud provider key',
-          warning: language === 'ru' 
-            ? 'Без API ключа агент не сможет работать'
-            : 'Agent cannot work without API key'
+            ? 'Нажмите кнопку "API" и введите ваш ключ облачного провайдера'
+            : 'Click the "API" button and enter your cloud provider key',
+          action: 'click',
+          target: 'api-config-button'
         },
         {
           id: 'audit-4',
           title: language === 'ru' ? 'Запустите аудит' : 'Start Audit',
           description: language === 'ru' 
             ? 'Выберите тип аудита и нажмите кнопку запуска'
-            : 'Choose audit type and click start button',
-          action: 'click'
-        }
-      ]
-    },
-    {
-      id: 'file-management',
-      title: language === 'ru' ? 'Управление файлами' : 'File Management',
-      description: language === 'ru' 
-        ? 'Загрузка и анализ файлов проекта с помощью ИИ агентов'
-        : 'Upload and analyze project files using AI agents',
-      icon: 'upload',
-      category: 'advanced',
-      estimatedTime: 8,
-      steps: [
-        {
-          id: 'files-1',
-          title: language === 'ru' ? 'Загрузите файлы' : 'Upload Files',
-          description: language === 'ru' 
-            ? 'Перетащите файлы в область загрузки или выберите их'
-            : 'Drag files to upload area or select them',
-          tips: [
-            language === 'ru' 
-              ? 'Поддерживаются форматы: TXT, MD, JSON, CSV, PDF'
-              : 'Supported formats: TXT, MD, JSON, CSV, PDF'
-          ]
-        },
-        {
-          id: 'files-2',
-          title: language === 'ru' ? 'Добавьте метаданные' : 'Add Metadata',
-          description: language === 'ru' 
-            ? 'Добавьте описание и теги для лучшей организации'
-            : 'Add description and tags for better organization'
-        },
-        {
-          id: 'files-3',
-          title: language === 'ru' ? 'Запустите анализ' : 'Run Analysis',
-          description: language === 'ru' 
-            ? 'Выберите тип анализа и получите результаты от ИИ'
-            : 'Choose analysis type and get results from AI'
+            : 'Choose audit type and click the start button',
+          action: 'click',
+          target: 'start-audit-button'
         }
       ]
     },
     {
       id: 'chat-assistant',
-      title: language === 'ru' ? 'ИИ Помощник' : 'AI Assistant',
+      title: language === 'ru' ? 'ИИ Чат-ассистент' : 'AI Chat Assistant',
       description: language === 'ru' 
-        ? 'Использование чат-бота для получения помощи по проекту'
-        : 'Using chatbot for project assistance',
-      icon: 'chat',
-      category: 'basic',
-      estimatedTime: 5,
+        ? 'Использование ИИ чата для анализа и получения рекомендаций'
+        : 'Using AI chat for analysis and getting recommendations',
+      icon: <Robot size={20} />,
+      difficulty: 'beginner',
+      estimatedTime: language === 'ru' ? '8 минут' : '8 minutes',
+      category: 'ai-features',
       steps: [
         {
           id: 'chat-1',
           title: language === 'ru' ? 'Откройте чат' : 'Open Chat',
           description: language === 'ru' 
-            ? 'Перейдите на вкладку "ИИ Чат"'
-            : 'Navigate to "AI Chat" tab'
+            ? 'Перейдите на вкладку "ИИ Чат" для интерактивного общения'
+            : 'Navigate to "AI Chat" tab for interactive communication',
+          action: 'navigate',
+          target: 'chat-tab'
         },
         {
           id: 'chat-2',
           title: language === 'ru' ? 'Задайте вопрос' : 'Ask a Question',
           description: language === 'ru' 
-            ? 'Введите вопрос о вашем проекте или анализе'
-            : 'Enter a question about your project or analysis',
-          example: language === 'ru' 
-            ? '"Анализируй мой прогресс" или "Помоги с измерениями Киплинга"'
-            : '"Analyze my progress" or "Help with Kipling dimensions"'
+            ? 'Введите вопрос о вашем анализе в поле ввода'
+            : 'Enter a question about your analysis in the input field',
+          action: 'input',
+          target: 'chat-input'
         },
         {
           id: 'chat-3',
-          title: language === 'ru' ? 'Используйте контекстные кнопки' : 'Use Context Buttons',
+          title: language === 'ru' ? 'Используйте быстрые действия' : 'Use Quick Actions',
           description: language === 'ru' 
-            ? 'Используйте готовые кнопки для быстрых запросов'
-            : 'Use ready-made buttons for quick requests'
+            ? 'Попробуйте кнопки быстрых действий для получения контекстной помощи'
+            : 'Try quick action buttons for contextual assistance',
+          action: 'click',
+          target: 'quick-action-button'
         }
       ]
     },
     {
-      id: 'troubleshooting-common',
-      title: language === 'ru' ? 'Решение частых проблем' : 'Common Issues Solutions',
+      id: 'system-diagnostics',
+      title: language === 'ru' ? 'Диагностика системы' : 'System Diagnostics',
       description: language === 'ru' 
-        ? 'Решения наиболее частых проблем при работе с платформой'
-        : 'Solutions for most common platform issues',
-      icon: 'warning',
+        ? 'Мониторинг производительности и устранение проблем'
+        : 'Performance monitoring and troubleshooting',
+      icon: <Gear size={20} />,
+      difficulty: 'advanced',
+      estimatedTime: language === 'ru' ? '12 минут' : '12 minutes',
       category: 'troubleshooting',
-      estimatedTime: 3,
       steps: [
         {
-          id: 'trouble-1',
-          title: language === 'ru' ? 'Аудит не запускается' : 'Audit Not Starting',
+          id: 'diag-1',
+          title: language === 'ru' ? 'Откройте диагностику' : 'Open Diagnostics',
           description: language === 'ru' 
-            ? 'Проверьте настройку API ключа и подключение к интернету'
-            : 'Check API key setup and internet connection',
-          tips: [
-            language === 'ru' 
-              ? 'Убедитесь, что API ключ введен правильно'
-              : 'Make sure API key is entered correctly',
-            language === 'ru' 
-              ? 'Проверьте подключение к интернету'
-              : 'Check internet connection'
-          ]
+            ? 'Перейдите на вкладку "Диагностика и Восстановление Системы"'
+            : 'Navigate to "System Diagnostics & Recovery" tab',
+          action: 'navigate',
+          target: 'diagnostics-tab'
         },
         {
-          id: 'trouble-2',
-          title: language === 'ru' ? 'Медленная работа' : 'Slow Performance',
+          id: 'diag-2',
+          title: language === 'ru' ? 'Проверьте здоровье системы' : 'Check System Health',
           description: language === 'ru' 
-            ? 'Уменьшите глубину анализа или выберите более быструю модель'
-            : 'Reduce analysis depth or choose faster model'
+            ? 'Изучите индикаторы здоровья системы в верхней части'
+            : 'Review system health indicators at the top',
+          action: 'view',
+          target: 'system-health-indicators'
         },
         {
-          id: 'trouble-3',
-          title: language === 'ru' ? 'Не сохраняется прогресс' : 'Progress Not Saving',
+          id: 'diag-3',
+          title: language === 'ru' ? 'Запустите автовосстановление' : 'Run Auto Recovery',
           description: language === 'ru' 
-            ? 'Проверьте, включен ли localStorage в браузере'
-            : 'Check if localStorage is enabled in browser'
+            ? 'При обнаружении проблем используйте функцию автовосстановления'
+            : 'When issues are detected, use the auto recovery feature',
+          action: 'click',
+          target: 'auto-recovery-button'
         }
       ]
     }
   ];
 
-  // Get icon component
-  const getIcon = (iconName: string, size = 20) => {
-    const iconProps = { size, className: "text-primary" };
-    switch (iconName) {
-      case 'plus': return <Target {...iconProps} />;
-      case 'users': return <Users {...iconProps} />;
-      case 'robot': return <Robot {...iconProps} />;
-      case 'upload': return <Question {...iconProps} />;
-      case 'chat': return <Brain {...iconProps} />;
-      case 'warning': return <Warning {...iconProps} />;
-      default: return <Info {...iconProps} />;
+  const categories = [
+    { 
+      id: 'getting-started', 
+      title: language === 'ru' ? 'Начало работы' : 'Getting Started',
+      icon: <PlayCircle size={16} />
+    },
+    { 
+      id: 'analysis-framework', 
+      title: language === 'ru' ? 'Фреймворк анализа' : 'Analysis Framework',
+      icon: <Brain size={16} />
+    },
+    { 
+      id: 'ai-features', 
+      title: language === 'ru' ? 'Возможности ИИ' : 'AI Features',
+      icon: <Robot size={16} />
+    },
+    { 
+      id: 'troubleshooting', 
+      title: language === 'ru' ? 'Решение проблем' : 'Troubleshooting',
+      icon: <HelpCircle size={16} />
     }
-  };
+  ];
 
-  // Filter sections
-  const filteredSections = helpSections.filter(section => {
-    const matchesFilter = filter === 'all' || section.category === filter;
+  // Filter sections based on search and category
+  const filteredSections = guideSections.filter(section => {
+    const matchesCategory = section.category === activeCategory;
     const matchesSearch = !searchQuery || 
       section.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       section.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
+    return matchesCategory && matchesSearch;
   });
 
-  // Get current tutorial section
-  const currentSection = selectedSection ? helpSections.find(s => s.id === selectedSection) : null;
-  const currentTutorialStep = currentSection?.steps[currentStep];
-
-  // Step completion handlers
-  const completeStep = (stepId: string) => {
-    setCompletedSteps(prev => new Set([...prev, stepId]));
-    onStepComplete?.(stepId);
-  };
-
-  const nextStep = () => {
-    if (currentSection && currentStep < currentSection.steps.length - 1) {
-      if (currentTutorialStep) {
-        completeStep(currentTutorialStep.id);
-      }
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const previousStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
+  // Tutorial mode functions
   const startTutorial = (sectionId: string) => {
     setSelectedSection(sectionId);
-    setCurrentStep(0);
     setTutorialMode(true);
-    onSectionSelect?.(sectionId);
+    setCurrentTutorialStep(0);
   };
 
-  const finishTutorial = () => {
-    if (currentSection && currentTutorialStep) {
-      completeStep(currentTutorialStep.id);
+  const nextTutorialStep = () => {
+    const section = guideSections.find(s => s.id === selectedSection);
+    if (section && currentTutorialStep < section.steps.length - 1) {
+      setCurrentTutorialStep(currentTutorialStep + 1);
     }
+  };
+
+  const previousTutorialStep = () => {
+    if (currentTutorialStep > 0) {
+      setCurrentTutorialStep(currentTutorialStep - 1);
+    }
+  };
+
+  const completeTutorial = () => {
     setTutorialMode(false);
     setSelectedSection(null);
-    setCurrentStep(0);
+    setCurrentTutorialStep(0);
   };
 
+  const getDifficultyColor = (difficulty: 'beginner' | 'intermediate' | 'advanced') => {
+    switch (difficulty) {
+      case 'beginner': return 'bg-green-500';
+      case 'intermediate': return 'bg-yellow-500';
+      case 'advanced': return 'bg-red-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getStepProgress = (sectionId: string) => {
+    const section = guideSections.find(s => s.id === sectionId);
+    if (!section) return 0;
+    
+    const completedSteps = progress.filter(p => 
+      p.sectionId === sectionId && p.completed
+    ).length;
+    
+    return (completedSteps / section.steps.length) * 100;
+  };
+
+  // Module-specific guidance
+  const getModuleSpecificTips = () => {
+    switch (currentModule) {
+      case 'overview':
+        return language === 'ru' 
+          ? 'Совет: Используйте обзор для быстрой оценки прогресса всего проекта'
+          : 'Tip: Use overview for quick assessment of overall project progress';
+      case 'kipling':
+        return language === 'ru' 
+          ? 'Совет: Заполняйте измерения по порядку для лучшей структуры анализа'
+          : 'Tip: Fill dimensions in order for better analysis structure';
+      case 'ikr':
+        return language === 'ru' 
+          ? 'Совет: IKR строится на данных из протокола Киплинга'
+          : 'Tip: IKR builds upon data from Kipling protocol';
+      case 'audit':
+        return language === 'ru' 
+          ? 'Совет: Настройте API ключи перед запуском аудита'
+          : 'Tip: Configure API keys before running audits';
+      case 'chat':
+        return language === 'ru' 
+          ? 'Совет: Используйте кнопки быстрых действий для контекстной помощи'
+          : 'Tip: Use quick action buttons for contextual help';
+      default:
+        return language === 'ru' 
+          ? 'Совет: Изучите руководство для освоения всех возможностей'
+          : 'Tip: Explore the guide to master all features';
+    }
+  };
+
+  if (tutorialMode && selectedSection) {
+    const section = guideSections.find(s => s.id === selectedSection);
+    if (!section) return null;
+
+    const currentStep = section.steps[currentTutorialStep];
+    const isLastStep = currentTutorialStep === section.steps.length - 1;
+    const isFirstStep = currentTutorialStep === 0;
+
+    return (
+      <div className="max-w-4xl mx-auto p-6 space-y-6">
+        <Card className="border-primary">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  {section.icon}
+                  {section.title}
+                </CardTitle>
+                <CardDescription>
+                  {language === 'ru' ? 'Интерактивное обучение' : 'Interactive Tutorial'}
+                </CardDescription>
+              </div>
+              <Badge variant="outline">
+                {language === 'ru' ? 'Шаг' : 'Step'} {currentTutorialStep + 1} {language === 'ru' ? 'из' : 'of'} {section.steps.length}
+              </Badge>
+            </div>
+            <Progress value={(currentTutorialStep / section.steps.length) * 100} className="mt-4" />
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="bg-muted/50 p-6 rounded-lg">
+              <h3 className="font-semibold text-lg mb-2">{currentStep.title}</h3>
+              <p className="text-muted-foreground">{currentStep.description}</p>
+              
+              {currentStep.action && (
+                <div className="mt-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2 text-primary">
+                    <Info size={16} />
+                    <span className="text-sm font-medium">
+                      {language === 'ru' ? 'Действие:' : 'Action:'} {currentStep.action}
+                    </span>
+                  </div>
+                  {currentStep.target && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {language === 'ru' ? 'Цель:' : 'Target:'} {currentStep.target}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                onClick={previousTutorialStep}
+                disabled={isFirstStep}
+                className="flex items-center gap-2"
+              >
+                <ChevronLeft size={16} />
+                {language === 'ru' ? 'Назад' : 'Previous'}
+              </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={completeTutorial}
+                >
+                  {language === 'ru' ? 'Выйти' : 'Exit'}
+                </Button>
+                
+                {isLastStep ? (
+                  <Button
+                    onClick={completeTutorial}
+                    className="flex items-center gap-2"
+                  >
+                    <CheckCircle size={16} />
+                    {language === 'ru' ? 'Завершить' : 'Complete'}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={nextTutorialStep}
+                    className="flex items-center gap-2"
+                  >
+                    {language === 'ru' ? 'Далее' : 'Next'}
+                    <ChevronRight size={16} />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      {!tutorialMode ? (
-        // Main Help Interface
-        <>
-          {/* Search and Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Question size={24} className="text-primary" />
-                {t('helpSystem')}
-              </CardTitle>
-              <CardDescription>
-                {language === 'ru' 
-                  ? 'Найдите инструкции и руководства по использованию платформы'
-                  : 'Find instructions and guides for using the platform'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Search */}
-              <div className="relative">
-                <MagnifyingGlass size={16} className="absolute left-3 top-3 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('searchPlaceholder')}
-                  className="pl-10"
-                />
-              </div>
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <div className="flex items-center justify-center gap-3">
+          <Book size={32} className="text-primary" />
+          <h1 className="text-3xl font-bold">
+            {language === 'ru' ? 'Руководство пользователя AXON' : 'AXON User Guide'}
+          </h1>
+        </div>
+        <p className="text-muted-foreground max-w-2xl mx-auto">
+          {language === 'ru' 
+            ? 'Полное руководство по использованию платформы интеллектуального анализа AXON. Изучите все возможности и освойте профессиональные методы анализа.'
+            : 'Complete guide to using the AXON intelligence analysis platform. Learn all features and master professional analysis methods.'
+          }
+        </p>
 
-              {/* Category Filters */}
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                  variant={filter === 'all' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFilter('all')}
-                >
-                  All
-                </Button>
-                <Button
-                  variant={filter === 'basic' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFilter('basic')}
-                >
-                  {t('basicUsage')}
-                </Button>
-                <Button
-                  variant={filter === 'advanced' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFilter('advanced')}
-                >
-                  {t('advancedFeatures')}
-                </Button>
-                <Button
-                  variant={filter === 'troubleshooting' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFilter('troubleshooting')}
-                >
-                  {t('troubleshooting')}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Module-specific tip */}
+        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 max-w-2xl mx-auto">
+          <div className="flex items-center gap-2 text-primary">
+            <Lightbulb size={16} />
+            <span className="font-medium">
+              {language === 'ru' ? 'Совет для текущего модуля:' : 'Current Module Tip:'}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            {getModuleSpecificTips()}
+          </p>
+        </div>
+      </div>
 
-          {/* Help Sections */}
-          <div className="grid gap-4 md:grid-cols-2">
-            {filteredSections.map(section => {
-              const completedStepsCount = section.steps.filter(step => 
-                completedSteps.has(step.id)
-              ).length;
-              const progress = (completedStepsCount / section.steps.length) * 100;
+      <Tabs value={activeCategory} onValueChange={setActiveCategory}>
+        {/* Category Navigation */}
+        <div className="flex items-center justify-between">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+            {categories.map(category => (
+              <TabsTrigger key={category.id} value={category.id} className="flex items-center gap-2">
+                {category.icon}
+                <span className="hidden sm:inline">{category.title}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-              return (
-                <Card key={section.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
+          {/* Search */}
+          <div className="relative w-64">
+            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={language === 'ru' ? 'Поиск руководств...' : 'Search guides...'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        {/* Category Content */}
+        {categories.map(category => (
+          <TabsContent key={category.id} value={category.id} className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredSections.map(section => (
+                <Card key={section.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        {getIcon(section.icon)}
-                        <div className="min-w-0 flex-1">
-                          <h4 className="font-medium">{section.title}</h4>
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {section.description}
-                          </p>
+                        {section.icon}
+                        <div>
+                          <CardTitle className="text-base">{section.title}</CardTitle>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className={`w-2 h-2 rounded-full ${getDifficultyColor(section.difficulty)}`} />
+                            <span className="text-xs text-muted-foreground capitalize">
+                              {section.difficulty}
+                            </span>
+                            <Circle size={3} className="text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {section.estimatedTime}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <Badge variant={
-                        section.category === 'basic' ? 'default' :
-                        section.category === 'advanced' ? 'secondary' : 'destructive'
-                      }>
-                        {t(section.category === 'basic' ? 'basicUsage' : 
-                           section.category === 'advanced' ? 'advancedFeatures' : 'troubleshooting')}
+                      <Badge variant="outline" className="text-xs">
+                        {section.steps.length} {language === 'ru' ? 'шагов' : 'steps'}
                       </Badge>
                     </div>
-
-                    <div className="space-y-3">
-                      {/* Progress */}
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span>{completedStepsCount}/{section.steps.length} {t('completed').toLowerCase()}</span>
-                          <span>{section.estimatedTime} {t('minutes')}</span>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      {section.description}
+                    </p>
+                    
+                    {section.prerequisites && section.prerequisites.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          {language === 'ru' ? 'Требования:' : 'Prerequisites:'}
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {section.prerequisites.map(prereq => (
+                            <Badge key={prereq} variant="secondary" className="text-xs">
+                              {guideSections.find(s => s.id === prereq)?.title || prereq}
+                            </Badge>
+                          ))}
                         </div>
-                        <Progress value={progress} className="h-1" />
                       </div>
+                    )}
 
-                      {/* Prerequisites */}
-                      {section.prerequisites && section.prerequisites.length > 0 && (
-                        <div className="text-xs">
-                          <span className="text-muted-foreground">{t('prerequisites')}: </span>
-                          {section.prerequisites.map(prereq => {
-                            const prereqSection = helpSections.find(s => s.id === prereq);
-                            return prereqSection ? (
-                              <Badge key={prereq} variant="outline" className="text-xs mr-1">
-                                {prereqSection.title}
-                              </Badge>
-                            ) : null;
-                          })}
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => startTutorial(section.id)}
-                          className="flex-1"
-                        >
-                          <Play size={14} className="mr-1" />
-                          {progress > 0 ? (language === 'ru' ? 'Продолжить' : 'Continue') : 
-                                        (language === 'ru' ? 'Начать' : 'Start')}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedSection(section.id);
-                            setTutorialMode(false);
-                          }}
-                        >
-                          <Eye size={14} />
-                        </Button>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          {language === 'ru' ? 'Прогресс' : 'Progress'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {Math.round(getStepProgress(section.id))}%
+                        </span>
                       </div>
+                      <Progress value={getStepProgress(section.id)} className="h-1" />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => startTutorial(section.id)}
+                        className="flex-1 flex items-center gap-2"
+                      >
+                        <Play size={14} />
+                        {language === 'ru' ? 'Начать' : 'Start'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedSection(section.id)}
+                        className="flex items-center gap-2"
+                      >
+                        <FileText size={14} />
+                        {language === 'ru' ? 'Просмотр' : 'View'}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
-              );
-            })}
-          </div>
+              ))}
+            </div>
 
-          {/* Quick Links for Current Module */}
-          {currentModule && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target size={20} className="text-primary" />
-                  {language === 'ru' ? 'Помощь по текущему модулю' : 'Current Module Help'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm text-muted-foreground">
+            {filteredSections.length === 0 && (
+              <div className="text-center py-12">
+                <Search size={48} className="mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">
+                  {language === 'ru' ? 'Руководства не найдены' : 'No guides found'}
+                </h3>
+                <p className="text-muted-foreground">
                   {language === 'ru' 
-                    ? `Активный модуль: ${currentModule}. Здесь будут контекстные подсказки.`
-                    : `Active module: ${currentModule}. Contextual hints will appear here.`}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      ) : (
-        // Tutorial Mode
-        currentSection && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    {getIcon(currentSection.icon)}
-                    {currentSection.title}
-                  </CardTitle>
-                  <CardDescription>
-                    {t('step')} {currentStep + 1} {t('of')} {currentSection.steps.length}
-                  </CardDescription>
-                </div>
-                <Button variant="outline" size="sm" onClick={finishTutorial}>
-                  ×
-                </Button>
+                    ? 'Попробуйте изменить поисковый запрос или выберите другую категорию'
+                    : 'Try adjusting your search query or select a different category'
+                  }
+                </p>
               </div>
-              <Progress value={((currentStep + 1) / currentSection.steps.length) * 100} />
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {currentTutorialStep && (
-                <>
-                  {/* Current Step */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">{currentTutorialStep.title}</h3>
-                    <p className="text-muted-foreground">{currentTutorialStep.description}</p>
+            )}
+          </TabsContent>
+        ))}
+      </Tabs>
 
-                    {/* Example */}
-                    {currentTutorialStep.example && (
-                      <div className="p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Lightbulb size={16} className="text-primary" />
-                          <span className="text-sm font-medium">
-                            {language === 'ru' ? 'Пример' : 'Example'}
-                          </span>
-                        </div>
-                        <p className="text-sm">{currentTutorialStep.example}</p>
+      {/* Section Detail View (Non-Tutorial) */}
+      {selectedSection && !tutorialMode && (
+        <Card className="mt-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  {guideSections.find(s => s.id === selectedSection)?.icon}
+                  {guideSections.find(s => s.id === selectedSection)?.title}
+                </CardTitle>
+                <CardDescription>
+                  {guideSections.find(s => s.id === selectedSection)?.description}
+                </CardDescription>
+              </div>
+              <Button variant="outline" onClick={() => setSelectedSection(null)}>
+                {language === 'ru' ? 'Закрыть' : 'Close'}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-96">
+              <div className="space-y-4">
+                {guideSections.find(s => s.id === selectedSection)?.steps.map((step, index) => (
+                  <div key={step.id} className="flex gap-4 p-4 border rounded-lg">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                        <span className="text-sm font-medium text-primary">{index + 1}</span>
                       </div>
-                    )}
-
-                    {/* Warning */}
-                    {currentTutorialStep.warning && (
-                      <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Warning size={16} className="text-destructive" />
-                          <span className="text-sm font-medium text-destructive">
-                            {language === 'ru' ? 'Внимание' : 'Warning'}
-                          </span>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <h4 className="font-medium">{step.title}</h4>
+                      <p className="text-sm text-muted-foreground">{step.description}</p>
+                      {step.action && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <Badge variant="outline" className="text-xs">
+                            {step.action}
+                          </Badge>
+                          {step.target && (
+                            <span className="text-muted-foreground">{step.target}</span>
+                          )}
                         </div>
-                        <p className="text-sm text-destructive">{currentTutorialStep.warning}</p>
-                      </div>
-                    )}
-
-                    {/* Tips */}
-                    {currentTutorialStep.tips && currentTutorialStep.tips.length > 0 && (
-                      <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Info size={16} className="text-primary" />
-                          <span className="text-sm font-medium text-primary">
-                            {t('helpfulTips')}
-                          </span>
-                        </div>
-                        <ul className="space-y-1">
-                          {currentTutorialStep.tips.map((tip, index) => (
-                            <li key={index} className="text-sm flex items-start gap-2">
-                              <span className="text-primary">•</span>
-                              <span>{tip}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-
-                  <Separator />
-
-                  {/* Navigation */}
-                  <div className="flex items-center justify-between">
-                    <Button
-                      variant="outline"
-                      onClick={previousStep}
-                      disabled={currentStep === 0}
-                    >
-                      <ArrowLeft size={16} className="mr-2" />
-                      {t('previousStep')}
-                    </Button>
-
-                    <Badge variant="secondary">
-                      {currentStep + 1} / {currentSection.steps.length}
-                    </Badge>
-
-                    {currentStep < currentSection.steps.length - 1 ? (
-                      <Button onClick={nextStep}>
-                        {t('nextStep')}
-                        <ArrowRight size={16} className="ml-2" />
-                      </Button>
-                    ) : (
-                      <Button onClick={finishTutorial}>
-                        <CheckCircle size={16} className="mr-2" />
-                        {t('finishTutorial')}
-                      </Button>
-                    )}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        )
+                ))}
+              </div>
+            </ScrollArea>
+            <div className="mt-4 pt-4 border-t">
+              <Button
+                onClick={() => startTutorial(selectedSection)}
+                className="flex items-center gap-2"
+              >
+                <Play size={16} />
+                {language === 'ru' ? 'Начать интерактивное обучение' : 'Start Interactive Tutorial'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

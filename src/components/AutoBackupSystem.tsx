@@ -1,120 +1,113 @@
 import React, { useState, useEffect } from 'react';
-import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { toast } from 'sonner';
-import { 
-  CloudArrowDown, 
-  CloudArrowUp,
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
   FloppyDisk,
+  CloudArrowUp,
   Clock,
   Gear,
-  Shield,
-  CheckCircle,
-  Warning,
-  X,
-  Play,
-  Pause,
-  Archive,
   Download,
   Upload,
-  FileZip,
+  Trash,
+  CheckCircle,
+  Warning,
+  Info,
   Database,
-  CalendarBlank,
-  Timer
+  HardDrives,
+  CopySimple,
+  ArrowClockwise,
+  Play,
+  Pause,
+  Stop,
+  FileArchive,
+  Shield,
+  Key,
+  Calendar,
+  Timer,
+  FolderOpen,
+  Archive,
+  Export,
+  Graph
 } from '@phosphor-icons/react';
 
-interface BackupConfig {
-  id: string;
-  name: string;
-  description: string;
-  schedule: {
-    enabled: boolean;
-    frequency: 'hourly' | 'daily' | 'weekly' | 'monthly';
-    time?: string; // HH:MM for daily backups
-    day?: number; // Day of week (0-6) for weekly, day of month for monthly
-  };
-  retention: {
-    maxBackups: number;
-    maxAge: number; // in days
-    compressionLevel: 'none' | 'fast' | 'balanced' | 'maximum';
-  };
-  scope: {
-    projects: boolean;
-    agentMemory: boolean;
-    debateLogs: boolean;
-    auditResults: boolean;
-    userSettings: boolean;
-    searchFilters: boolean;
-    chatHistory: boolean;
-    files: boolean;
-  };
-  encryption: {
-    enabled: boolean;
-    keyDerivation: 'pbkdf2' | 'scrypt' | 'argon2';
-    iterations: number;
-  };
-  storage: {
-    local: boolean;
-    cloud?: {
-      provider: 'github' | 'dropbox' | 'gdrive' | 's3' | 'custom';
-      endpoint?: string;
-      credentials?: string;
-    };
-  };
-  createdAt: string;
-  lastModified: string;
-  lastRun?: string;
-  isActive: boolean;
+interface AutoBackupSystemProps {
+  language: 'en' | 'ru';
+  projectId: string;
+  onBackupCreated: (backup: BackupRecord) => void;
+  onRestoreCompleted: (restorePoint: RestorePoint) => void;
 }
 
 interface BackupRecord {
   id: string;
-  configId: string;
-  timestamp: string;
-  size: number; // in bytes
-  type: 'manual' | 'scheduled';
-  status: 'creating' | 'completed' | 'failed' | 'expired';
-  checksum: string;
-  location: string;
+  name: string;
+  type: 'auto' | 'manual' | 'scheduled';
+  size: number;
+  createdAt: string;
+  projectData: any;
   metadata: {
-    projectsCount: number;
-    filesCount: number;
-    compressionRatio: number;
-    encryptionUsed: boolean;
-    duration: number; // in milliseconds
-    trigger: string;
+    version: string;
+    completeness: number;
+    modules: string[];
+    checksum: string;
+    compressed: boolean;
   };
-  error?: string;
+  status: 'creating' | 'completed' | 'failed' | 'corrupted';
+  location: 'local' | 'cloud' | 'external';
+  retention: number; // days
 }
 
 interface RestorePoint {
   id: string;
-  backupId: string;
   name: string;
+  backupId: string;
   description: string;
-  timestamp: string;
-  scope: string[];
-  verified: boolean;
-  restoredAt?: string;
-  restoredBy?: string;
+  createdAt: string;
+  isVerified: boolean;
+  modules: string[];
+  changes: {
+    added: string[];
+    modified: string[];
+    deleted: string[];
+  };
 }
 
-interface AutoBackupSystemProps {
-  language: string;
-  projectId: string;
-  onBackupCreated: (backup: BackupRecord) => void;
-  onRestoreCompleted: (restorePoint: RestorePoint) => void;
+interface BackupSettings {
+  autoBackupEnabled: boolean;
+  backupInterval: number; // minutes
+  maxBackups: number;
+  compressionEnabled: boolean;
+  encryptionEnabled: boolean;
+  cloudSyncEnabled: boolean;
+  retentionDays: number;
+  backupLocation: 'local' | 'cloud' | 'both';
+  excludePatterns: string[];
+  includeModules: string[];
+  backupOnChange: boolean;
+  minimumChangeThreshold: number; // percentage
+}
+
+interface BackupStatistics {
+  totalBackups: number;
+  totalSize: number;
+  lastBackup: string;
+  nextScheduledBackup: string;
+  successRate: number;
+  avgBackupSize: number;
+  storageUsage: number;
+  compressionRatio: number;
 }
 
 const AutoBackupSystem: React.FC<AutoBackupSystemProps> = ({
@@ -123,653 +116,1058 @@ const AutoBackupSystem: React.FC<AutoBackupSystemProps> = ({
   onBackupCreated,
   onRestoreCompleted
 }) => {
-  const [backupConfigs, setBackupConfigs] = useKV<BackupConfig[]>('backup-configs', []);
-  const [backupRecords, setBackupRecords] = useKV<BackupRecord[]>('backup-records', []);
-  const [restorePoints, setRestorePoints] = useKV<RestorePoint[]>('restore-points', []);
-  const [currentBackup, setCurrentBackup] = useState<string | null>(null);
-  const [backupProgress, setBackupProgress] = useState(0);
-  const [isCreating, setIsCreating] = useState(false);
-  const [showConfigDialog, setShowConfigDialog] = useState(false);
-  const [selectedConfig, setSelectedConfig] = useState<string | null>(null);
-  const [newConfig, setNewConfig] = useState<Partial<BackupConfig>>({
-    name: '',
-    description: '',
-    schedule: {
-      enabled: false,
-      frequency: 'daily'
-    },
-    retention: {
-      maxBackups: 10,
-      maxAge: 30,
-      compressionLevel: 'balanced'
-    },
-    scope: {
-      projects: true,
-      agentMemory: true,
-      debateLogs: true,
-      auditResults: true,
-      userSettings: false,
-      searchFilters: false,
-      chatHistory: false,
-      files: false
-    },
-    encryption: {
-      enabled: false,
-      keyDerivation: 'pbkdf2',
-      iterations: 100000
-    },
-    storage: {
-      local: true
-    },
-    isActive: true
+  const [backups, setBackups] = useState<BackupRecord[]>([]);
+  const [restorePoints, setRestorePoints] = useState<RestorePoint[]>([]);
+  const [settings, setSettings] = useState<BackupSettings>({
+    autoBackupEnabled: true,
+    backupInterval: 30,
+    maxBackups: 10,
+    compressionEnabled: true,
+    encryptionEnabled: false,
+    cloudSyncEnabled: false,
+    retentionDays: 30,
+    backupLocation: 'local',
+    excludePatterns: ['*.tmp', '*.log'],
+    includeModules: ['kipling', 'ikr', 'audit', 'chat'],
+    backupOnChange: true,
+    minimumChangeThreshold: 5
+  });
+  
+  const [statistics, setStatistics] = useState<BackupStatistics>({
+    totalBackups: 0,
+    totalSize: 0,
+    lastBackup: '',
+    nextScheduledBackup: '',
+    successRate: 100,
+    avgBackupSize: 0,
+    storageUsage: 0,
+    compressionRatio: 0.7
   });
 
-  const t = (key: string) => {
-    const translations: Record<string, Record<string, string>> = {
-      autoBackupSystem: { en: 'Auto Backup System', ru: 'Система Автоматических Бэкапов' },
-      backupConfigs: { en: 'Backup Configurations', ru: 'Конфигурации Бэкапов' },
-      backupHistory: { en: 'Backup History', ru: 'История Бэкапов' },
-      restorePoints: { en: 'Restore Points', ru: 'Точки Восстановления' },
-      createBackup: { en: 'Create Backup', ru: 'Создать Бэкап' },
-      manualBackup: { en: 'Manual Backup', ru: 'Ручной Бэкап' },
-      scheduleBackup: { en: 'Schedule Backup', ru: 'Запланировать Бэкап' },
-      backupName: { en: 'Backup Name', ru: 'Название Бэкапа' },
-      description: { en: 'Description', ru: 'Описание' },
-      schedule: { en: 'Schedule', ru: 'Расписание' },
-      frequency: { en: 'Frequency', ru: 'Частота' },
-      retention: { en: 'Retention Policy', ru: 'Политика Хранения' },
-      scope: { en: 'Backup Scope', ru: 'Область Бэкапа' },
-      encryption: { en: 'Encryption', ru: 'Шифрование' },
-      storage: { en: 'Storage Options', ru: 'Опции Хранения' },
-      hourly: { en: 'Hourly', ru: 'Ежечасно' },
-      daily: { en: 'Daily', ru: 'Ежедневно' },
-      weekly: { en: 'Weekly', ru: 'Еженедельно' },
-      monthly: { en: 'Monthly', ru: 'Ежемесячно' },
-      maxBackups: { en: 'Max Backups', ru: 'Максимум Бэкапов' },
-      maxAge: { en: 'Max Age (days)', ru: 'Максимальный возраст (дни)' },
-      compressionLevel: { en: 'Compression Level', ru: 'Уровень Сжатия' },
-      none: { en: 'None', ru: 'Нет' },
-      fast: { en: 'Fast', ru: 'Быстрое' },
-      balanced: { en: 'Balanced', ru: 'Сбалансированное' },
-      maximum: { en: 'Maximum', ru: 'Максимальное' },
-      projects: { en: 'Projects', ru: 'Проекты' },
-      agentMemory: { en: 'Agent Memory', ru: 'Память Агентов' },
-      debateLogs: { en: 'Debate Logs', ru: 'Логи Дебатов' },
-      auditResults: { en: 'Audit Results', ru: 'Результаты Аудита' },
-      userSettings: { en: 'User Settings', ru: 'Настройки Пользователя' },
-      searchFilters: { en: 'Search Filters', ru: 'Фильтры Поиска' },
-      chatHistory: { en: 'Chat History', ru: 'История Чата' },
-      files: { en: 'Files', ru: 'Файлы' },
-      enableEncryption: { en: 'Enable Encryption', ru: 'Включить Шифрование' },
-      keyDerivation: { en: 'Key Derivation', ru: 'Деривация Ключа' },
-      iterations: { en: 'Iterations', ru: 'Итерации' },
-      localStorage: { en: 'Local Storage', ru: 'Локальное Хранилище' },
-      cloudStorage: { en: 'Cloud Storage', ru: 'Облачное Хранилище' },
-      save: { en: 'Save', ru: 'Сохранить' },
-      cancel: { en: 'Cancel', ru: 'Отмена' },
-      restore: { en: 'Restore', ru: 'Восстановить' },
-      download: { en: 'Download', ru: 'Скачать' },
-      delete: { en: 'Delete', ru: 'Удалить' },
-      verify: { en: 'Verify', ru: 'Проверить' },
-      status: { en: 'Status', ru: 'Статус' },
-      size: { en: 'Size', ru: 'Размер' },
-      created: { en: 'Created', ru: 'Создан' },
-      lastRun: { en: 'Last Run', ru: 'Последний Запуск' },
-      nextRun: { en: 'Next Run', ru: 'Следующий Запуск' },
-      active: { en: 'Active', ru: 'Активен' },
-      inactive: { en: 'Inactive', ru: 'Неактивен' },
-      creating: { en: 'Creating', ru: 'Создание' },
-      completed: { en: 'Completed', ru: 'Завершено' },
-      failed: { en: 'Failed', ru: 'Ошибка' },
-      expired: { en: 'Expired', ru: 'Истёк' }
-    };
-    return translations[key]?.[language] || key;
-  };
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [selectedBackup, setSelectedBackup] = useState<BackupRecord | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [backupProgress, setBackupProgress] = useState(0);
+  const [restoreProgress, setRestoreProgress] = useState(0);
+  const [lastAutoBackup, setLastAutoBackup] = useState<Date | null>(null);
+  const [cloudCredentials, setCloudCredentials] = useState({
+    provider: 'none',
+    accessKey: '',
+    secretKey: '',
+    bucket: ''
+  });
 
-  const createManualBackup = async () => {
-    setIsCreating(true);
+  // Load settings and backup history
+  useEffect(() => {
+    const savedSettings = localStorage.getItem(`backup-settings-${projectId}`);
+    if (savedSettings) {
+      setSettings(JSON.parse(savedSettings));
+    }
+
+    const savedBackups = localStorage.getItem(`backups-${projectId}`);
+    if (savedBackups) {
+      setBackups(JSON.parse(savedBackups));
+    }
+
+    const savedRestorePoints = localStorage.getItem(`restore-points-${projectId}`);
+    if (savedRestorePoints) {
+      setRestorePoints(JSON.parse(savedRestorePoints));
+    }
+
+    updateStatistics();
+  }, [projectId]);
+
+  // Auto-backup timer
+  useEffect(() => {
+    if (!settings.autoBackupEnabled) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const timeSinceLastBackup = lastAutoBackup 
+        ? now.getTime() - lastAutoBackup.getTime()
+        : settings.backupInterval * 60 * 1000 + 1;
+
+      if (timeSinceLastBackup >= settings.backupInterval * 60 * 1000) {
+        createAutoBackup();
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [settings.autoBackupEnabled, settings.backupInterval, lastAutoBackup]);
+
+  // Create backup
+  const createBackup = async (type: 'auto' | 'manual' | 'scheduled', name?: string) => {
+    setIsBackingUp(true);
     setBackupProgress(0);
 
     try {
-      const backupId = `backup-${Date.now()}`;
-      setCurrentBackup(backupId);
+      // Simulate backup progress
+      const progressInterval = setInterval(() => {
+        setBackupProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + Math.random() * 10;
+        });
+      }, 200);
 
-      // Simulate backup creation with progress
-      for (let progress = 0; progress <= 100; progress += 10) {
-        setBackupProgress(progress);
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-
-      // Simulate gathering backup data
-      const backupData = {
-        projects: await (window as any).spark.kv.get('axon-projects') || [],
-        agentMemory: await (window as any).spark.kv.get('agent-memory') || [],
-        debateLogs: await (window as any).spark.kv.get('debate-logs') || [],
-        auditResults: await (window as any).spark.kv.get('audit-results') || [],
-        timestamp: new Date().toISOString()
-      };
-
-      const backupSize = JSON.stringify(backupData).length;
-      const checksum = await generateChecksum(JSON.stringify(backupData));
-
-      const newBackup: BackupRecord = {
-        id: backupId,
-        configId: 'manual',
+      // Get current project data (mock)
+      const projectData = {
+        id: projectId,
         timestamp: new Date().toISOString(),
-        size: backupSize,
-        type: 'manual',
-        status: 'completed',
-        checksum,
-        location: `local://backups/${backupId}.json`,
-        metadata: {
-          projectsCount: backupData.projects.length,
-          filesCount: 0,
-          compressionRatio: 1.0,
-          encryptionUsed: false,
-          duration: 2000,
-          trigger: 'manual'
+        modules: settings.includeModules,
+        data: {
+          kipling: { dimensions: [], completeness: 85 },
+          ikr: { intelligence: 'test', knowledge: 'test', reasoning: 'test' },
+          audit: { sessions: [], agents: [] },
+          chat: { sessions: [] },
+          files: [],
+          settings: settings
         }
       };
 
-      setBackupRecords(current => [newBackup, ...(current || [])]);
-      onBackupCreated(newBackup);
-      toast.success(language === 'ru' ? 'Бэкап успешно создан' : 'Backup created successfully');
+      // Simulate compression and encryption
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const backupId = `backup-${Date.now()}`;
+      const backup: BackupRecord = {
+        id: backupId,
+        name: name || `${type === 'auto' ? 'Auto' : 'Manual'} Backup ${new Date().toLocaleString()}`,
+        type,
+        size: Math.floor(Math.random() * 5000000) + 1000000, // 1-5MB
+        createdAt: new Date().toISOString(),
+        projectData,
+        metadata: {
+          version: '1.0.0',
+          completeness: 85,
+          modules: settings.includeModules,
+          checksum: generateChecksum(JSON.stringify(projectData)),
+          compressed: settings.compressionEnabled
+        },
+        status: 'completed',
+        location: settings.backupLocation === 'both' ? 'local' : settings.backupLocation,
+        retention: settings.retentionDays
+      };
+
+      const updatedBackups = [backup, ...backups];
+      
+      // Apply retention policy
+      if (updatedBackups.length > settings.maxBackups) {
+        updatedBackups.splice(settings.maxBackups);
+      }
+
+      setBackups(updatedBackups);
+      localStorage.setItem(`backups-${projectId}`, JSON.stringify(updatedBackups));
+
+      setBackupProgress(100);
+      onBackupCreated(backup);
+
+      if (type === 'auto') {
+        setLastAutoBackup(new Date());
+      }
+
+      // Cloud sync if enabled
+      if (settings.cloudSyncEnabled) {
+        await syncToCloud(backup);
+      }
+
+      clearInterval(progressInterval);
+      updateStatistics();
 
     } catch (error) {
       console.error('Backup creation failed:', error);
-      toast.error(language === 'ru' ? 'Ошибка создания бэкапа' : 'Backup creation failed');
     } finally {
-      setIsCreating(false);
-      setCurrentBackup(null);
+      setIsBackingUp(false);
       setBackupProgress(0);
     }
   };
 
-  const generateChecksum = async (data: string): Promise<string> => {
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(data);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  // Create auto backup
+  const createAutoBackup = () => {
+    if (isBackingUp || isRestoring) return;
+    createBackup('auto');
   };
 
-  const saveBackupConfig = () => {
-    if (!newConfig.name?.trim()) {
-      toast.error(language === 'ru' ? 'Введите название конфигурации' : 'Enter configuration name');
-      return;
-    }
+  // Restore from backup
+  const restoreFromBackup = async (backup: BackupRecord, createRestorePoint: boolean = true) => {
+    setIsRestoring(true);
+    setRestoreProgress(0);
 
-    const config: BackupConfig = {
-      id: `config-${Date.now()}`,
-      name: newConfig.name!,
-      description: newConfig.description || '',
-      schedule: newConfig.schedule!,
-      retention: newConfig.retention!,
-      scope: newConfig.scope!,
-      encryption: newConfig.encryption!,
-      storage: newConfig.storage!,
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString(),
-      isActive: newConfig.isActive!
-    };
-
-    setBackupConfigs(current => [...(current || []), config]);
-    setShowConfigDialog(false);
-    setNewConfig({
-      name: '',
-      description: '',
-      schedule: { enabled: false, frequency: 'daily' },
-      retention: { maxBackups: 10, maxAge: 30, compressionLevel: 'balanced' },
-      scope: { projects: true, agentMemory: true, debateLogs: true, auditResults: true, userSettings: false, searchFilters: false, chatHistory: false, files: false },
-      encryption: { enabled: false, keyDerivation: 'pbkdf2', iterations: 100000 },
-      storage: { local: true },
-      isActive: true
-    });
-    toast.success(language === 'ru' ? 'Конфигурация сохранена' : 'Configuration saved');
-  };
-
-  const restoreFromBackup = async (backupId: string) => {
     try {
-      const backup = (backupRecords || []).find(b => b.id === backupId);
-      if (!backup) {
-        toast.error(language === 'ru' ? 'Бэкап не найден' : 'Backup not found');
-        return;
+      // Create restore point if requested
+      if (createRestorePoint) {
+        const restorePoint: RestorePoint = {
+          id: `restore-${Date.now()}`,
+          name: `Pre-restore point - ${new Date().toLocaleString()}`,
+          backupId: backup.id,
+          description: `Created before restoring from ${backup.name}`,
+          createdAt: new Date().toISOString(),
+          isVerified: true,
+          modules: backup.metadata.modules,
+          changes: {
+            added: [],
+            modified: backup.metadata.modules,
+            deleted: []
+          }
+        };
+
+        const updatedRestorePoints = [restorePoint, ...restorePoints];
+        setRestorePoints(updatedRestorePoints);
+        localStorage.setItem(`restore-points-${projectId}`, JSON.stringify(updatedRestorePoints));
       }
 
-      const restorePoint: RestorePoint = {
-        id: `restore-${Date.now()}`,
-        backupId,
-        name: `Restore from ${new Date(backup.timestamp).toLocaleString()}`,
-        description: `Automatic restore from backup created ${backup.timestamp}`,
-        timestamp: new Date().toISOString(),
-        scope: Object.keys(backup.metadata),
-        verified: true
-      };
+      // Simulate restore progress
+      const progressInterval = setInterval(() => {
+        setRestoreProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + Math.random() * 15;
+        });
+      }, 150);
 
-      setRestorePoints(current => [restorePoint, ...(current || [])]);
-      onRestoreCompleted(restorePoint);
-      toast.success(language === 'ru' ? 'Восстановление завершено' : 'Restore completed');
+      // Simulate restore process
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      setRestoreProgress(100);
+      
+      onRestoreCompleted(restorePoints[0]);
+      clearInterval(progressInterval);
 
     } catch (error) {
       console.error('Restore failed:', error);
-      toast.error(language === 'ru' ? 'Ошибка восстановления' : 'Restore failed');
+    } finally {
+      setIsRestoring(false);
+      setRestoreProgress(0);
     }
   };
 
+  // Sync to cloud
+  const syncToCloud = async (backup: BackupRecord) => {
+    if (!settings.cloudSyncEnabled || cloudCredentials.provider === 'none') return;
+
+    // Mock cloud sync
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const updatedBackup = {
+      ...backup,
+      location: 'cloud' as const
+    };
+
+    setBackups(current => 
+      current.map(b => b.id === backup.id ? updatedBackup : b)
+    );
+  };
+
+  // Verify backup integrity
+  const verifyBackup = async (backup: BackupRecord) => {
+    const currentChecksum = generateChecksum(JSON.stringify(backup.projectData));
+    return currentChecksum === backup.metadata.checksum;
+  };
+
+  // Generate checksum
+  const generateChecksum = (data: string): string => {
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+      const char = data.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(16);
+  };
+
+  // Update statistics
+  const updateStatistics = () => {
+    const stats: BackupStatistics = {
+      totalBackups: backups.length,
+      totalSize: backups.reduce((sum, backup) => sum + backup.size, 0),
+      lastBackup: backups.length > 0 ? backups[0].createdAt : '',
+      nextScheduledBackup: settings.autoBackupEnabled 
+        ? new Date(Date.now() + settings.backupInterval * 60 * 1000).toISOString()
+        : '',
+      successRate: backups.length > 0 
+        ? (backups.filter(b => b.status === 'completed').length / backups.length) * 100
+        : 100,
+      avgBackupSize: backups.length > 0 
+        ? backups.reduce((sum, backup) => sum + backup.size, 0) / backups.length
+        : 0,
+      storageUsage: backups.reduce((sum, backup) => sum + backup.size, 0),
+      compressionRatio: 0.7
+    };
+
+    setStatistics(stats);
+  };
+
+  // Delete backup
+  const deleteBackup = (backupId: string) => {
+    const updatedBackups = backups.filter(b => b.id !== backupId);
+    setBackups(updatedBackups);
+    localStorage.setItem(`backups-${projectId}`, JSON.stringify(updatedBackups));
+    updateStatistics();
+  };
+
+  // Export backup
+  const exportBackup = (backup: BackupRecord) => {
+    const exportData = {
+      backup,
+      exportedAt: new Date().toISOString(),
+      projectId
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup-${backup.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Format file size
   const formatFileSize = (bytes: number): string => {
-    const units = ['B', 'KB', 'MB', 'GB'];
-    let size = bytes;
-    let unitIndex = 0;
-    
-    while (size >= 1024 && unitIndex < units.length - 1) {
-      size /= 1024;
-      unitIndex++;
-    }
-    
-    return `${size.toFixed(1)} ${units[unitIndex]}`;
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Schedule backup runs (simplified simulation)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const activeConfigs = (backupConfigs || []).filter(config => 
-        config.isActive && config.schedule.enabled
-      );
+  // Get status color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-500';
+      case 'creating': return 'bg-blue-500';
+      case 'failed': return 'bg-red-500';
+      case 'corrupted': return 'bg-orange-500';
+      default: return 'bg-gray-500';
+    }
+  };
 
-      activeConfigs.forEach(config => {
-        const now = new Date();
-        const lastRun = config.lastRun ? new Date(config.lastRun) : new Date(0);
-        
-        let shouldRun = false;
-        
-        switch (config.schedule.frequency) {
-          case 'hourly':
-            shouldRun = now.getTime() - lastRun.getTime() >= 60 * 60 * 1000;
-            break;
-          case 'daily':
-            shouldRun = now.getTime() - lastRun.getTime() >= 24 * 60 * 60 * 1000;
-            break;
-          case 'weekly':
-            shouldRun = now.getTime() - lastRun.getTime() >= 7 * 24 * 60 * 60 * 1000;
-            break;
-          case 'monthly':
-            shouldRun = now.getTime() - lastRun.getTime() >= 30 * 24 * 60 * 60 * 1000;
-            break;
-        }
-
-        if (shouldRun) {
-          // Trigger scheduled backup (simplified)
-          console.log(`Scheduled backup triggered for config: ${config.name}`);
-        }
-      });
-    }, 60000); // Check every minute
-
-    return () => clearInterval(interval);
-  }, [backupConfigs]);
+  // Get location icon
+  const getLocationIcon = (location: string) => {
+    switch (location) {
+      case 'cloud': return <CloudArrowUp size={16} />;
+      case 'local': return <HardDrives size={16} />;
+      case 'external': return <Database size={16} />;
+      default: return <FloppyDisk size={16} />;
+    }
+  };
 
   return (
     <div className="space-y-6">
+      {/* Header with Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FloppyDisk size={24} className="text-primary" />
-            {t('autoBackupSystem')}
-          </CardTitle>
-          <CardDescription>
-            {language === 'ru' 
-              ? 'Автоматическое резервное копирование и восстановление данных проекта'
-              : 'Automated backup and restore system for project data'
-            }
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FloppyDisk size={24} />
+                {language === 'ru' ? 'Система автоматического резервного копирования' : 'Auto Backup System'}
+              </CardTitle>
+              <CardDescription>
+                {language === 'ru' 
+                  ? 'Автоматическое создание и управление резервными копиями проекта'
+                  : 'Automated project backup creation and management'
+                }
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={settings.autoBackupEnabled ? 'default' : 'secondary'}>
+                {settings.autoBackupEnabled 
+                  ? (language === 'ru' ? 'Авто: ВКЛ' : 'Auto: ON')
+                  : (language === 'ru' ? 'Авто: ВЫКЛ' : 'Auto: OFF')
+                }
+              </Badge>
+              <Button variant="outline" onClick={() => setShowSettings(true)}>
+                <Gear size={16} className="mr-2" />
+                {language === 'ru' ? 'Настройки' : 'Settings'}
+              </Button>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Quick Actions */}
-          <div className="flex items-center gap-3">
-            <Button onClick={createManualBackup} disabled={isCreating}>
-              {isCreating ? (
-                <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
-              ) : (
-                <FloppyDisk size={16} className="mr-2" />
-              )}
-              {t('manualBackup')}
-            </Button>
-            <Dialog open={showConfigDialog} onOpenChange={setShowConfigDialog}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Gear size={16} className="mr-2" />
-                  {t('scheduleBackup')}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
-                <DialogHeader>
-                  <DialogTitle>{t('scheduleBackup')}</DialogTitle>
-                  <DialogDescription>
-                    {language === 'ru' 
-                      ? 'Настройте автоматическое резервное копирование'
-                      : 'Configure automatic backup settings'
-                    }
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-6">
-                  {/* Basic Info */}
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="backup-name">{t('backupName')}</Label>
-                      <Input
-                        id="backup-name"
-                        value={newConfig.name || ''}
-                        onChange={(e) => setNewConfig(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="Enter backup configuration name..."
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="backup-description">{t('description')}</Label>
-                      <Textarea
-                        id="backup-description"
-                        value={newConfig.description || ''}
-                        onChange={(e) => setNewConfig(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="Optional description..."
-                        rows={2}
-                      />
-                    </div>
+        <CardContent>
+          {/* Quick Statistics */}
+          <div className="grid gap-4 md:grid-cols-4 mb-6">
+            <Card className="bg-muted/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' ? 'Всего копий' : 'Total Backups'}
+                    </p>
+                    <p className="text-2xl font-bold">{statistics.totalBackups}</p>
                   </div>
-
-                  <Separator />
-
-                  {/* Schedule Settings */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium flex items-center gap-2">
-                      <CalendarBlank size={16} />
-                      {t('schedule')}
-                    </h4>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="schedule-enabled"
-                        checked={newConfig.schedule?.enabled || false}
-                        onCheckedChange={(checked) => setNewConfig(prev => ({
-                          ...prev,
-                          schedule: { ...prev.schedule!, enabled: !!checked }
-                        }))}
-                      />
-                      <Label htmlFor="schedule-enabled">Enable automatic backups</Label>
-                    </div>
-                    {newConfig.schedule?.enabled && (
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                          <Label>{t('frequency')}</Label>
-                          <Select
-                            value={newConfig.schedule?.frequency}
-                            onValueChange={(value: 'hourly' | 'daily' | 'weekly' | 'monthly') => 
-                              setNewConfig(prev => ({
-                                ...prev,
-                                schedule: { ...prev.schedule!, frequency: value }
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="hourly">{t('hourly')}</SelectItem>
-                              <SelectItem value="daily">{t('daily')}</SelectItem>
-                              <SelectItem value="weekly">{t('weekly')}</SelectItem>
-                              <SelectItem value="monthly">{t('monthly')}</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <Separator />
-
-                  {/* Retention Policy */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium flex items-center gap-2">
-                      <Timer size={16} />
-                      {t('retention')}
-                    </h4>
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <div>
-                        <Label>{t('maxBackups')}</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="100"
-                          value={newConfig.retention?.maxBackups}
-                          onChange={(e) => setNewConfig(prev => ({
-                            ...prev,
-                            retention: { ...prev.retention!, maxBackups: parseInt(e.target.value) }
-                          }))}
-                        />
-                      </div>
-                      <div>
-                        <Label>{t('maxAge')}</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="365"
-                          value={newConfig.retention?.maxAge}
-                          onChange={(e) => setNewConfig(prev => ({
-                            ...prev,
-                            retention: { ...prev.retention!, maxAge: parseInt(e.target.value) }
-                          }))}
-                        />
-                      </div>
-                      <div>
-                        <Label>{t('compressionLevel')}</Label>
-                        <Select
-                          value={newConfig.retention?.compressionLevel}
-                          onValueChange={(value: 'none' | 'fast' | 'balanced' | 'maximum') => 
-                            setNewConfig(prev => ({
-                              ...prev,
-                              retention: { ...prev.retention!, compressionLevel: value }
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">{t('none')}</SelectItem>
-                            <SelectItem value="fast">{t('fast')}</SelectItem>
-                            <SelectItem value="balanced">{t('balanced')}</SelectItem>
-                            <SelectItem value="maximum">{t('maximum')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Backup Scope */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium flex items-center gap-2">
-                      <Database size={16} />
-                      {t('scope')}
-                    </h4>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {Object.entries(newConfig.scope || {}).map(([key, enabled]) => (
-                        <div key={key} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`scope-${key}`}
-                            checked={enabled}
-                            onCheckedChange={(checked) => setNewConfig(prev => ({
-                              ...prev,
-                              scope: { ...prev.scope!, [key]: !!checked }
-                            }))}
-                          />
-                          <Label htmlFor={`scope-${key}`}>{t(key)}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Action Buttons */}
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setShowConfigDialog(false)}>
-                      {t('cancel')}
-                    </Button>
-                    <Button onClick={saveBackupConfig}>
-                      {t('save')}
-                    </Button>
-                  </div>
+                  <Archive size={24} className="text-primary" />
                 </div>
-              </DialogContent>
-            </Dialog>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-muted/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' ? 'Общий размер' : 'Total Size'}
+                    </p>
+                    <p className="text-2xl font-bold">{formatFileSize(statistics.totalSize)}</p>
+                  </div>
+                  <HardDrives size={24} className="text-primary" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-muted/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' ? 'Успешность' : 'Success Rate'}
+                    </p>
+                    <p className="text-2xl font-bold">{Math.round(statistics.successRate)}%</p>
+                  </div>
+                  <CheckCircle size={24} className="text-green-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-muted/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' ? 'Последняя копия' : 'Last Backup'}
+                    </p>
+                    <p className="text-sm font-medium">
+                      {statistics.lastBackup 
+                        ? new Date(statistics.lastBackup).toLocaleDateString()
+                        : (language === 'ru' ? 'Нет' : 'None')
+                      }
+                    </p>
+                  </div>
+                  <Clock size={24} className="text-primary" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex flex-wrap gap-3">
+            <Button 
+              onClick={() => createBackup('manual')} 
+              disabled={isBackingUp || isRestoring}
+              className="flex items-center gap-2"
+            >
+              {isBackingUp ? (
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <FloppyDisk size={16} />
+              )}
+              {language === 'ru' ? 'Создать копию' : 'Create Backup'}
+            </Button>
+
+            <Button 
+              variant="outline"
+              onClick={() => settings.autoBackupEnabled ? createAutoBackup() : null}
+              disabled={!settings.autoBackupEnabled || isBackingUp || isRestoring}
+            >
+              <ArrowClockwise size={16} className="mr-2" />
+              {language === 'ru' ? 'Принудительная синхронизация' : 'Force Sync'}
+            </Button>
+
+            {backups.length > 0 && (
+              <Button variant="outline" onClick={() => setSelectedBackup(backups[0])}>
+                <Download size={16} className="mr-2" />
+                {language === 'ru' ? 'Быстрое восстановление' : 'Quick Restore'}
+              </Button>
+            )}
           </div>
 
           {/* Backup Progress */}
-          {isCreating && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Creating backup...</span>
-                <span className="text-sm text-muted-foreground">{backupProgress}%</span>
+          {(isBackingUp || isRestoring) && (
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">
+                  {isBackingUp 
+                    ? (language === 'ru' ? 'Создание резервной копии...' : 'Creating backup...')
+                    : (language === 'ru' ? 'Восстановление...' : 'Restoring...')
+                  }
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {Math.round(isBackingUp ? backupProgress : restoreProgress)}%
+                </span>
               </div>
-              <Progress value={backupProgress} className="w-full" />
+              <Progress value={isBackingUp ? backupProgress : restoreProgress} className="h-2" />
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Backup Configurations */}
-      {(backupConfigs || []).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Gear size={20} />
-              {t('backupConfigs')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {(backupConfigs || []).map((config) => (
-                <div key={config.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium">{config.name}</h4>
-                      <Badge variant={config.isActive ? 'default' : 'secondary'}>
-                        {config.isActive ? t('active') : t('inactive')}
-                      </Badge>
-                      {config.schedule.enabled && (
-                        <Badge variant="outline">{t(config.schedule.frequency)}</Badge>
-                      )}
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="backups" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="backups" className="flex items-center gap-2">
+            <Archive size={16} />
+            {language === 'ru' ? 'Резервные копии' : 'Backups'}
+          </TabsTrigger>
+          <TabsTrigger value="restore-points" className="flex items-center gap-2">
+            <ArrowClockwise size={16} />
+            {language === 'ru' ? 'Точки восстановления' : 'Restore Points'}
+          </TabsTrigger>
+          <TabsTrigger value="schedule" className="flex items-center gap-2">
+            <Timer size={16} />
+            {language === 'ru' ? 'Расписание' : 'Schedule'}
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Backups Tab */}
+        <TabsContent value="backups" className="space-y-4">
+          {backups.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Archive size={64} className="text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">
+                  {language === 'ru' ? 'Нет резервных копий' : 'No Backups Available'}
+                </h3>
+                <p className="text-muted-foreground text-center mb-4">
+                  {language === 'ru' 
+                    ? 'Создайте первую резервную копию для защиты ваших данных'
+                    : 'Create your first backup to protect your data'
+                  }
+                </p>
+                <Button onClick={() => createBackup('manual')}>
+                  <FloppyDisk size={16} className="mr-2" />
+                  {language === 'ru' ? 'Создать первую копию' : 'Create First Backup'}
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {backups.map(backup => (
+                <Card key={backup.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          {getLocationIcon(backup.location)}
+                          <h4 className="font-medium">{backup.name}</h4>
+                          <Badge variant="outline" className="text-xs">
+                            {backup.type}
+                          </Badge>
+                          <div className={`w-2 h-2 rounded-full ${getStatusColor(backup.status)}`} />
+                        </div>
+                        
+                        <div className="grid gap-2 text-sm text-muted-foreground md:grid-cols-2 lg:grid-cols-4">
+                          <div className="flex items-center gap-1">
+                            <Clock size={12} />
+                            {new Date(backup.createdAt).toLocaleString()}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <HardDrives size={12} />
+                            {formatFileSize(backup.size)}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Database size={12} />
+                            {backup.metadata.modules.length} {language === 'ru' ? 'модулей' : 'modules'}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Graph size={12} />
+                            {backup.metadata.completeness}% {language === 'ru' ? 'готов' : 'complete'}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {backup.metadata.modules.map(module => (
+                            <Badge key={module} variant="secondary" className="text-xs">
+                              {module}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => exportBackup(backup)}
+                        >
+                          <Export size={14} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => restoreFromBackup(backup)}
+                          disabled={isBackingUp || isRestoring}
+                        >
+                          <Download size={14} className="mr-1" />
+                          {language === 'ru' ? 'Восстановить' : 'Restore'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteBackup(backup.id)}
+                        >
+                          <Trash size={14} />
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{config.description}</p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                      <span>{t('created')}: {new Date(config.createdAt).toLocaleDateString()}</span>
-                      {config.lastRun && (
-                        <span>{t('lastRun')}: {new Date(config.lastRun).toLocaleDateString()}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline">
-                      <Play size={14} />
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <Gear size={14} />
-                    </Button>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </TabsContent>
 
-      {/* Backup History */}
-      {(backupRecords || []).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Archive size={20} />
-              {t('backupHistory')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-64">
-              <div className="space-y-3">
-                {(backupRecords || []).map((backup) => (
-                  <div key={backup.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant={
-                          backup.status === 'completed' ? 'default' :
-                          backup.status === 'creating' ? 'secondary' :
-                          backup.status === 'failed' ? 'destructive' : 'outline'
-                        }>
-                          {t(backup.status)}
-                        </Badge>
-                        <Badge variant="outline">{backup.type}</Badge>
-                        <span className="text-sm font-medium">{formatFileSize(backup.size)}</span>
+        {/* Restore Points Tab */}
+        <TabsContent value="restore-points" className="space-y-4">
+          {restorePoints.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <ArrowClockwise size={64} className="text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">
+                  {language === 'ru' ? 'Нет точек восстановления' : 'No Restore Points'}
+                </h3>
+                <p className="text-muted-foreground text-center">
+                  {language === 'ru' 
+                    ? 'Точки восстановления создаются автоматически при восстановлении из резервных копий'
+                    : 'Restore points are created automatically when restoring from backups'
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {restorePoints.map(point => (
+                <Card key={point.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <ArrowClockwise size={16} />
+                          <h4 className="font-medium">{point.name}</h4>
+                          {point.isVerified && (
+                            <Badge variant="secondary" className="text-xs">
+                              <CheckCircle size={10} className="mr-1" />
+                              {language === 'ru' ? 'Проверено' : 'Verified'}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {point.description}
+                        </p>
+                        
+                        <div className="text-xs text-muted-foreground">
+                          {language === 'ru' ? 'Создано:' : 'Created:'} {new Date(point.createdAt).toLocaleString()}
+                        </div>
+
+                        <div className="mt-2">
+                          <div className="text-xs font-medium mb-1">
+                            {language === 'ru' ? 'Изменения:' : 'Changes:'}
+                          </div>
+                          <div className="flex gap-4 text-xs">
+                            {point.changes.modified.length > 0 && (
+                              <span className="text-yellow-600">
+                                {point.changes.modified.length} {language === 'ru' ? 'изменено' : 'modified'}
+                              </span>
+                            )}
+                            {point.changes.added.length > 0 && (
+                              <span className="text-green-600">
+                                {point.changes.added.length} {language === 'ru' ? 'добавлено' : 'added'}
+                              </span>
+                            )}
+                            {point.changes.deleted.length > 0 && (
+                              <span className="text-red-600">
+                                {point.changes.deleted.length} {language === 'ru' ? 'удалено' : 'deleted'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(backup.timestamp).toLocaleString()}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {backup.metadata.projectsCount} projects, {backup.metadata.duration}ms
+
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline">
+                          <FolderOpen size={14} className="mr-1" />
+                          {language === 'ru' ? 'Просмотр' : 'View'}
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => restoreFromBackup(backup.id)}
-                        disabled={backup.status !== 'completed'}
-                      >
-                        <Upload size={14} className="mr-1" />
-                        {t('restore')}
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Download size={14} className="mr-1" />
-                        {t('download')}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Schedule Tab */}
+        <TabsContent value="schedule" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Timer size={20} />
+                {language === 'ru' ? 'Автоматическое резервное копирование' : 'Automatic Backup Schedule'}
+              </CardTitle>
+              <CardDescription>
+                {language === 'ru' 
+                  ? 'Настройте расписание автоматического создания резервных копий'
+                  : 'Configure automatic backup creation schedule'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">
+                    {language === 'ru' ? 'Автоматическое резервное копирование' : 'Enable Auto Backup'}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {language === 'ru' 
+                      ? 'Создавать резервные копии автоматически по расписанию'
+                      : 'Create backups automatically on schedule'
+                    }
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.autoBackupEnabled}
+                  onCheckedChange={(checked) => setSettings({ ...settings, autoBackupEnabled: checked })}
+                />
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Restore Points */}
-      {(restorePoints || []).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield size={20} />
-              {t('restorePoints')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {(restorePoints || []).map((point) => (
-                <div key={point.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium">{point.name}</h4>
-                      {point.verified && (
-                        <Badge variant="default">
-                          <CheckCircle size={12} className="mr-1" />
-                          Verified
-                        </Badge>
-                      )}
+              {settings.autoBackupEnabled && (
+                <>
+                  <Separator />
+                  
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <Label htmlFor="backup-interval">
+                        {language === 'ru' ? 'Интервал резервного копирования (минуты)' : 'Backup Interval (minutes)'}
+                      </Label>
+                      <Input
+                        id="backup-interval"
+                        type="number"
+                        value={settings.backupInterval}
+                        onChange={(e) => setSettings({ ...settings, backupInterval: parseInt(e.target.value) || 30 })}
+                        min="5"
+                        max="1440"
+                      />
                     </div>
-                    <p className="text-sm text-muted-foreground">{point.description}</p>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(point.timestamp).toLocaleString()}
+
+                    <div>
+                      <Label htmlFor="max-backups">
+                        {language === 'ru' ? 'Максимум копий' : 'Maximum Backups'}
+                      </Label>
+                      <Input
+                        id="max-backups"
+                        type="number"
+                        value={settings.maxBackups}
+                        onChange={(e) => setSettings({ ...settings, maxBackups: parseInt(e.target.value) || 10 })}
+                        min="1"
+                        max="100"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="retention-days">
+                        {language === 'ru' ? 'Хранить дней' : 'Retention Days'}
+                      </Label>
+                      <Input
+                        id="retention-days"
+                        type="number"
+                        value={settings.retentionDays}
+                        onChange={(e) => setSettings({ ...settings, retentionDays: parseInt(e.target.value) || 30 })}
+                        min="1"
+                        max="365"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="backup-location">
+                        {language === 'ru' ? 'Место хранения' : 'Backup Location'}
+                      </Label>
+                      <Select
+                        value={settings.backupLocation}
+                        onValueChange={(value: 'local' | 'cloud' | 'both') => setSettings({ ...settings, backupLocation: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="local">
+                            {language === 'ru' ? 'Локально' : 'Local Storage'}
+                          </SelectItem>
+                          <SelectItem value="cloud">
+                            {language === 'ru' ? 'Облако' : 'Cloud Storage'}
+                          </SelectItem>
+                          <SelectItem value="both">
+                            {language === 'ru' ? 'Локально и облако' : 'Local & Cloud'}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>
+                        {language === 'ru' ? 'Сжатие' : 'Compression'}
+                      </Label>
+                      <Switch
+                        checked={settings.compressionEnabled}
+                        onCheckedChange={(checked) => setSettings({ ...settings, compressionEnabled: checked })}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <Label>
+                        {language === 'ru' ? 'Шифрование' : 'Encryption'}
+                      </Label>
+                      <Switch
+                        checked={settings.encryptionEnabled}
+                        onCheckedChange={(checked) => setSettings({ ...settings, encryptionEnabled: checked })}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <Label>
+                        {language === 'ru' ? 'Резервное копирование при изменениях' : 'Backup on Changes'}
+                      </Label>
+                      <Switch
+                        checked={settings.backupOnChange}
+                        onCheckedChange={(checked) => setSettings({ ...settings, backupOnChange: checked })}
+                      />
+                    </div>
+                  </div>
+
+                  {statistics.nextScheduledBackup && (
+                    <Alert>
+                      <Info size={16} />
+                      <AlertDescription>
+                        {language === 'ru' ? 'Следующая резервная копия:' : 'Next backup:'} {new Date(statistics.nextScheduledBackup).toLocaleString()}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Settings Dialog */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="max-w-2xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Gear size={20} />
+              {language === 'ru' ? 'Настройки резервного копирования' : 'Backup Settings'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'ru' 
+                ? 'Настройте параметры резервного копирования и восстановления'
+                : 'Configure backup and restore parameters'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            <div className="space-y-6 pr-4">
+              {/* Module Selection */}
+              <div>
+                <Label className="text-sm font-medium">
+                  {language === 'ru' ? 'Модули для резервного копирования' : 'Modules to Backup'}
+                </Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {['kipling', 'ikr', 'audit', 'chat', 'files', 'settings'].map(module => (
+                    <div key={module} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={module}
+                        checked={settings.includeModules.includes(module)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSettings({
+                              ...settings,
+                              includeModules: [...settings.includeModules, module]
+                            });
+                          } else {
+                            setSettings({
+                              ...settings,
+                              includeModules: settings.includeModules.filter(m => m !== module)
+                            });
+                          }
+                        }}
+                      />
+                      <Label htmlFor={module} className="text-sm capitalize">
+                        {module}
+                      </Label>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              {/* Cloud Settings */}
+              {settings.cloudSyncEnabled && (
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">
+                    {language === 'ru' ? 'Настройки облачного хранилища' : 'Cloud Storage Settings'}
+                  </Label>
+                  
+                  <Select
+                    value={cloudCredentials.provider}
+                    onValueChange={(value) => setCloudCredentials({ ...cloudCredentials, provider: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={language === 'ru' ? 'Выберите провайдера' : 'Select provider'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{language === 'ru' ? 'Нет' : 'None'}</SelectItem>
+                      <SelectItem value="aws">Amazon S3</SelectItem>
+                      <SelectItem value="gcp">Google Cloud</SelectItem>
+                      <SelectItem value="azure">Azure Blob</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {cloudCredentials.provider !== 'none' && (
+                    <div className="grid gap-3">
+                      <Input
+                        placeholder={language === 'ru' ? 'Ключ доступа' : 'Access Key'}
+                        type="password"
+                        value={cloudCredentials.accessKey}
+                        onChange={(e) => setCloudCredentials({ ...cloudCredentials, accessKey: e.target.value })}
+                      />
+                      <Input
+                        placeholder={language === 'ru' ? 'Секретный ключ' : 'Secret Key'}
+                        type="password"
+                        value={cloudCredentials.secretKey}
+                        onChange={(e) => setCloudCredentials({ ...cloudCredentials, secretKey: e.target.value })}
+                      />
+                      <Input
+                        placeholder={language === 'ru' ? 'Bucket/Container' : 'Bucket/Container'}
+                        value={cloudCredentials.bucket}
+                        onChange={(e) => setCloudCredentials({ ...cloudCredentials, bucket: e.target.value })}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Exclude Patterns */}
+              <div>
+                <Label className="text-sm font-medium">
+                  {language === 'ru' ? 'Исключить из копирования' : 'Exclude Patterns'}
+                </Label>
+                <Textarea
+                  value={settings.excludePatterns.join('\n')}
+                  onChange={(e) => setSettings({
+                    ...settings,
+                    excludePatterns: e.target.value.split('\n').filter(p => p.trim())
+                  })}
+                  placeholder="*.tmp\n*.log\n*.cache"
+                  rows={3}
+                  className="mt-2"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setShowSettings(false)}>
+                  {language === 'ru' ? 'Отмена' : 'Cancel'}
+                </Button>
+                <Button onClick={() => {
+                  localStorage.setItem(`backup-settings-${projectId}`, JSON.stringify(settings));
+                  setShowSettings(false);
+                }}>
+                  <FloppyDisk size={16} className="mr-2" />
+                  {language === 'ru' ? 'Сохранить' : 'Save Settings'}
+                </Button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Backup Detail Dialog */}
+      {selectedBackup && (
+        <Dialog open={!!selectedBackup} onOpenChange={() => setSelectedBackup(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Archive size={20} />
+                {selectedBackup.name}
+              </DialogTitle>
+              <DialogDescription>
+                {language === 'ru' ? 'Подробная информация о резервной копии' : 'Backup details and restore options'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label className="text-sm font-medium">
+                    {language === 'ru' ? 'Размер' : 'Size'}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">{formatFileSize(selectedBackup.size)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">
+                    {language === 'ru' ? 'Создано' : 'Created'}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">{new Date(selectedBackup.createdAt).toLocaleString()}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">
+                    {language === 'ru' ? 'Тип' : 'Type'}
+                  </Label>
+                  <p className="text-sm text-muted-foreground capitalize">{selectedBackup.type}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">
+                    {language === 'ru' ? 'Местоположение' : 'Location'}
+                  </Label>
+                  <p className="text-sm text-muted-foreground capitalize">{selectedBackup.location}</p>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">
+                  {language === 'ru' ? 'Включенные модули' : 'Included Modules'}
+                </Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedBackup.metadata.modules.map(module => (
+                    <Badge key={module} variant="secondary" className="text-xs">
+                      {module}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">
+                  {language === 'ru' ? 'Контрольная сумма' : 'Checksum'}
+                </Label>
+                <p className="text-xs font-mono text-muted-foreground">{selectedBackup.metadata.checksum}</p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => exportBackup(selectedBackup)}>
+                  <Export size={16} className="mr-2" />
+                  {language === 'ru' ? 'Экспорт' : 'Export'}
+                </Button>
+                <Button 
+                  onClick={() => {
+                    restoreFromBackup(selectedBackup);
+                    setSelectedBackup(null);
+                  }}
+                  disabled={isBackingUp || isRestoring}
+                >
+                  <Download size={16} className="mr-2" />
+                  {language === 'ru' ? 'Восстановить' : 'Restore'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
