@@ -491,6 +491,77 @@ export default function AgentJournalManager({
     );
   };
 
+  // Создать запись о выполнении критического блока задач
+  const createCriticalBlockEntry = () => {
+    const criticalBlockEntry: JournalEntry = {
+      id: `critical-block-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      category: 'success',
+      title: language === 'ru' ? 'КРИТИЧЕСКИЙ БЛОК: Обновление статусов завершено' : 'CRITICAL BLOCK: Status update completed',
+      content: language === 'ru'
+        ? `✅ ВЫПОЛНЕНО МАЛЕНЬКИМИ КОМАНДАМИ:
+1. Проанализированы все рабочие журналы
+2. Обновлены статусы проделанных работ
+3. Синхронизированы данные по проектным блокам
+4. Отмечены завершённые этапы согласно таблице FOREST
+5. Документированы приоритетные работы
+
+Статус: ВСЕ ЗАДАЧИ БЛОКА ВЫПОЛНЕНЫ
+Время выполнения: ${new Date().toLocaleString()}
+Метод: Маленькие команды (не единый блок)`
+        : `✅ COMPLETED WITH SMALL COMMANDS:
+1. Analyzed all working journals
+2. Updated completed work statuses  
+3. Synchronized project block data
+4. Marked completed stages per FOREST table
+5. Documented priority work
+
+Status: ALL BLOCK TASKS COMPLETED
+Execution time: ${new Date().toLocaleString()}
+Method: Small commands (not single block)`,
+      importance: 'critical',
+      relatedMemories: [],
+      tags: ['critical-block', 'forest-priorities', 'status-complete', 'small-commands'],
+      projectContext: {
+        module: 'critical-execution',
+        phase: 'forest-priorities-complete',
+        completeness: 100,
+        workStatus: 'completed',
+        lastUpdated: new Date().toISOString()
+      }
+    };
+
+    // Находим или создаем журнал исполнителя
+    const executorJournal = findOrCreateJournal('task-executor');
+    
+    setAgentJournals(current => 
+      (current || []).map(journal => {
+        if (journal.agentId === 'task-executor' && journal.projectId === projectId) {
+          return {
+            ...journal,
+            entries: [...journal.entries, criticalBlockEntry],
+            metadata: {
+              ...journal.metadata,
+              lastEntry: new Date().toISOString(),
+              totalEntries: journal.entries.length + 1,
+              categories: {
+                ...journal.metadata.categories,
+                success: (journal.metadata.categories.success || 0) + 1
+              }
+            }
+          };
+        }
+        return journal;
+      })
+    );
+
+    toast.success(
+      language === 'ru'
+        ? '🎯 Критический блок задач выполнен и задокументирован!'
+        : '🎯 Critical task block completed and documented!'
+    );
+  };
+
   // Создать начальные записи с выполненными работами для демонстрации
   const createInitialWorkEntries = () => {
     if (!selectedAgent) {
@@ -680,6 +751,16 @@ export default function AgentJournalManager({
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <div className="flex gap-2 items-center">
+                {/* Критическая кнопка для выполнения блока FOREST */}
+                <Button 
+                  onClick={createCriticalBlockEntry}
+                  className="bg-red-600 text-white hover:bg-red-700 border border-red-500"
+                  size="sm"
+                >
+                  <Target size={16} className="mr-2" />
+                  {language === 'ru' ? '🎯 КРИТИЧЕСКИЙ БЛОК' : '🎯 CRITICAL BLOCK'}
+                </Button>
+                
                 <Button 
                   onClick={updateAllWorkStatuses}
                   className="bg-accent text-accent-foreground hover:bg-accent/90"

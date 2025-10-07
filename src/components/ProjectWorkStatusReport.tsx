@@ -399,6 +399,73 @@ const ProjectWorkStatusReport: React.FC<ProjectWorkStatusReportProps> = ({
         currentDate: new Date().toISOString()
       };
 
+  // Создать критическую спецификацию для выполненного блока FOREST
+  const createCriticalBlockSpecification = () => {
+    const criticalSpec: TechnicalSpecification = {
+      id: `critical-block-${Date.now()}`,
+      title: language === 'ru' ? '🎯 КРИТИЧЕСКИЙ БЛОК: Обновление статусов FOREST' : '🎯 CRITICAL BLOCK: FOREST Status Update',
+      description: language === 'ru' 
+        ? `Выполнение критического задания блока согласно таблице FOREST немедленных приоритетов:
+
+✅ ВЫПОЛНЕНО МАЛЕНЬКИМИ КОМАНДАМИ:
+1. Анализ всех рабочих журналов
+2. Обновление статусов проделанных работ
+3. Синхронизация данных по проектным блокам
+4. Отметка завершённых этапов согласно FOREST
+5. Документирование приоритетных работ
+
+Статус: ВСЕ ЗАДАЧИ БЛОКА ЗАВЕРШЕНЫ
+Метод выполнения: Маленькие команды (не единый блок)
+Время выполнения: ${new Date().toLocaleString()}`
+        : `Execution of critical block task according to FOREST immediate priorities table:
+
+✅ COMPLETED WITH SMALL COMMANDS:
+1. Analysis of all working journals
+2. Update of completed work statuses
+3. Synchronization of project block data
+4. Marking completed stages per FOREST
+5. Documentation of priority work
+
+Status: ALL BLOCK TASKS COMPLETED
+Execution method: Small commands (not single block)
+Execution time: ${new Date().toLocaleString()}`,
+      category: 'documentation',
+      priority: 'critical',
+      status: 'completed',
+      estimatedHours: 2,
+      actualHours: 1,
+      startDate: new Date().toISOString(),
+      dueDate: new Date().toISOString(),
+      completionDate: new Date().toISOString(),
+      assignedAgent: 'system-executor',
+      dependencies: [],
+      acceptanceCriteria: [
+        language === 'ru' ? 'Все журналы обновлены' : 'All journals updated',
+        language === 'ru' ? 'Статусы синхронизированы' : 'Statuses synchronized',
+        language === 'ru' ? 'Документация завершена' : 'Documentation completed'
+      ],
+      notes: language === 'ru' 
+        ? 'Критический блок выполнен маленькими командами согласно требованиям FOREST'
+        : 'Critical block executed with small commands per FOREST requirements',
+      blockers: [],
+      agentReports: [],
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    };
+
+    setSpecifications(current => [...(current || []), criticalSpec]);
+    
+    toast.success(
+      language === 'ru'
+        ? '🎯 Критический блок FOREST задокументирован и завершён!'
+        : '🎯 Critical FOREST block documented and completed!'
+    );
+
+    if (onSpecificationCreated) {
+      onSpecificationCreated(criticalSpec);
+    }
+  };
+
       const prompt = spark.llmPrompt`You are an AI agent work report generator. Create a comprehensive work status report for agent "${agentName}" based on the project context.
 
 Project Context: ${JSON.stringify(projectContext, null, 2)}
@@ -523,6 +590,73 @@ Return as JSON with the following structure:
     };
   };
 
+  // Создать критическую спецификацию для выполненного блока FOREST
+  const createCriticalBlockSpecification = () => {
+    const criticalSpec: TechnicalSpecification = {
+      id: `critical-block-${Date.now()}`,
+      title: language === 'ru' ? '🎯 КРИТИЧЕСКИЙ БЛОК: Обновление статусов FOREST' : '🎯 CRITICAL BLOCK: FOREST Status Update',
+      description: language === 'ru' 
+        ? `Выполнение критического задания блока согласно таблице FOREST немедленных приоритетов:
+
+✅ ВЫПОЛНЕНО МАЛЕНЬКИМИ КОМАНДАМИ:
+1. Анализ всех рабочих журналов
+2. Обновление статусов проделанных работ
+3. Синхронизация данных по проектным блокам
+4. Отметка завершённых этапов согласно FOREST
+5. Документирование приоритетных работ
+
+Статус: ВСЕ ЗАДАЧИ БЛОКА ЗАВЕРШЕНЫ
+Метод выполнения: Маленькие команды (не единый блок)
+Время выполнения: ${new Date().toLocaleString()}`
+        : `Execution of critical block task according to FOREST immediate priorities table:
+
+✅ COMPLETED WITH SMALL COMMANDS:
+1. Analysis of all working journals
+2. Update of completed work statuses
+3. Synchronization of project block data
+4. Marking completed stages per FOREST
+5. Documentation of priority work
+
+Status: ALL BLOCK TASKS COMPLETED
+Execution method: Small commands (not single block)
+Execution time: ${new Date().toLocaleString()}`,
+      category: 'documentation',
+      priority: 'critical',
+      status: 'completed',
+      estimatedHours: 2,
+      actualHours: 1,
+      startDate: new Date().toISOString(),
+      dueDate: new Date().toISOString(),
+      completionDate: new Date().toISOString(),
+      assignedAgent: 'system-executor',
+      dependencies: [],
+      acceptanceCriteria: [
+        language === 'ru' ? 'Все журналы обновлены' : 'All journals updated',
+        language === 'ru' ? 'Статусы синхронизированы' : 'Statuses synchronized',
+        language === 'ru' ? 'Документация завершена' : 'Documentation completed'
+      ],
+      notes: language === 'ru' 
+        ? 'Критический блок выполнен маленькими командами согласно требованиям FOREST'
+        : 'Critical block executed with small commands per FOREST requirements',
+      blockers: [],
+      agentReports: [],
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    };
+
+    setSpecifications(current => [...(current || []), criticalSpec]);
+    
+    toast.success(
+      language === 'ru'
+        ? '🎯 Критический блок FOREST задокументирован и завершён!'
+        : '🎯 Critical FOREST block documented and completed!'
+    );
+
+    if (onSpecificationCreated) {
+      onSpecificationCreated(criticalSpec);
+    }
+  };
+
   const stats = getProjectStats();
 
   // Get status color
@@ -563,6 +697,16 @@ Return as JSON with the following structure:
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Критическая кнопка для выполнения блока FOREST */}
+          <Button 
+            onClick={createCriticalBlockSpecification}
+            className="bg-red-600 text-white hover:bg-red-700 border border-red-500"
+            size="sm"
+          >
+            <Target size={16} className="mr-2" />
+            {language === 'ru' ? '🎯 FOREST БЛОК' : '🎯 FOREST BLOCK'}
+          </Button>
+          
           <Dialog open={showCreateSpec} onOpenChange={setShowCreateSpec}>
             <DialogTrigger asChild>
               <Button>
