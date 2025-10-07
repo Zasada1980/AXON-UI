@@ -332,7 +332,7 @@ const ErrorMonitoring: React.FC<ErrorMonitoringProps> = ({
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
-            {(metrics || []).map(metric => (
+            {Array.isArray(metrics) ? metrics.map(metric => (
               <Card key={metric.id} className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium text-sm">{metric.name}</h4>
@@ -354,7 +354,7 @@ const ErrorMonitoring: React.FC<ErrorMonitoringProps> = ({
                   </div>
                 </div>
               </Card>
-            ))}
+            )) : null}
           </div>
         </CardContent>
       </Card>

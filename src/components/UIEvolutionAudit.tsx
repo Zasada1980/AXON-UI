@@ -755,7 +755,7 @@ Return as JSON with property "suggestions" containing array of objects with: tit
           {/* Metrics Tab */}
           <TabsContent value="metrics" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {latestSession.metrics.map((metric) => (
+              {latestSession?.metrics?.map((metric) => (
                 <Card key={metric.id} className="relative ui-audit-metric-card">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
