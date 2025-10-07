@@ -6,6 +6,9 @@ import KiplingAnalysisPage from './pages/KiplingAnalysisPage';
 import IntelligencePage from './pages/IntelligencePage';
 import FilesPage from './pages/FilesPage';
 import DiagnosticsPage from './pages/DiagnosticsPage';
+import IKRDirectivePage from './pages/IKRDirectivePage';
+import AuditPage from './pages/AuditPage';
+import DebatePage from './pages/DebatePage';
 import UnderDevelopmentPage from './pages/UnderDevelopmentPage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -357,6 +360,33 @@ function App() {
       case 'kipling':
         return (
           <KiplingAnalysisPage
+            language={currentLanguage}
+            projectId={projectData.id}
+            onNavigate={handleNavigate}
+          />
+        );
+        
+      case 'ikr':
+        return (
+          <IKRDirectivePage
+            language={currentLanguage}
+            projectId={projectData.id}
+            onNavigate={handleNavigate}
+          />
+        );
+        
+      case 'audit':
+        return (
+          <AuditPage
+            language={currentLanguage}
+            projectId={projectData.id}
+            onNavigate={handleNavigate}
+          />
+        );
+        
+      case 'debate':
+        return (
+          <DebatePage
             language={currentLanguage}
             projectId={projectData.id}
             onNavigate={handleNavigate}
