@@ -25,6 +25,8 @@ import ExternalAPIIntegrator from './components/ExternalAPIIntegrator';
 import VersionControlSystem from './components/VersionControlSystem';
 import LocalAgentExecutor from './components/LocalAgentExecutor';
 import GlobalProjectSettings from './components/GlobalProjectSettings';
+import IntelligenceGathering from './components/IntelligenceGathering';
+import SourceCredibilityAssessment from './components/SourceCredibilityAssessment';
 import NotificationSystem, { 
   notifyTaskCompleted, 
   notifyBlockerDetected, 
@@ -2677,6 +2679,10 @@ Return as JSON with property "recommendations" containing array of recommendatio
                       <ChartLine size={14} />
                       {t('overview')}
                     </TabsTrigger>
+                    <TabsTrigger value="intelligence" className="flex items-center gap-2">
+                      <MagnifyingGlass size={14} />
+                      Intelligence
+                    </TabsTrigger>
                     <TabsTrigger value="kipling" className="flex items-center gap-2">
                       <Users size={14} />
                       {t('kipling')}
@@ -2947,6 +2953,39 @@ Return as JSON with property "recommendations" containing array of recommendatio
                     </Card>
                   ))}
                 </div>
+              </TabsContent>
+
+              {/* Intelligence Gathering Tab */}
+              <TabsContent value="intelligence" className="space-y-6">
+                <IntelligenceGathering
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onIntelligenceGathered={(data) => {
+                    toast.success(`Intelligence collected: ${data.method}`, {
+                      description: `${data.dataCollected} data points gathered`
+                    });
+                  }}
+                  onGapIdentified={(gap) => {
+                    toast.info(`Information gap identified: ${gap.area}`, {
+                      description: `Priority: ${gap.priority} - ${gap.estimatedResolution}`
+                    });
+                  }}
+                />
+                
+                <SourceCredibilityAssessment
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onSourceAssessed={(source) => {
+                    toast.success(`Source assessed: ${source.name}`, {
+                      description: `Credibility score: ${source.credibilityScore.overall}%`
+                    });
+                  }}
+                  onVerificationCompleted={(verification) => {
+                    toast.info(`Verification completed: ${verification.method}`, {
+                      description: `Status: ${verification.status}`
+                    });
+                  }}
+                />
               </TabsContent>
 
               {/* Kipling Protocol Tab */}
