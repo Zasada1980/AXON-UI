@@ -37,6 +37,7 @@ import TaskIntegrationTracker from './components/TaskIntegrationTracker';
 import AIOrchestrator from './components/AIOrchestrator';
 import AdvancedCognitiveAnalysis from './components/AdvancedCognitiveAnalysis';
 import CollaborativeAnalysis from './components/CollaborativeAnalysis';
+import MasterReportJournal from './components/MasterReportJournal';
 import NotificationSystem, { 
   notifyTaskCompleted, 
   notifyBlockerDetected, 
@@ -94,7 +95,8 @@ import {
   Headphones,
   Bell,
   MagnifyingGlass,
-  Cpu
+  Cpu,
+  Database
 } from '@phosphor-icons/react';
 
 // Declare global spark object
@@ -438,6 +440,16 @@ const translations: Translations = {
   previousStep: { en: 'Previous Step', ru: 'Предыдущий Шаг' },
   nextStep: { en: 'Next Step', ru: 'Следующий Шаг' },
   finishTutorial: { en: 'Finish Tutorial', ru: 'Завершить Обучение' },
+  
+  // Master Report Journal
+  masterJournal: { en: 'Master Journal', ru: 'Мастер-Журнал' },
+  masterReportJournal: { en: 'Master Report Journal', ru: 'Мастер-Журнал Отчетов' },
+  journalDescription: { en: 'Centralized logging and processing of all system reports', ru: 'Централизованное журналирование и обработка всех системных отчетов' },
+  journalAllReports: { en: 'Journal All Reports', ru: 'Занести Все Отчеты' },
+  executeNextBlock: { en: 'Execute Next Block', ru: 'Выполнить Следующий Блок' },
+  reportJournaled: { en: 'Report journaled successfully', ru: 'Отчет успешно занесен в журнал' },
+  blockExecuted: { en: 'Task block executed successfully', ru: 'Блок задач успешно выполнен' },
+  systemUpdate: { en: 'System update', ru: 'Обновление системы' },
   
   // Help Categories
   gettingStarted: { en: 'Getting Started', ru: 'Начало Работы' },
@@ -1612,6 +1624,32 @@ function App() {
 
     return () => clearInterval(autoSaveInterval);
   }, [project]);
+
+  // Auto-trigger master journal when project is loaded
+  useEffect(() => {
+    if (project && activeTab === 'master-journal') {
+      // Auto-generate initial system report when master journal tab is accessed
+      const hasInitialReport = project && (project as any).hasInitialMasterReport;
+      
+      if (!hasInitialReport) {
+        toast.info(
+          currentLanguage === 'ru' 
+            ? 'Подготовка системных отчетов...' 
+            : 'Preparing system reports...',
+          { duration: 2000 }
+        );
+        
+        // Mark as having initial report to prevent re-triggering
+        setProjects(current => 
+          (current || []).map(p => 
+            p.id === project.id 
+              ? { ...p, hasInitialMasterReport: true }
+              : p
+          )
+        );
+      }
+    }
+  }, [project, activeTab, currentLanguage]);
 
   // Performance monitoring
   useEffect(() => {
@@ -2937,6 +2975,10 @@ Return as JSON with property "recommendations" containing array of recommendatio
                     <TabsTrigger value="collaboration" className="flex items-center gap-2">
                       <Users size={14} />
                       {language === 'ru' ? 'Совместная Работа' : 'Collaboration'}
+                    </TabsTrigger>
+                    <TabsTrigger value="master-journal" className="flex items-center gap-2">
+                      <Database size={14} />
+                      {language === 'ru' ? 'Мастер-Журнал' : 'Master Journal'}
                     </TabsTrigger>
                     <TabsTrigger value="settings" className="flex items-center gap-2">
                       <Gear size={14} />
@@ -4584,6 +4626,29 @@ Return as JSON with property "recommendations" containing array of recommendatio
                   onConsensusReached={(consensus) => {
                     toast.success(`Consensus reached: ${consensus.topic}`);
                     notifyTaskCompleted(`Team consensus reached: ${consensus.topic}`, project.id);
+                  }}
+                />
+              </TabsContent>
+
+              {/* Master Report Journal Tab */}
+              <TabsContent value="master-journal" className="space-y-6">
+                <MasterReportJournal
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onReportJournaled={(report) => {
+                    toast.success(`Report journaled: ${report.title}`);
+                    notifyTaskCompleted(`Report generated and journaled: ${report.sourceModule}`, project.id);
+                  }}
+                  onTaskBlockExecuted={(block) => {
+                    toast.success(`Task block executed: ${block.name}`);
+                    notifyIntegrationComplete(`Task block "${block.name}" started execution`, project.id);
+                  }}
+                  onSystemUpdate={(update) => {
+                    if (update.type === 'task_block_execution') {
+                      toast.info(`System update: ${update.type}`, {
+                        description: `Block ${update.blockId} status: ${update.status}`
+                      });
+                    }
                   }}
                 />
               </TabsContent>
