@@ -2070,6 +2070,126 @@ Respond naturally and helpfully.`;
     return Math.round((dimensionCompleteness + ikrCompleteness) / 2);
   };
 
+  // Apply pre-prepared questionnaire responses to project
+  const applyPreparedAnalysis = () => {
+    if (!project) return;
+
+    // Pre-prepared responses from expert analysis
+    const preparedResponses = {
+      'who-primary-actors': 'Основными участниками являются: **Заказчик** (пользователь, который инициирует задачи) и **Исполнительная система** (оркестр когнитивных агентов). Ключевые роли в системе включают: **Архитектор (АНАЛИТИК):** Центральный управляющий агент, ответственный за декомпозицию задач, выбор стратегии и контроль качества. **Когнитивные модули:** Специализированные агенты (`analyze-5w1h`, `forge-disney`, `solve-triz` и др.), выполняющие конкретные функции. **Пользователь:** Взаимодействует с системой, задает цели и предоставляет обратную связь.',
+
+      'who-secondary-influences': 'Вторичными влияниями являются **внешние системы и источники данных**, такие как CRM, Excel, базы данных и API, с которыми интегрируется платформа. Также сюда можно отнести **регуляторные требования** и **стандарты безопасности**, которые формируют ограничения для `execute-ifr` модуля.',
+
+      'who-opposition-resistance': 'Основные источники сопротивления — это **когнитивные искажения** (например, FOMO, от которого защищает модуль `guard-fomo`) и **системные противоречия**, где улучшение одного параметра ухудшает другой (проблема решается модулем `solve-triz`). Также препятствием является **"чрезмерная формализация"** и **"7 ловушек"** мышления, которые система спроектирована обходить.',
+
+      'who-target-audience': 'Целевой аудиторией являются **пользователи-эксперты**, которые могут напрямую управлять модулями, и **менеджеры/руководители**, которые используют систему в режимах «Второго пилота» или «Делегирования» для решения бизнес-задач, таких как создание контента, бизнес-аналитика и управление рисками.',
+
+      'what-core-issue': 'Основная проблема заключается в создании **"бесконфликтной архитектуры"** для интеллектуального агента, способного решать сложные задачи без деградации производительности и потери контекста. Система должна эффективно оркестрировать работу узкоспециализированных когнитивных модулей, избегая "7 ловушек" (например, агент без рамок, без роли, без проверки), чтобы достичь **Идеального Конечного Результата (ИКР)**.',
+
+      'what-current-situation': 'В настоящее время проект находится на стадии активной разработки и итеративного улучшения. Ведется работа над созданием веб-интерфейса, интеграцией различных когнитивных модулей (Kipling, Disney, ТРИЗ) и формализацией операционных плейбуков ("связок"). Система проходит через циклы тестирования для обеспечения стабильности и соответствия архитектурным принципам.',
+
+      'what-desired-outcome': 'Желаемое конечное состояние — это **Идеальный Конечный Результат (ИКР)**, где "желаемая функция выполняется, а проблема исчезает \'сама собой\', без усложнения системы и с минимальными затратами". На практике это означает создание полностью автономной, самообучающейся и отказоустойчивой системы, которая предсказуемо и эффективно решает задачи пользователя.',
+
+      'what-constraints-limitations': 'Ключевые ограничения включают **"Незыблемые ограничения" (Красные линии)**: **Операционная безопасность:** Запрет на непроверяемое делегирование, ослабление безопасности и ручное редактирование артефактов. **Информационная целостность:** Запрет на фабрикацию информации, обязательная прозрачность уверенности и проактивное раскрытие рисков. **Технические ограничения:** Необходимость интеграции с существующими системами и источниками данных, а также обеспечение стабильной работы в Docker-окружении.',
+
+      'what-available-resources': 'Доступны следующие ресурсы: **Когнитивные модули:** `analyze-5w1h`, `forge-disney`, `ideate-scamper`, `solve-triz`, `monitor-kpi`, `guard-fomo`, `execute-ifr`. **Инфраструктура:** Docker для контейнеризации, FastAPI для бэкенда, Next.js/React для фронтенда. **База знаний:** Обширный репозиторий с технической документацией, журналами проектов, отчетами и спецификациями.',
+
+      'when-timeline-critical': 'Проект является долгосрочным и итерационным. Судя по датам в логах и отчетах (например, `PROJECT_FULL_STATUS_2025-09-12.md`), активная фаза разработки приходится на 2025 год. Критические временные факторы связаны с переходом между уровнями зрелости проекта (Level 1 -> Level 2 -> Level 3), что требует последовательного выполнения задач по дорожной карте.',
+
+      'when-historical-context': 'Исторический контекст — это предыдущие версии и стадии проекта ("Wave 1", "Wave 2"). Файлы `HISTORY_FULL.md` и `Wave2_Journal_S2-FIX_to_S3.md` описывают извлеченные уроки, ошибки ("косяки агента") и успешные решения, которые влияют на текущую архитектуру и предотвращают регрессии.',
+
+      'when-decision-points': 'Ключевые решения принимаются на стыке этапов разработки (например, при переходе от MVP к полной реализации). Оркестратор принимает решения о выборе рабочего процесса ("ускоренный", "стандартный", "полный формальный") в реальном времени на основе "когнитивного триажа" задачи. Вмешательства человека (Human-in-the-Loop) запрашиваются на ключевых этапах для подтверждения или выбора опций.',
+
+      'when-monitoring-intervals': 'Прогресс оценивается непрерывно с помощью модуля `monitor-kpi`, который отслеживает метрики в реальном времени. Формат оповещения ("Внимание: [Техническая метрика] изменилась на Х%, что создает прогнозируемый риск...") предполагает немедленную реакцию на отклонения. Также проводятся регулярные аудиты и формируются отчеты о статусе (например, `TEST_REPORT_2025-09-05.md`).',
+
+      'where-geographic-scope': 'Ситуация происходит в цифровом пространстве. Система разворачивается в локальном Docker-окружении (`docker-compose.yml`), что подразумевает ее независимость от географического местоположения и возможность работы в изолированных сетях.',
+
+      'where-organizational-context': 'Система позиционируется как центральный "мозг" или "оркестр", управляющий другими системами. Она встраивается в существующие рабочие процессы, такие как создание контента ("Контент-Конвейер") и бизнес-аналитика ("Быстрые Отчёты"), и взаимодействует с CRM, базами данных и другими корпоративными инструментами.',
+
+      'where-information-sources': 'Надежная информация находится в локальном репозитории проекта. Ключевые источники: `docs/`, `KNOWLEDGE_BASE.md`, `PROJECT_MASTER_JOURNAL.md`, технические задания (`ТЗ_*.md`), а также отчеты и логи в директориях `report/` и `archive/`. Для выполнения задач в режиме `execute-ifr` используется "белый список" утвержденных источников данных.',
+
+      'where-implementation-locations': 'Решения реализуются внутри архитектуры самой системы — в виде новых когнитивных модулей, операционных плейбуков или улучшений в механизме оркестрации. Особого рассмотрения требуют точки интеграции с внешними системами и пользовательский интерфейс (`localai-debates`), где важна надежность и предсказуемость поведения.',
+
+      'why-root-causes': 'Ситуация (разработка данной системы) обусловлена необходимостью преодолеть ограничения традиционных монолитных LLM-агентов. Первопричины — это их склонность к "галлюцинациям", потере контекста в длинных задачах и отсутствию надежных механизмов проверки. Движущий фактор — стремление к созданию системы когнитивной специализации, где каждая задача решается наиболее подходящим инструментом.',
+
+      'why-stakeholder-motivations': '**Пользователей** мотивирует желание получить надежный и эффективный инструмент для решения сложных задач. **Разработчиков** мотивирует архитектурный вызов создания стабильной и масштабируемой AI-системы. **Систему (в лице Архитектора)** мотивирует стремление к достижению Идеального Конечного Результата и соблюдение заложенных в нее принципов.',
+
+      'why-importance-urgency': 'Этот анализ важен для верификации того, что разработка движется в соответствии с основополагающими архитектурными принципами (протокол IKR, "бесконфликтная архитектура"). Срочность обусловлена необходимостью на ранних этапах выявлять отклонения от заданной архитектуры, чтобы избежать накопления технического долга и деградации системы.',
+
+      'why-potential-consequences': 'Бездействие или отклонение от архитектурных принципов приведет к созданию непредсказуемого, ненадежного и небезопасного агента, подверженного "7 ловушкам". Это может повлечь за собой генерацию неверной информации, нарушение протоколов безопасности и, в конечном счете, провал проекта. Действия, соответствующие протоколу, ведут к созданию надежной и эффективной системы.',
+
+      'how-current-approaches': 'Используется гибридный механизм оркестрации с тремя уровнями управления: прямое, "второй пилот" и автономное. Применяется "когнитивный триаж" для выбора оптимального рабочего процесса. Разработка ведется на основе четко формализованных когнитивных модулей с уникальными ролями и операционными плейбуками для стандартизации типовых задач.',
+
+      'how-information-gathering': 'Информация собирается путем анализа файлов в репозитории с помощью инструмента `File Fetcher`. Проверка (валидация) осуществляется через внутренний контур обеспечения качества, который включает эвристические оценщики, прокси-метрики и обратную связь от человека. Модуль `analyze-5w1h` используется для структурирования нечетких данных.',
+
+      'how-success-measurement': 'Успех измеряется через `monitor-kpi` модуль, который отслеживает иерархию метрик: от технических индикаторов (например, время ответа, % ошибок) до бизнес-показателей (например, ER в контенте, % выполнения плана). Конечным мерилом успеха является степень приближения к Идеальному Конечному Результату (ИКР).',
+
+      'how-risk-mitigation': 'Риски выявляются проактивно. Модуль `guard-fomo` идентифицирует риски когнитивных искажений. Модуль `forge-disney` включает фазу "Критик" для оценки рисков новых идей. При обнаружении высокого риска или входа метрик в "красную зону" активируется отказоустойчивый режим `execute-ifr`, который минимизирует отклонения от утвержденного плана.',
+
+      'how-adaptation-learning': 'Адаптация происходит через **критический контур обратной связи**, где внутренние метрики качества напрямую влияют на выбор рабочих процессов Оркестратором. Это позволяет системе самообучаться. Новая информация из чатов и документов может быть интегрирована в `KNOWLEDGE_BASE.md` для постоянного обновления базы знаний агента.'
+    };
+
+    // Map responses to dimensions
+    const dimensionMapping: Record<string, string[]> = {
+      who: ['who-primary-actors', 'who-secondary-influences', 'who-opposition-resistance', 'who-target-audience'],
+      what: ['what-core-issue', 'what-current-situation', 'what-desired-outcome', 'what-constraints-limitations', 'what-available-resources'],
+      when: ['when-timeline-critical', 'when-historical-context', 'when-decision-points', 'when-monitoring-intervals'],
+      where: ['where-geographic-scope', 'where-organizational-context', 'where-information-sources', 'where-implementation-locations'],
+      why: ['why-root-causes', 'why-stakeholder-motivations', 'why-importance-urgency', 'why-potential-consequences'],
+      how: ['how-current-approaches', 'how-information-gathering', 'how-success-measurement', 'how-risk-mitigation', 'how-adaptation-learning']
+    };
+
+    // IKR mapping from prepared responses
+    const ikrDirectiveContent = {
+      intelligence: [
+        preparedResponses['how-information-gathering'],
+        preparedResponses['where-information-sources'],
+        preparedResponses['what-available-resources']
+      ].join('\n\n'),
+      knowledge: [
+        preparedResponses['what-core-issue'],
+        preparedResponses['why-root-causes'],
+        preparedResponses['when-historical-context']
+      ].join('\n\n'),
+      reasoning: [
+        preparedResponses['what-desired-outcome'],
+        preparedResponses['how-success-measurement'],
+        preparedResponses['how-adaptation-learning']
+      ].join('\n\n')
+    };
+
+    // Update project with prepared analysis
+    setProjects(current => 
+      (current || []).map(p => 
+        p.id === project.id 
+          ? {
+              ...p,
+              lastModified: new Date().toISOString(),
+              dimensions: p.dimensions.map(d => {
+                const questionIds = dimensionMapping[d.id] || [];
+                const content = questionIds.map(id => preparedResponses[id]).filter(Boolean).join('\n\n');
+                return {
+                  ...d,
+                  content: content || d.content,
+                  completeness: content ? Math.min(100, content.length / 50) : d.completeness
+                };
+              }),
+              ikrDirective: ikrDirectiveContent
+            }
+          : p
+      )
+    );
+
+    // Switch to overview tab to see results
+    setActiveTab('overview');
+    
+    toast.success(
+      currentLanguage === 'ru' 
+        ? 'Экспертный анализ успешно применен к проекту!'
+        : 'Expert analysis successfully applied to project!'
+    );
+  };
+
   // Generate insights using LLM with enhanced context awareness
   const generateInsights = async (dimensionId: string) => {
     if (!project) return;
@@ -2981,10 +3101,49 @@ Return as JSON with property "recommendations" containing array of recommendatio
               {/* Intelligence Gathering Tab */}
               <TabsContent value="intelligence" className="space-y-6">
                 {!showQuestionnaire && !showQuestionnaireResults && (
-                  <KiplingQuestionPreview
-                    language={currentLanguage}
-                    onStartQuestionnaire={() => setShowQuestionnaire(true)}
-                  />
+                  <>
+                    {/* Expert Analysis Quick Apply */}
+                    <Card className="border-accent">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Brain size={24} className="text-accent" />
+                          {currentLanguage === 'ru' ? 'Экспертный Анализ' : 'Expert Analysis'}
+                        </CardTitle>
+                        <CardDescription>
+                          {currentLanguage === 'ru' 
+                            ? 'Применить подготовленный экспертный анализ на основе архитектуры когнитивных агентов' 
+                            : 'Apply prepared expert analysis based on cognitive agents architecture'
+                          }
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">
+                              {currentLanguage === 'ru' ? 'Готовый анализ по протоколу Киплинга' : 'Ready-made Kipling Protocol Analysis'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {currentLanguage === 'ru' 
+                                ? 'Заполнит все 6 измерений + IKR директиву на основе экспертного анализа архитектуры'
+                                : 'Fills all 6 dimensions + IKR directive based on expert architecture analysis'
+                              }
+                            </p>
+                          </div>
+                          <Button onClick={applyPreparedAnalysis} className="ml-4">
+                            <Star size={16} className="mr-2" />
+                            {currentLanguage === 'ru' ? 'Применить Анализ' : 'Apply Analysis'}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Separator />
+
+                    <KiplingQuestionPreview
+                      language={currentLanguage}
+                      onStartQuestionnaire={() => setShowQuestionnaire(true)}
+                    />
+                  </>
                 )}
 
                 {showQuestionnaire && !showQuestionnaireResults && (
