@@ -38,6 +38,7 @@ import AIOrchestrator from './components/AIOrchestrator';
 import AdvancedCognitiveAnalysis from './components/AdvancedCognitiveAnalysis';
 import CollaborativeAnalysis from './components/CollaborativeAnalysis';
 import MasterReportJournal from './components/MasterReportJournal';
+import CriticalTaskManager from './components/CriticalTaskManager';
 import NotificationSystem, { 
   notifyTaskCompleted, 
   notifyBlockerDetected, 
@@ -4557,12 +4558,12 @@ Return as JSON with property "recommendations" containing array of recommendatio
 
               {/* Task Integration Tracker Tab */}
               <TabsContent value="task-integration" className="space-y-6">
-                <TaskIntegrationTracker
+                <CriticalTaskManager
                   language={currentLanguage}
                   projectId={project.id}
                   onTaskCompleted={(task) => {
-                    toast.success(`Task completed: ${task.name}`);
-                    notifyTaskCompleted(`Integration task completed: ${task.name}`, project.id);
+                    toast.success(`Task completed: ${task.title}`);
+                    notifyTaskCompleted(`Critical task completed: ${task.title}`, project.id);
                   }}
                   onBlockCompleted={(block) => {
                     toast.success(`Block completed: ${block.name}`);

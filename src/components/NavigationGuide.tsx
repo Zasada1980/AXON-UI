@@ -74,8 +74,48 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
   const [currentTutorialStep, setCurrentTutorialStep] = useState(0);
   const [progress, setProgress] = useState<TutorialProgress[]>([]);
 
-  // Comprehensive guide sections
+  // Comprehensive guide sections covering ALL platform functionality
   const guideSections: GuideSection[] = [
+    {
+      id: 'platform-overview',
+      title: language === 'ru' ? 'Обзор платформы AXON' : 'AXON Platform Overview',
+      description: language === 'ru' 
+        ? 'Познакомьтесь с основными возможностями и интерфейсом платформы AXON'
+        : 'Get familiar with core capabilities and interface of AXON platform',
+      icon: <Star size={20} />,
+      difficulty: 'beginner',
+      estimatedTime: language === 'ru' ? '3 минуты' : '3 minutes',
+      category: 'getting-started',
+      steps: [
+        {
+          id: 'overview-1',
+          title: language === 'ru' ? 'Изучите заголовок системы' : 'Explore System Header',
+          description: language === 'ru' 
+            ? 'В верхней части находится название AXON, индикатор здоровья системы и переключатель языка'
+            : 'At the top you\'ll find AXON name, system health indicator and language switcher',
+          action: 'view',
+          target: 'system-header'
+        },
+        {
+          id: 'overview-2',
+          title: language === 'ru' ? 'Понимание навигации' : 'Understanding Navigation',
+          description: language === 'ru' 
+            ? 'Вкладки в верхней части позволяют переключаться между 30+ модулями системы'
+            : 'Tabs at the top allow switching between 30+ system modules',
+          action: 'view',
+          target: 'tab-navigation'
+        },
+        {
+          id: 'overview-3',
+          title: language === 'ru' ? 'Индикаторы статуса' : 'Status Indicators',
+          description: language === 'ru' 
+            ? 'Цветные точки показывают активность: зелёный = норма, жёлтый = предупреждение, красный = проблема'
+            : 'Colored dots show activity: green = normal, yellow = warning, red = problem',
+          action: 'view',
+          target: 'status-indicators'
+        }
+      ]
+    },
     {
       id: 'project-creation',
       title: language === 'ru' ? 'Создание проекта' : 'Project Creation',
@@ -351,6 +391,184 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
       ]
     },
     {
+      id: 'file-management',
+      title: language === 'ru' ? 'Управление файлами' : 'File Management',
+      description: language === 'ru' 
+        ? 'Загрузка, анализ и управление файлами проекта'
+        : 'Upload, analyze and manage project files',
+      icon: <FileText size={20} />,
+      difficulty: 'intermediate',
+      estimatedTime: language === 'ru' ? '10 минут' : '10 minutes',
+      category: 'data-management',
+      steps: [
+        {
+          id: 'file-1',
+          title: language === 'ru' ? 'Откройте управление файлами' : 'Open File Management',
+          description: language === 'ru' 
+            ? 'Перейдите на вкладку "Управление Файлами" для работы с документами'
+            : 'Navigate to "File Management" tab to work with documents',
+          action: 'navigate',
+          target: 'files-tab'
+        },
+        {
+          id: 'file-2',
+          title: language === 'ru' ? 'Загрузите файлы' : 'Upload Files',
+          description: language === 'ru' 
+            ? 'Перетащите файлы в область загрузки или нажмите для выбора'
+            : 'Drag files to upload area or click to select',
+          action: 'upload',
+          target: 'file-upload-area'
+        },
+        {
+          id: 'file-3',
+          title: language === 'ru' ? 'Анализируйте содержимое' : 'Analyze Content',
+          description: language === 'ru' 
+            ? 'Используйте ИИ агентов для анализа загруженных файлов'
+            : 'Use AI agents to analyze uploaded files',
+          action: 'click',
+          target: 'analyze-file-button'
+        }
+      ]
+    },
+    {
+      id: 'advanced-modules',
+      title: language === 'ru' ? 'Продвинутые модули' : 'Advanced Modules',
+      description: language === 'ru' 
+        ? 'Освоение специализированных модулей: UI аудит, тестирование, аналитика'
+        : 'Master specialized modules: UI audit, testing, analytics',
+      icon: <Brain size={20} />,
+      difficulty: 'advanced',
+      estimatedTime: language === 'ru' ? '25 минут' : '25 minutes',
+      category: 'advanced-features',
+      steps: [
+        {
+          id: 'adv-1',
+          title: language === 'ru' ? 'UI аудит эволюции' : 'UI Evolution Audit',
+          description: language === 'ru' 
+            ? 'Анализируйте и улучшайте пользовательский интерфейс системы'
+            : 'Analyze and improve system user interface',
+          action: 'navigate',
+          target: 'ui-audit-tab'
+        },
+        {
+          id: 'adv-2',
+          title: language === 'ru' ? 'E2E тестирование' : 'E2E Testing',
+          description: language === 'ru' 
+            ? 'Настройте и запустите комплексные тесты системы'
+            : 'Set up and run comprehensive system tests',
+          action: 'navigate',
+          target: 'testing-tab'
+        },
+        {
+          id: 'adv-3',
+          title: language === 'ru' ? 'Продвинутая аналитика' : 'Advanced Analytics',
+          description: language === 'ru' 
+            ? 'Генерируйте подробные отчеты и метрики производительности'
+            : 'Generate detailed reports and performance metrics',
+          action: 'navigate',
+          target: 'analytics-tab'
+        },
+        {
+          id: 'adv-4',
+          title: language === 'ru' ? 'Мастер-журнал' : 'Master Journal',
+          description: language === 'ru' 
+            ? 'Управляйте централизованным журналом всех операций системы'
+            : 'Manage centralized journal of all system operations',
+          action: 'navigate',
+          target: 'master-journal-tab'
+        }
+      ]
+    },
+    {
+      id: 'collaboration-features',
+      title: language === 'ru' ? 'Совместная работа' : 'Collaboration Features',
+      description: language === 'ru' 
+        ? 'Функции для командной работы и совместного анализа'
+        : 'Features for team work and collaborative analysis',
+      icon: <Users size={20} />,
+      difficulty: 'intermediate',
+      estimatedTime: language === 'ru' ? '15 минут' : '15 minutes',
+      category: 'collaboration',
+      steps: [
+        {
+          id: 'collab-1',
+          title: language === 'ru' ? 'Дебаты агентов' : 'Agent Debates',
+          description: language === 'ru' 
+            ? 'Настройте дебаты между ИИ агентами для получения разных точек зрения'
+            : 'Set up debates between AI agents to get different perspectives',
+          action: 'navigate',
+          target: 'debate-tab'
+        },
+        {
+          id: 'collab-2',
+          title: language === 'ru' ? 'Совместный анализ' : 'Collaborative Analysis',
+          description: language === 'ru' 
+            ? 'Организуйте сессии совместного анализа с командой'
+            : 'Organize collaborative analysis sessions with team',
+          action: 'navigate',
+          target: 'collaboration-tab'
+        },
+        {
+          id: 'collab-3',
+          title: language === 'ru' ? 'Система уведомлений' : 'Notification System',
+          description: language === 'ru' 
+            ? 'Настройте уведомления о важных событиях и обновлениях'
+            : 'Configure notifications for important events and updates',
+          action: 'navigate',
+          target: 'notifications-tab'
+        }
+      ]
+    },
+    {
+      id: 'system-administration',
+      title: language === 'ru' ? 'Администрирование системы' : 'System Administration',
+      description: language === 'ru' 
+        ? 'Управление настройками, безопасностью и интеграциями'
+        : 'Manage settings, security and integrations',
+      icon: <Shield size={20} />,
+      difficulty: 'advanced',
+      estimatedTime: language === 'ru' ? '20 минут' : '20 minutes',
+      category: 'administration',
+      steps: [
+        {
+          id: 'admin-1',
+          title: language === 'ru' ? 'Глобальные настройки' : 'Global Settings',
+          description: language === 'ru' 
+            ? 'Настройте общие параметры системы и поведение агентов'
+            : 'Configure system-wide parameters and agent behavior',
+          action: 'navigate',
+          target: 'global-settings-tab'
+        },
+        {
+          id: 'admin-2',
+          title: language === 'ru' ? 'Аутентификация' : 'Authentication',
+          description: language === 'ru' 
+            ? 'Управляйте пользователями, ролями и правами доступа'
+            : 'Manage users, roles and access permissions',
+          action: 'navigate',
+          target: 'authentication-tab'
+        },
+        {
+          id: 'admin-3',
+          title: language === 'ru' ? 'Внешние API' : 'External APIs',
+          description: language === 'ru' 
+            ? 'Настройте интеграции с внешними сервисами и API'
+            : 'Configure integrations with external services and APIs',
+          action: 'navigate',
+          target: 'api-integrator-tab'
+        },
+        {
+          id: 'admin-4',
+          title: language === 'ru' ? 'Резервное копирование' : 'Backup System',
+          description: language === 'ru' 
+            ? 'Настройте автоматическое резервное копирование данных'
+            : 'Configure automatic data backup system',
+          action: 'navigate',
+          target: 'auto-backup-tab'
+        }
+      ]
+    },
+    {
       id: 'system-diagnostics',
       title: language === 'ru' ? 'Диагностика системы' : 'System Diagnostics',
       description: language === 'ru' 
@@ -387,6 +605,74 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
             : 'When issues are detected, use the auto recovery feature',
           action: 'click',
           target: 'auto-recovery-button'
+        },
+        {
+          id: 'diag-4',
+          title: language === 'ru' ? 'Система контрольных точек' : 'Checkpoint System',
+          description: language === 'ru' 
+            ? 'Создайте контрольные точки для восстановления системы'
+            : 'Create checkpoints for system recovery',
+          action: 'click',
+          target: 'checkpoint-button'
+        }
+      ]
+    },
+    {
+      id: 'expert-workflow',
+      title: language === 'ru' ? 'Экспертный рабочий процесс' : 'Expert Workflow',
+      description: language === 'ru' 
+        ? 'Полный цикл профессионального анализа от начала до экспорта'
+        : 'Complete professional analysis cycle from start to export',
+      icon: <Target size={20} />,
+      difficulty: 'advanced',
+      estimatedTime: language === 'ru' ? '45 минут' : '45 minutes',
+      category: 'expert',
+      prerequisites: ['kipling-analysis', 'ikr-directive', 'ai-audit-setup'],
+      steps: [
+        {
+          id: 'expert-1',
+          title: language === 'ru' ? 'Создание комплексного проекта' : 'Create Comprehensive Project',
+          description: language === 'ru' 
+            ? 'Создайте проект с детальным описанием и планом анализа'
+            : 'Create project with detailed description and analysis plan',
+          action: 'create',
+          target: 'project-creation'
+        },
+        {
+          id: 'expert-2',
+          title: language === 'ru' ? 'Применение экспертного анализа' : 'Apply Expert Analysis',
+          description: language === 'ru' 
+            ? 'Используйте готовый экспертный анализ на вкладке Intelligence'
+            : 'Use ready-made expert analysis on Intelligence tab',
+          action: 'click',
+          target: 'expert-analysis-button'
+        },
+        {
+          id: 'expert-3',
+          title: language === 'ru' ? 'Комплексный аудит ИИ' : 'Comprehensive AI Audit',
+          description: language === 'ru' 
+            ? 'Запустите все типы аудита для полной проверки системы'
+            : 'Run all audit types for complete system verification',
+          action: 'multiple',
+          target: 'all-audit-types'
+        },
+        {
+          id: 'expert-4',
+          title: language === 'ru' ? 'Интерактивная работа с ИИ' : 'Interactive AI Work',
+          description: language === 'ru' 
+            ? 'Используйте чат для углубления анализа и получения рекомендаций'
+            : 'Use chat to deepen analysis and get recommendations',
+          action: 'chat',
+          target: 'ai-chat-interaction'
+        },
+        {
+          id: 'expert-5',
+          title: language === 'ru' ? 'Экспорт профессионального отчета' : 'Export Professional Report',
+          description: language === 'ru' 
+            ? 'Создайте комплексный отчет в нескольких форматах'
+            : 'Generate comprehensive report in multiple formats',
+          action: 'export',
+          target: 'multi-format-export'
         }
       ]
     }
@@ -396,22 +682,56 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
     { 
       id: 'getting-started', 
       title: language === 'ru' ? 'Начало работы' : 'Getting Started',
-      icon: <PlayCircle size={16} />
+      icon: <PlayCircle size={16} />,
+      description: language === 'ru' ? 'Основы работы с платформой' : 'Platform basics'
     },
     { 
       id: 'analysis-framework', 
       title: language === 'ru' ? 'Фреймворк анализа' : 'Analysis Framework',
-      icon: <Brain size={16} />
+      icon: <Brain size={16} />,
+      description: language === 'ru' ? 'Киплинг и IKR методология' : 'Kipling and IKR methodology'
     },
     { 
       id: 'ai-features', 
       title: language === 'ru' ? 'Возможности ИИ' : 'AI Features',
-      icon: <Robot size={16} />
+      icon: <Robot size={16} />,
+      description: language === 'ru' ? 'ИИ агенты и чат' : 'AI agents and chat'
+    },
+    { 
+      id: 'data-management', 
+      title: language === 'ru' ? 'Управление данными' : 'Data Management',
+      icon: <FileText size={16} />,
+      description: language === 'ru' ? 'Файлы и база знаний' : 'Files and knowledge base'
+    },
+    { 
+      id: 'advanced-features', 
+      title: language === 'ru' ? 'Продвинутые функции' : 'Advanced Features',
+      icon: <Star size={16} />,
+      description: language === 'ru' ? 'Специализированные модули' : 'Specialized modules'
+    },
+    { 
+      id: 'collaboration', 
+      title: language === 'ru' ? 'Совместная работа' : 'Collaboration',
+      icon: <Users size={16} />,
+      description: language === 'ru' ? 'Командная работа' : 'Team features'
+    },
+    { 
+      id: 'administration', 
+      title: language === 'ru' ? 'Администрирование' : 'Administration',
+      icon: <Shield size={16} />,
+      description: language === 'ru' ? 'Настройки и безопасность' : 'Settings and security'
     },
     { 
       id: 'troubleshooting', 
       title: language === 'ru' ? 'Решение проблем' : 'Troubleshooting',
-      icon: <HelpCircle size={16} />
+      icon: <HelpCircle size={16} />,
+      description: language === 'ru' ? 'Диагностика и восстановление' : 'Diagnostics and recovery'
+    },
+    { 
+      id: 'expert', 
+      title: language === 'ru' ? 'Экспертный уровень' : 'Expert Level',
+      icon: <Target size={16} />,
+      description: language === 'ru' ? 'Комплексные рабочие процессы' : 'Comprehensive workflows'
     }
   ];
 
@@ -627,18 +947,24 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
 
       <Tabs value={activeCategory} onValueChange={setActiveCategory}>
         {/* Category Navigation */}
-        <div className="flex items-center justify-between">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
-            {categories.map(category => (
-              <TabsTrigger key={category.id} value={category.id} className="flex items-center gap-2">
-                {category.icon}
-                <span className="hidden sm:inline">{category.title}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <ScrollArea className="w-full lg:max-w-4xl">
+            <TabsList className="grid grid-cols-3 lg:grid-cols-9 gap-1 h-auto p-1">
+              {categories.map(category => (
+                <TabsTrigger 
+                  key={category.id} 
+                  value={category.id} 
+                  className="flex flex-col items-center gap-1 h-auto p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  {category.icon}
+                  <span className="text-xs text-center leading-tight">{category.title}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </ScrollArea>
 
           {/* Search */}
-          <div className="relative w-64">
+          <div className="relative w-full lg:w-64 flex-shrink-0">
             <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={language === 'ru' ? 'Поиск руководств...' : 'Search guides...'}
@@ -649,45 +975,66 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
           </div>
         </div>
 
+        {/* Category Description */}
+        <div className="bg-muted/30 border border-muted rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            {categories.find(c => c.id === activeCategory)?.icon}
+            <div>
+              <h3 className="font-semibold">{categories.find(c => c.id === activeCategory)?.title}</h3>
+              <p className="text-sm text-muted-foreground">
+                {categories.find(c => c.id === activeCategory)?.description}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Category Content */}
         {categories.map(category => (
           <TabsContent key={category.id} value={category.id} className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredSections.map(section => (
-                <Card key={section.id} className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardHeader>
+                <Card key={section.id} className="hover:shadow-lg transition-all duration-300 cursor-pointer group border-l-4 border-l-transparent hover:border-l-primary">
+                  <CardHeader className="space-y-3">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        {section.icon}
-                        <div>
-                          <CardTitle className="text-base">{section.title}</CardTitle>
-                          <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                          {section.icon}
+                        </div>
+                        <div className="space-y-1">
+                          <CardTitle className="text-base leading-snug">{section.title}</CardTitle>
+                          <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full ${getDifficultyColor(section.difficulty)}`} />
-                            <span className="text-xs text-muted-foreground capitalize">
-                              {section.difficulty}
+                            <span className="text-xs text-muted-foreground capitalize font-medium">
+                              {language === 'ru' ? 
+                                (section.difficulty === 'beginner' ? 'начальный' : 
+                                 section.difficulty === 'intermediate' ? 'средний' : 'продвинутый') : 
+                                section.difficulty}
                             </span>
                             <Circle size={3} className="text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-muted-foreground font-medium">
                               {section.estimatedTime}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs bg-muted/50">
                         {section.steps.length} {language === 'ru' ? 'шагов' : 'steps'}
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       {section.description}
                     </p>
                     
                     {section.prerequisites && section.prerequisites.length > 0 && (
                       <div className="space-y-2">
-                        <p className="text-xs font-medium text-muted-foreground">
-                          {language === 'ru' ? 'Требования:' : 'Prerequisites:'}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <Info size={12} className="text-amber-500" />
+                          <p className="text-xs font-medium text-muted-foreground">
+                            {language === 'ru' ? 'Требования:' : 'Prerequisites:'}
+                          </p>
+                        </div>
                         <div className="flex flex-wrap gap-1">
                           {section.prerequisites.map(prereq => (
                             <Badge key={prereq} variant="secondary" className="text-xs">
@@ -700,30 +1047,30 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">
-                          {language === 'ru' ? 'Прогресс' : 'Progress'}
+                        <span className="text-xs text-muted-foreground font-medium">
+                          {language === 'ru' ? 'Прогресс изучения' : 'Learning Progress'}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground font-medium">
                           {Math.round(getStepProgress(section.id))}%
                         </span>
                       </div>
-                      <Progress value={getStepProgress(section.id)} className="h-1" />
+                      <Progress value={getStepProgress(section.id)} className="h-2" />
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 pt-2">
                       <Button
                         size="sm"
                         onClick={() => startTutorial(section.id)}
-                        className="flex-1 flex items-center gap-2"
+                        className="flex-1 flex items-center gap-2 h-9"
                       >
                         <Play size={14} />
-                        {language === 'ru' ? 'Начать' : 'Start'}
+                        {language === 'ru' ? 'Начать обучение' : 'Start Tutorial'}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => setSelectedSection(section.id)}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 h-9"
                       >
                         <FileText size={14} />
                         {language === 'ru' ? 'Просмотр' : 'View'}
@@ -735,18 +1082,51 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
             </div>
 
             {filteredSections.length === 0 && (
-              <div className="text-center py-12">
-                <Search size={48} className="mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">
-                  {language === 'ru' ? 'Руководства не найдены' : 'No guides found'}
-                </h3>
-                <p className="text-muted-foreground">
-                  {language === 'ru' 
-                    ? 'Попробуйте изменить поисковый запрос или выберите другую категорию'
-                    : 'Try adjusting your search query or select a different category'
-                  }
-                </p>
+              <div className="text-center py-16 space-y-4">
+                <div className="w-16 h-16 mx-auto bg-muted/50 rounded-full flex items-center justify-center">
+                  <Search size={24} className="text-muted-foreground" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">
+                    {language === 'ru' ? 'Руководства не найдены' : 'No guides found'}
+                  </h3>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    {language === 'ru' 
+                      ? 'Попробуйте изменить поисковый запрос или выберите другую категорию. Используйте ключевые слова из названий модулей.'
+                      : 'Try adjusting your search query or select a different category. Use keywords from module names.'
+                    }
+                  </p>
+                </div>
+                <Button variant="outline" onClick={() => setSearchQuery('')}>
+                  {language === 'ru' ? 'Очистить поиск' : 'Clear Search'}
+                </Button>
               </div>
+            )}
+
+            {/* Quick Stats for Category */}
+            {filteredSections.length > 0 && (
+              <Card className="bg-muted/30 border-dashed">
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-center gap-8 text-sm">
+                    <div className="text-center">
+                      <div className="font-semibold text-lg">{filteredSections.length}</div>
+                      <div className="text-muted-foreground">{language === 'ru' ? 'Руководств' : 'Guides'}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-semibold text-lg">
+                        {filteredSections.reduce((acc, section) => acc + section.steps.length, 0)}
+                      </div>
+                      <div className="text-muted-foreground">{language === 'ru' ? 'Шагов' : 'Steps'}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-semibold text-lg">
+                        {filteredSections.filter(s => s.difficulty === 'beginner').length}
+                      </div>
+                      <div className="text-muted-foreground">{language === 'ru' ? 'Для новичков' : 'Beginner'}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
         ))}
@@ -754,43 +1134,58 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
 
       {/* Section Detail View (Non-Tutorial) */}
       {selectedSection && !tutorialMode && (
-        <Card className="mt-6">
-          <CardHeader>
+        <Card className="mt-6 border-primary/20">
+          <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
+              <div className="space-y-2">
+                <CardTitle className="flex items-center gap-3 text-xl">
                   {guideSections.find(s => s.id === selectedSection)?.icon}
                   {guideSections.find(s => s.id === selectedSection)?.title}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-base">
                   {guideSections.find(s => s.id === selectedSection)?.description}
                 </CardDescription>
+                <div className="flex items-center gap-3">
+                  <Badge variant="secondary">
+                    {guideSections.find(s => s.id === selectedSection)?.difficulty === 'beginner' 
+                      ? (language === 'ru' ? 'Начальный' : 'Beginner')
+                      : guideSections.find(s => s.id === selectedSection)?.difficulty === 'intermediate'
+                      ? (language === 'ru' ? 'Средний' : 'Intermediate')
+                      : (language === 'ru' ? 'Продвинутый' : 'Advanced')
+                    }
+                  </Badge>
+                  <Badge variant="outline">
+                    {guideSections.find(s => s.id === selectedSection)?.estimatedTime}
+                  </Badge>
+                </div>
               </div>
               <Button variant="outline" onClick={() => setSelectedSection(null)}>
                 {language === 'ru' ? 'Закрыть' : 'Close'}
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <ScrollArea className="h-96">
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {guideSections.find(s => s.id === selectedSection)?.steps.map((step, index) => (
-                  <div key={step.id} className="flex gap-4 p-4 border rounded-lg">
+                  <div key={step.id} className="flex gap-4 p-4 border rounded-lg hover:bg-muted/30 transition-colors">
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                        <span className="text-sm font-medium text-primary">{index + 1}</span>
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border-2 border-primary/20 flex items-center justify-center">
+                        <span className="text-sm font-bold text-primary">{index + 1}</span>
                       </div>
                     </div>
-                    <div className="flex-1 space-y-2">
-                      <h4 className="font-medium">{step.title}</h4>
-                      <p className="text-sm text-muted-foreground">{step.description}</p>
+                    <div className="flex-1 space-y-3">
+                      <h4 className="font-semibold text-base">{step.title}</h4>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
                       {step.action && (
-                        <div className="flex items-center gap-2 text-xs">
-                          <Badge variant="outline" className="text-xs">
-                            {step.action}
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs font-medium">
+                            {language === 'ru' ? 'Действие:' : 'Action:'} {step.action}
                           </Badge>
                           {step.target && (
-                            <span className="text-muted-foreground">{step.target}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {step.target}
+                            </Badge>
                           )}
                         </div>
                       )}
@@ -799,7 +1194,19 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
                 ))}
               </div>
             </ScrollArea>
-            <div className="mt-4 pt-4 border-t">
+            <Separator className="my-6" />
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">
+                  {language === 'ru' ? 'Готовы начать обучение?' : 'Ready to start learning?'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'ru' 
+                    ? 'Интерактивное обучение поможет освоить все шаги'
+                    : 'Interactive tutorial will guide you through all steps'
+                  }
+                </p>
+              </div>
               <Button
                 onClick={() => startTutorial(selectedSection)}
                 className="flex items-center gap-2"
