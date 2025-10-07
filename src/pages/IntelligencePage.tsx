@@ -1,6 +1,7 @@
 import React from 'react';
 import IntelligenceGathering from '../components/IntelligenceGathering';
 import SourceCredibilityAssessment from '../components/SourceCredibilityAssessment';
+import SecureAPIKeyManager from '../components/SecureAPIKeyManager';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from '@phosphor-icons/react';
 import { toast } from 'sonner';
@@ -46,6 +47,19 @@ export default function IntelligencePage({ language, projectId, onNavigate }: Pr
 
       {/* Intelligence Components */}
       <div className="space-y-6">
+        {/* Secure API Key Management */}
+        <SecureAPIKeyManager
+          language={language}
+          projectId={projectId}
+          onApiKeyUpdate={(provider, isValid) => {
+            if (isValid) {
+              toast.success(`${provider} API key configured successfully`);
+            } else {
+              toast.error(`Failed to configure ${provider} API key`);
+            }
+          }}
+        />
+        
         <IntelligenceGathering
           language={language}
           projectId={projectId}
