@@ -27,7 +27,20 @@ import {
   Circle,
   FileText,
   Question as HelpCircle,
-  PlayCircle
+  PlayCircle,
+  Eye,
+  BookBookmark,
+  CaretDown,
+  CaretUp,
+  NavigationArrow,
+  Path,
+  MapPin,
+  Clock,
+  Bookmark,
+  List,
+  CheckSquare,
+  PresentationChart,
+  Gauge
 } from '@phosphor-icons/react';
 
 interface NavigationGuideProps {
@@ -73,6 +86,11 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
   const [tutorialMode, setTutorialMode] = useState(false);
   const [currentTutorialStep, setCurrentTutorialStep] = useState(0);
   const [progress, setProgress] = useState<TutorialProgress[]>([]);
+  const [showStepGuide, setShowStepGuide] = useState(false);
+  const [highlightTarget, setHighlightTarget] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [bookmarkedSections, setBookmarkedSections] = useState<Set<string>>(new Set());
+  const [recentlyViewed, setRecentlyViewed] = useState<string[]>([]);
 
   // Comprehensive guide sections covering ALL platform functionality
   const guideSections: GuideSection[] = [
@@ -770,6 +788,47 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
     setCurrentTutorialStep(0);
   };
 
+  // Toggle section expansion
+  const toggleSectionExpansion = (sectionId: string) => {
+    const newExpanded = new Set(expandedSections);
+    if (newExpanded.has(sectionId)) {
+      newExpanded.delete(sectionId);
+    } else {
+      newExpanded.add(sectionId);
+    }
+    setExpandedSections(newExpanded);
+  };
+
+  // Highlight specific steps
+  const highlightStep = (target: string) => {
+    setHighlightTarget(target);
+    setTimeout(() => setHighlightTarget(null), 3000);
+  };
+
+  // Show step-by-step guide overlay
+  const showStepGuideFor = (sectionId: string) => {
+    setSelectedSection(sectionId);
+    setShowStepGuide(true);
+    addToRecentlyViewed(sectionId);
+  };
+
+  // Bookmark management
+  const toggleBookmark = (sectionId: string) => {
+    const newBookmarks = new Set(bookmarkedSections);
+    if (newBookmarks.has(sectionId)) {
+      newBookmarks.delete(sectionId);
+    } else {
+      newBookmarks.add(sectionId);
+    }
+    setBookmarkedSections(newBookmarks);
+  };
+
+  // Recently viewed management
+  const addToRecentlyViewed = (sectionId: string) => {
+    const newRecent = [sectionId, ...recentlyViewed.filter(id => id !== sectionId)].slice(0, 5);
+    setRecentlyViewed(newRecent);
+  };
+
   const getDifficultyColor = (difficulty: 'beginner' | 'intermediate' | 'advanced') => {
     switch (difficulty) {
       case 'beginner': return 'bg-green-500';
@@ -943,6 +1002,78 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
             {getModuleSpecificTips()}
           </p>
         </div>
+
+        {/* Quick Access Panel */}
+        {(bookmarkedSections.size > 0 || recentlyViewed.length > 0) && (
+          <Card className="bg-gradient-to-r from-accent/5 to-primary/5 border-accent/20">
+            <CardContent className="py-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                {/* Bookmarked Sections */}
+                {bookmarkedSections.size > 0 && (
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Bookmark size={14} className="text-accent" />
+                      <span className="text-sm font-medium text-accent">
+                        {language === 'ru' ? 'Закладки' : 'Bookmarks'}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.from(bookmarkedSections).slice(0, 3).map(sectionId => {
+                        const section = guideSections.find(s => s.id === sectionId);
+                        return section ? (
+                          <Button
+                            key={sectionId}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => showStepGuideFor(sectionId)}
+                            className="text-xs h-7 px-2 flex items-center gap-1"
+                          >
+                            {section.icon}
+                            <span>{section.title.length > 20 ? `${section.title.substring(0, 20)}...` : section.title}</span>
+                          </Button>
+                        ) : null;
+                      })}
+                      {bookmarkedSections.size > 3 && (
+                        <Button size="sm" variant="ghost" className="text-xs h-7 px-2">
+                          +{bookmarkedSections.size - 3}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recently Viewed */}
+                {recentlyViewed.length > 0 && (
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Clock size={14} className="text-primary" />
+                      <span className="text-sm font-medium text-primary">
+                        {language === 'ru' ? 'Недавно просмотренные' : 'Recently Viewed'}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {recentlyViewed.slice(0, 3).map(sectionId => {
+                        const section = guideSections.find(s => s.id === sectionId);
+                        return section ? (
+                          <Button
+                            key={sectionId}
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => showStepGuideFor(sectionId)}
+                            className="text-xs h-7 px-2 flex items-center gap-1"
+                          >
+                            {section.icon}
+                            <span>{section.title.length > 20 ? `${section.title.substring(0, 20)}...` : section.title}</span>
+                          </Button>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Tabs value={activeCategory} onValueChange={setActiveCategory}>
@@ -1020,6 +1151,17 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
                       <Badge variant="outline" className="text-xs bg-muted/50">
                         {section.steps.length} {language === 'ru' ? 'шагов' : 'steps'}
                       </Badge>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleBookmark(section.id);
+                        }}
+                        className={`p-1 h-6 w-6 ${bookmarkedSections.has(section.id) ? 'text-accent' : 'text-muted-foreground hover:text-accent'}`}
+                      >
+                        <Bookmark size={12} className={bookmarkedSections.has(section.id) ? 'fill-current' : ''} />
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -1064,18 +1206,92 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
                         className="flex-1 flex items-center gap-2 h-9"
                       >
                         <Play size={14} />
-                        {language === 'ru' ? 'Начать обучение' : 'Start Tutorial'}
+                        {language === 'ru' ? 'Интерактивно' : 'Interactive'}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setSelectedSection(section.id)}
+                        onClick={() => showStepGuideFor(section.id)}
                         className="flex items-center gap-2 h-9"
                       >
-                        <FileText size={14} />
-                        {language === 'ru' ? 'Просмотр' : 'View'}
+                        <Eye size={14} />
+                        {language === 'ru' ? 'Шаги' : 'Steps'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => toggleSectionExpansion(section.id)}
+                        className="p-2 h-9 w-9"
+                      >
+                        {expandedSections.has(section.id) ? 
+                          <CaretUp size={14} /> : 
+                          <CaretDown size={14} />
+                        }
                       </Button>
                     </div>
+
+                    {/* Expanded Section Preview */}
+                    {expandedSections.has(section.id) && (
+                      <div className="mt-4 p-3 bg-muted/20 rounded-lg border border-muted space-y-3">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <List size={12} />
+                          <span className="font-medium">
+                            {language === 'ru' ? 'Предварительный просмотр шагов:' : 'Step Preview:'}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {section.steps.slice(0, 3).map((step, idx) => (
+                            <div 
+                              key={step.id} 
+                              className={`flex items-start gap-2 p-2 rounded text-xs transition-all cursor-pointer hover:bg-primary/10 ${
+                                highlightTarget === step.target ? 'bg-primary/20 border border-primary/40' : ''
+                              }`}
+                              onClick={() => highlightStep(step.target || '')}
+                            >
+                              <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center mt-0.5">
+                                <span className="text-xs font-bold text-primary">{idx + 1}</span>
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-medium text-foreground">{step.title}</div>
+                                <div className="text-muted-foreground leading-tight">
+                                  {step.description.length > 80 
+                                    ? `${step.description.substring(0, 80)}...` 
+                                    : step.description
+                                  }
+                                </div>
+                                {step.action && (
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <Badge variant="outline" className="text-xs h-4 px-1">
+                                      {step.action}
+                                    </Badge>
+                                    {step.target && (
+                                      <Badge variant="secondary" className="text-xs h-4 px-1">
+                                        {step.target}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          {section.steps.length > 3 && (
+                            <div className="text-center py-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setSelectedSection(section.id)}
+                                className="text-xs h-6"
+                              >
+                                {language === 'ru' 
+                                  ? `+${section.steps.length - 3} шагов ещё` 
+                                  : `+${section.steps.length - 3} more steps`
+                                }
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -1105,24 +1321,102 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
 
             {/* Quick Stats for Category */}
             {filteredSections.length > 0 && (
-              <Card className="bg-muted/30 border-dashed">
-                <CardContent className="py-4">
-                  <div className="flex items-center justify-center gap-8 text-sm">
-                    <div className="text-center">
-                      <div className="font-semibold text-lg">{filteredSections.length}</div>
-                      <div className="text-muted-foreground">{language === 'ru' ? 'Руководств' : 'Guides'}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-semibold text-lg">
-                        {filteredSections.reduce((acc, section) => acc + section.steps.length, 0)}
+              <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
+                <CardContent className="py-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="text-center space-y-2">
+                      <div className="relative">
+                        <div className="w-12 h-12 mx-auto bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center border-2 border-primary/20">
+                          <BookBookmark size={20} className="text-primary" />
+                        </div>
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs font-bold text-primary-foreground">
+                          {filteredSections.length}
+                        </div>
                       </div>
-                      <div className="text-muted-foreground">{language === 'ru' ? 'Шагов' : 'Steps'}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-semibold text-lg">
-                        {filteredSections.filter(s => s.difficulty === 'beginner').length}
+                      <div className="text-xs text-muted-foreground font-medium">
+                        {language === 'ru' ? 'Руководств' : 'Guides'}
                       </div>
-                      <div className="text-muted-foreground">{language === 'ru' ? 'Для новичков' : 'Beginner'}</div>
+                    </div>
+                    
+                    <div className="text-center space-y-2">
+                      <div className="relative">
+                        <div className="w-12 h-12 mx-auto bg-gradient-to-br from-accent/20 to-accent/10 rounded-full flex items-center justify-center border-2 border-accent/20">
+                          <CheckSquare size={20} className="text-accent" />
+                        </div>
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-accent rounded-full flex items-center justify-center text-xs font-bold text-accent-foreground">
+                          {filteredSections.reduce((acc, section) => acc + section.steps.length, 0)}
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground font-medium">
+                        {language === 'ru' ? 'Шагов' : 'Steps'}
+                      </div>
+                    </div>
+                    
+                    <div className="text-center space-y-2">
+                      <div className="relative">
+                        <div className="w-12 h-12 mx-auto bg-gradient-to-br from-green-500/20 to-green-500/10 rounded-full flex items-center justify-center border-2 border-green-500/20">
+                          <Star size={20} className="text-green-600" />
+                        </div>
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                          {filteredSections.filter(s => s.difficulty === 'beginner').length}
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground font-medium">
+                        {language === 'ru' ? 'Для новичков' : 'Beginner'}
+                      </div>
+                    </div>
+                    
+                    <div className="text-center space-y-2">
+                      <div className="relative">
+                        <div className="w-12 h-12 mx-auto bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-full flex items-center justify-center border-2 border-secondary/20">
+                          <Clock size={20} className="text-secondary" />
+                        </div>
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-secondary rounded-full flex items-center justify-center text-xs font-bold text-secondary-foreground">
+                          ~{Math.round(filteredSections.reduce((acc, section) => {
+                            const time = parseInt(section.estimatedTime.split(' ')[0]) || 0;
+                            return acc + time;
+                          }, 0) / filteredSections.length)}
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground font-medium">
+                        {language === 'ru' ? 'Мин. в среднем' : 'Avg Minutes'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Learning Path Indicator */}
+                  <Separator className="my-4" />
+                  <div className="flex items-center justify-center gap-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Path size={16} className="text-primary" />
+                      <span className="font-medium">
+                        {language === 'ru' ? 'Рекомендуемый путь обучения:' : 'Recommended Learning Path:'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {categories.find(c => c.id === activeCategory)?.id === 'getting-started' && (
+                        <>
+                          <Badge variant="default" className="text-xs">1. Основы</Badge>
+                          <ArrowRight size={12} className="text-muted-foreground" />
+                          <Badge variant="secondary" className="text-xs">2. Анализ</Badge>
+                          <ArrowRight size={12} className="text-muted-foreground" />
+                          <Badge variant="outline" className="text-xs">3. ИИ</Badge>
+                        </>
+                      )}
+                      {categories.find(c => c.id === activeCategory)?.id === 'analysis-framework' && (
+                        <>
+                          <Badge variant="default" className="text-xs">Киплинг</Badge>
+                          <ArrowRight size={12} className="text-muted-foreground" />
+                          <Badge variant="secondary" className="text-xs">IKR</Badge>
+                        </>
+                      )}
+                      {categories.find(c => c.id === activeCategory)?.id === 'ai-features' && (
+                        <>
+                          <Badge variant="default" className="text-xs">Аудит</Badge>
+                          <ArrowRight size={12} className="text-muted-foreground" />
+                          <Badge variant="secondary" className="text-xs">Чат</Badge>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -1131,6 +1425,91 @@ const NavigationGuide: React.FC<NavigationGuideProps> = ({
           </TabsContent>
         ))}
       </Tabs>
+
+      {/* Step-by-Step Guide Overlay */}
+      {showStepGuide && selectedSection && (
+        <Card className="fixed top-4 right-4 w-80 z-50 shadow-2xl border-primary/20 bg-background/95 backdrop-blur-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookBookmark size={16} className="text-primary" />
+                <CardTitle className="text-sm">
+                  {language === 'ru' ? 'Пошаговое руководство' : 'Step-by-Step Guide'}
+                </CardTitle>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowStepGuide(false)}
+                className="h-6 w-6 p-0"
+              >
+                ×
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="text-xs text-muted-foreground font-medium">
+              {guideSections.find(s => s.id === selectedSection)?.title}
+            </div>
+            
+            <ScrollArea className="h-64">
+              <div className="space-y-2">
+                {guideSections.find(s => s.id === selectedSection)?.steps.map((step, index) => (
+                  <div 
+                    key={step.id}
+                    className={`p-2 rounded-lg border transition-all cursor-pointer hover:bg-primary/5 ${
+                      highlightTarget === step.target 
+                        ? 'bg-primary/10 border-primary/40 shadow-sm' 
+                        : 'border-muted hover:border-primary/20'
+                    }`}
+                    onClick={() => highlightStep(step.target || '')}
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/20 flex items-center justify-center mt-0.5">
+                        <span className="text-xs font-bold text-primary">{index + 1}</span>
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="font-medium text-xs">{step.title}</div>
+                        <div className="text-xs text-muted-foreground leading-relaxed">
+                          {step.description}
+                        </div>
+                        {step.action && (
+                          <div className="flex items-center gap-1">
+                            <Badge variant="outline" className="text-xs h-4 px-1">
+                              <NavigationArrow size={8} className="mr-1" />
+                              {step.action}
+                            </Badge>
+                            {step.target && (
+                              <Badge variant="secondary" className="text-xs h-4 px-1">
+                                <MapPin size={8} className="mr-1" />
+                                {step.target}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+            
+            <div className="pt-2 border-t">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setShowStepGuide(false);
+                  startTutorial(selectedSection);
+                }}
+                className="w-full flex items-center gap-2 h-8"
+              >
+                <Play size={12} />
+                {language === 'ru' ? 'Начать интерактивное обучение' : 'Start Interactive Tutorial'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Section Detail View (Non-Tutorial) */}
       {selectedSection && !tutorialMode && (
