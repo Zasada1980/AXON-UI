@@ -29,7 +29,8 @@ import {
   Target,
   ListChecks,
   Robot,
-  ChatCircle
+  ChatCircle,
+  Gear
 } from '@phosphor-icons/react';
 
 import { AgentJournal, JournalEntry } from '../types/memory';
@@ -93,7 +94,22 @@ const journalTranslations = {
     learningProgress: 'Learning Progress',
     decisionTracking: 'Decision Tracking',
     errorAnalysis: 'Error Analysis',
-    successPatterns: 'Success Patterns'
+    successPatterns: 'Success Patterns',
+    updateAllStatuses: 'Update All Work Statuses',
+    statusUpdateComplete: 'Status update complete',
+    statusUpdateFailed: 'Status update failed',
+    workStatus: 'Work Status',
+    inProgress: 'In Progress',
+    completed: 'Completed',
+    failed: 'Failed',
+    urgent: 'Urgent',
+    onHold: 'On Hold',
+    unknown: 'Unknown',
+    systemJournal: 'System Journal',
+    criticalBlockTask: 'Critical Block Task',
+    noJournalsToUpdate: 'No journals to update',
+    updatingStatuses: 'Updating work statuses...',
+    statusesUpdated: 'Statuses updated successfully! Processed'
   },
   ru: {
     agentJournalManager: 'Менеджер Журналов Агентов',
@@ -145,7 +161,22 @@ const journalTranslations = {
     learningProgress: 'Прогресс Обучения',
     decisionTracking: 'Отслеживание Решений',
     errorAnalysis: 'Анализ Ошибок',
-    successPatterns: 'Паттерны Успеха'
+    successPatterns: 'Паттерны Успеха',
+    updateAllStatuses: 'Обновить Все Статусы Работ',
+    statusUpdateComplete: 'Обновление статусов завершено',
+    statusUpdateFailed: 'Ошибка обновления статусов',
+    workStatus: 'Статус Работы',
+    inProgress: 'В Процессе',
+    completed: 'Завершено',
+    failed: 'Неудача',
+    urgent: 'Срочно',
+    onHold: 'Приостановлено',
+    unknown: 'Неизвестно',
+    systemJournal: 'Системный Журнал',
+    criticalBlockTask: 'Критическое Задание Блока',
+    noJournalsToUpdate: 'Нет журналов для обновления',
+    updatingStatuses: 'Обновление статусов работ...',
+    statusesUpdated: 'Статусы обновлены успешно! Обработано'
   }
 };
 
@@ -173,6 +204,7 @@ export default function AgentJournalManager({
 
   // Доступные агенты
   const availableAgents = [
+    { id: 'system-journal', name: language === 'ru' ? 'Системный Журнал' : 'System Journal', type: 'system' },
     { id: 'debate-agent-1', name: 'Debate Agent 1', type: 'debate' },
     { id: 'debate-agent-2', name: 'Debate Agent 2', type: 'debate' },
     { id: 'security-agent', name: 'Security Agent', type: 'audit' },
@@ -184,6 +216,7 @@ export default function AgentJournalManager({
   // Получить иконку для типа агента
   const getAgentIcon = (agentType: string) => {
     switch (agentType) {
+      case 'system': return <Gear size={16} />;
       case 'debate': return <Users size={16} />;
       case 'security': return <Shield size={16} />;
       case 'bias': return <Target size={16} />;
@@ -315,6 +348,288 @@ export default function AgentJournalManager({
     toast.success(t('entryCreated'));
   };
 
+  // Обновить статусы всех работ в рабочих журналах
+  const updateAllWorkStatuses = async () => {
+    if (!agentJournals || agentJournals.length === 0) {
+      toast.info(language === 'ru' ? 'Нет журналов для обновления' : 'No journals to update');
+      return;
+    }
+
+    toast.info(language === 'ru' ? 'Обновление статусов работ...' : 'Updating work statuses...');
+
+    // Перебираем все журналы и обновляем статусы записей
+    setAgentJournals(current => 
+      (current || []).map(journal => {
+        const updatedEntries = journal.entries.map(entry => {
+          // Определяем статус на основе категории и важности
+          let workStatus: 'in-progress' | 'completed' | 'failed' | 'urgent' | 'on-hold' | 'unknown' = 'in-progress';
+          
+          if (entry.category === 'success') {
+            workStatus = 'completed';
+          } else if (entry.category === 'error') {
+            workStatus = 'failed';
+          } else if (entry.category === 'decision' && entry.importance === 'high') {
+            workStatus = 'completed';
+          } else if (entry.category === 'audit' && entry.importance === 'critical') {
+            workStatus = 'urgent';
+          } else if (entry.category === 'learning') {
+            workStatus = 'in-progress';
+          }
+
+          // Обновляем контекст проекта с новым статусом
+          const updatedContext = {
+            ...entry.projectContext,
+            workStatus,
+            lastUpdated: new Date().toISOString(),
+            completeness: entry.category === 'success' ? 100 : 
+                         entry.category === 'error' ? 0 :
+                         entry.projectContext.completeness || 50
+          };
+
+          return {
+            ...entry,
+            projectContext: updatedContext,
+            // Добавляем тег со статусом если его еще нет
+            tags: entry.tags.includes(`status:${workStatus}`) 
+              ? entry.tags 
+              : [...entry.tags, `status:${workStatus}`]
+          };
+        });
+
+        // Обновляем метаданные журнала
+        const statusCounts = updatedEntries.reduce((acc, entry) => {
+          const status = entry.projectContext.workStatus || 'unknown';
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const updatedMetadata = {
+          ...journal.metadata,
+          lastStatusUpdate: new Date().toISOString(),
+          statusDistribution: statusCounts,
+          overallProgress: Math.round(
+            ((statusCounts.completed || 0) / updatedEntries.length) * 100
+          )
+        };
+
+        return {
+          ...journal,
+          entries: updatedEntries,
+          metadata: updatedMetadata
+        };
+      })
+    );
+
+    // Создаем сводную запись об обновлении статусов
+    const statusUpdateEntry: JournalEntry = {
+      id: `status-update-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      category: 'success',
+      title: language === 'ru' ? 'Обновление статусов работ завершено' : 'Work status update completed',
+      content: language === 'ru' 
+        ? `Выполнено критическое задание блока: обновлены статусы всех проделанных работ в рабочих журналах. Обновлено журналов: ${agentJournals.length}. Время обновления: ${new Date().toLocaleString()}`
+        : `Critical block task completed: updated statuses of all completed work in working journals. Updated journals: ${agentJournals.length}. Update time: ${new Date().toLocaleString()}`,
+      importance: 'high',
+      relatedMemories: [],
+      tags: ['status-update', 'block-task', 'critical', 'completed'],
+      projectContext: {
+        module: 'journal-manager',
+        phase: 'status-synchronization',
+        completeness: 100,
+        workStatus: 'completed',
+        lastUpdated: new Date().toISOString()
+      }
+    };
+
+    // Добавляем запись в системный журнал
+    const systemJournal = findOrCreateJournal('system-journal');
+    setAgentJournals(current => 
+      (current || []).map(journal => {
+        if (journal.agentId === 'system-journal' && journal.projectId === projectId) {
+          return {
+            ...journal,
+            entries: [...journal.entries, statusUpdateEntry],
+            metadata: {
+              ...journal.metadata,
+              lastEntry: new Date().toISOString(),
+              totalEntries: journal.entries.length + 1,
+              categories: {
+                ...journal.metadata.categories,
+                success: (journal.metadata.categories.success || 0) + 1
+              }
+            }
+          };
+        }
+        return journal;
+      })
+    );
+
+    // Если системного журнала не было, создаем его
+    if (!agentJournals?.find(j => j.agentId === 'system-journal' && j.projectId === projectId)) {
+      const newSystemJournal: AgentJournal = {
+        agentId: 'system-journal',
+        projectId,
+        entries: [statusUpdateEntry],
+        metadata: {
+          startDate: new Date().toISOString(),
+          lastEntry: new Date().toISOString(),
+          totalEntries: 1,
+          categories: { success: 1 },
+          lastStatusUpdate: new Date().toISOString(),
+          statusDistribution: { completed: 1 },
+          overallProgress: 100
+        }
+      };
+      
+      setAgentJournals(current => [...(current || []), newSystemJournal]);
+    }
+
+    toast.success(
+      language === 'ru' 
+        ? `Статусы обновлены успешно! Обработано ${agentJournals.length} журналов.`
+        : `Statuses updated successfully! Processed ${agentJournals.length} journals.`
+    );
+  };
+
+  // Создать начальные записи с выполненными работами для демонстрации
+  const createInitialWorkEntries = () => {
+    if (!selectedAgent) {
+      toast.error(language === 'ru' ? 'Выберите агента' : 'Select an agent');
+      return;
+    }
+
+    // Создаем несколько записей с разными статусами
+    const initialEntries: Omit<JournalEntry, 'id'>[] = [
+      {
+        timestamp: new Date(Date.now() - 86400000 * 3).toISOString(), // 3 дня назад
+        category: 'success',
+        title: language === 'ru' ? 'Завершена интеграция модуля аудита' : 'Audit module integration completed',
+        content: language === 'ru' ? 
+          'Успешно завершена интеграция модуля аудита с основной системой. Все тесты пройдены, функциональность проверена.' :
+          'Successfully completed audit module integration with main system. All tests passed, functionality verified.',
+        importance: 'high',
+        relatedMemories: [],
+        tags: ['integration', 'audit', 'completed'],
+        projectContext: {
+          module: 'audit-integration',
+          phase: 'implementation',
+          completeness: 100
+        }
+      },
+      {
+        timestamp: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 дня назад
+        category: 'learning',
+        title: language === 'ru' ? 'Изучение протокола Киплинга' : 'Kipling protocol learning',
+        content: language === 'ru' ? 
+          'Проведен анализ и изучение протокола Киплинга для улучшения аналитических возможностей системы.' :
+          'Conducted analysis and study of Kipling protocol to improve system analytical capabilities.',
+        importance: 'medium',
+        relatedMemories: [],
+        tags: ['learning', 'kipling', 'analysis'],
+        projectContext: {
+          module: 'kipling-protocol',
+          phase: 'research',
+          completeness: 75
+        }
+      },
+      {
+        timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 день назад
+        category: 'audit',
+        title: language === 'ru' ? 'Критический аудит безопасности' : 'Critical security audit',
+        content: language === 'ru' ? 
+          'Обнаружены критические уязвимости в системе аутентификации. Требуется немедленное исправление.' :
+          'Critical vulnerabilities discovered in authentication system. Immediate fix required.',
+        importance: 'critical',
+        relatedMemories: [],
+        tags: ['security', 'critical', 'vulnerability'],
+        projectContext: {
+          module: 'authentication',
+          phase: 'audit',
+          completeness: 30
+        }
+      },
+      {
+        timestamp: new Date().toISOString(), // сейчас
+        category: 'decision',
+        title: language === 'ru' ? 'Решение о приоритетах разработки' : 'Development priorities decision',
+        content: language === 'ru' ? 
+          'Принято решение сосредоточиться на исправлении уязвимостей безопасности как на высшем приоритете.' :
+          'Decision made to focus on security vulnerability fixes as highest priority.',
+        importance: 'high',
+        relatedMemories: [],
+        tags: ['decision', 'priorities', 'security'],
+        projectContext: {
+          module: 'project-management',
+          phase: 'planning',
+          completeness: 90
+        }
+      }
+    ];
+
+    // Добавляем записи в журнал
+    initialEntries.forEach(entryData => {
+      const newEntry: JournalEntry = {
+        ...entryData,
+        id: `entry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      };
+
+      // Обновляем журнал агента
+      setAgentJournals(current => {
+        const updated = (current || []).map(journal => {
+          if (journal.agentId === selectedAgent && journal.projectId === projectId) {
+            const updatedCategories = { ...journal.metadata.categories };
+            updatedCategories[entryData.category] = (updatedCategories[entryData.category] || 0) + 1;
+            
+            return {
+              ...journal,
+              entries: [...journal.entries, newEntry],
+              metadata: {
+                ...journal.metadata,
+                lastEntry: new Date().toISOString(),
+                totalEntries: journal.entries.length + 1,
+                categories: updatedCategories
+              }
+            };
+          }
+          return journal;
+        });
+
+        // Если журнал не существовал, создаем новый
+        if (!current?.find(j => j.agentId === selectedAgent && j.projectId === projectId)) {
+          const categoriesCount = initialEntries.reduce((acc, entry) => {
+            acc[entry.category] = (acc[entry.category] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+
+          const newJournal: AgentJournal = {
+            agentId: selectedAgent,
+            projectId,
+            entries: initialEntries.map((entryData, index) => ({
+              ...entryData,
+              id: `entry-${Date.now()}-${index}`
+            })),
+            metadata: {
+              startDate: new Date(Date.now() - 86400000 * 3).toISOString(),
+              lastEntry: new Date().toISOString(),
+              totalEntries: initialEntries.length,
+              categories: categoriesCount
+            }
+          };
+          
+          return [...(current || []), newJournal];
+        }
+
+        return updated;
+      });
+    });
+
+    toast.success(
+      language === 'ru' ? 
+        `Создано ${initialEntries.length} записей с выполненными работами` :
+        `Created ${initialEntries.length} entries with completed work`
+    );
+  };
+
   // Экспортировать журнал
   const exportJournal = (journal: AgentJournal) => {
     const exportData = {
@@ -361,15 +676,55 @@ export default function AgentJournalManager({
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {/* Add Entry Button */}
-          <div className="flex justify-end">
-            <Dialog open={isAddingEntry} onOpenChange={setIsAddingEntry}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus size={16} className="mr-2" />
-                  {t('addEntry')}
+          {/* Control Buttons */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2 items-center">
+                <Button 
+                  onClick={updateAllWorkStatuses}
+                  className="bg-accent text-accent-foreground hover:bg-accent/90"
+                  disabled={!agentJournals || agentJournals.length === 0}
+                >
+                  <CheckCircle size={16} className="mr-2" />
+                  {t('updateAllStatuses')}
                 </Button>
-              </DialogTrigger>
+                
+                <div className="flex items-center gap-2">
+                  <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder={language === 'ru' ? 'Выберите агента' : 'Select agent'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableAgents.map(agent => (
+                        <SelectItem key={agent.id} value={agent.id}>
+                          <div className="flex items-center gap-2">
+                            {getAgentIcon(agent.type)}
+                            {agent.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button 
+                    onClick={createInitialWorkEntries}
+                    variant="outline"
+                    disabled={!selectedAgent}
+                  >
+                    <Plus size={16} className="mr-2" />
+                    {language === 'ru' ? 'Создать Тестовые Записи' : 'Create Test Entries'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <Dialog open={isAddingEntry} onOpenChange={setIsAddingEntry}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus size={16} className="mr-2" />
+                    {t('addEntry')}
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{t('addEntry')}</DialogTitle>
@@ -509,7 +864,7 @@ export default function AgentJournalManager({
                           </Badge>
                         </div>
                         
-                        <div className="grid grid-cols-3 gap-4 text-sm mb-4">
+                        <div className="grid grid-cols-4 gap-4 text-sm mb-4">
                           <div>
                             <span className="text-muted-foreground">{t('totalEntries')}: </span>
                             <span className="font-medium">{journal.metadata.totalEntries}</span>
@@ -527,7 +882,36 @@ export default function AgentJournalManager({
                               }
                             </span>
                           </div>
+                          {journal.metadata.overallProgress !== undefined && (
+                            <div>
+                              <span className="text-muted-foreground">{language === 'ru' ? 'Прогресс' : 'Progress'}: </span>
+                              <span className="font-medium text-accent">{journal.metadata.overallProgress}%</span>
+                            </div>
+                          )}
                         </div>
+
+                        {/* Work Status Distribution */}
+                        {journal.metadata.statusDistribution && Object.keys(journal.metadata.statusDistribution).length > 0 && (
+                          <div className="mb-4">
+                            <h5 className="text-sm font-medium mb-2">{t('workStatus')}</h5>
+                            <div className="flex flex-wrap gap-1">
+                              {Object.entries(journal.metadata.statusDistribution).map(([status, count]) => (
+                                <Badge 
+                                  key={status} 
+                                  variant={status === 'completed' ? 'default' : status === 'failed' ? 'destructive' : status === 'urgent' ? 'destructive' : 'outline'} 
+                                  className="text-xs"
+                                >
+                                  {status === 'in-progress' ? t('inProgress') :
+                                   status === 'completed' ? t('completed') :
+                                   status === 'failed' ? t('failed') :
+                                   status === 'urgent' ? t('urgent') :
+                                   status === 'on-hold' ? t('onHold') :
+                                   t('unknown')}: {count}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         
                         {/* Recent Entries Preview */}
                         {recentEntries.length > 0 && (
@@ -662,10 +1046,33 @@ export default function AgentJournalManager({
                                   <Badge variant={getImportanceBadgeVariant(entry.importance)} className="text-xs">
                                     {t(entry.importance)}
                                   </Badge>
+                                  {entry.projectContext.workStatus && (
+                                    <Badge 
+                                      variant={
+                                        entry.projectContext.workStatus === 'completed' ? 'default' :
+                                        entry.projectContext.workStatus === 'failed' ? 'destructive' :
+                                        entry.projectContext.workStatus === 'urgent' ? 'destructive' :
+                                        'outline'
+                                      } 
+                                      className="text-xs"
+                                    >
+                                      {entry.projectContext.workStatus === 'in-progress' ? t('inProgress') :
+                                       entry.projectContext.workStatus === 'completed' ? t('completed') :
+                                       entry.projectContext.workStatus === 'failed' ? t('failed') :
+                                       entry.projectContext.workStatus === 'urgent' ? t('urgent') :
+                                       entry.projectContext.workStatus === 'on-hold' ? t('onHold') :
+                                       t('unknown')}
+                                    </Badge>
+                                  )}
                                 </div>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(entry.timestamp).toLocaleString()}
-                                </span>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <span>{new Date(entry.timestamp).toLocaleString()}</span>
+                                  {entry.projectContext.lastUpdated && (
+                                    <span>
+                                      • {language === 'ru' ? 'Обновлено' : 'Updated'}: {new Date(entry.projectContext.lastUpdated).toLocaleString()}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               
                               <p className="text-sm mb-3">{entry.content}</p>

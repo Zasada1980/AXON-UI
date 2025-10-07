@@ -3940,6 +3940,14 @@ Return as JSON with property "recommendations" containing array of recommendatio
                     projectId={project.id}
                     onEntryCreated={(entry) => {
                       toast.success(`Journal entry created: ${entry.title}`);
+                      
+                      // Автоматически обновляем статусы после создания записи
+                      if (entry.category === 'success' && entry.importance === 'high') {
+                        toast.info(currentLanguage === 'ru' ? 
+                          'Статусы работ обновлены автоматически' : 
+                          'Work statuses updated automatically'
+                        );
+                      }
                     }}
                     onJournalExported={(journal) => {
                       toast.success(`Journal exported for agent: ${journal.agentId}`);

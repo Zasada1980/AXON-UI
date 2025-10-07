@@ -137,6 +137,9 @@ export interface AgentJournal {
     lastEntry: string;
     totalEntries: number;
     categories: Record<string, number>;
+    lastStatusUpdate?: string;
+    statusDistribution?: Record<string, number>;
+    overallProgress?: number;
   };
 }
 
@@ -153,5 +156,7 @@ export interface JournalEntry {
     module: string;
     phase: string;
     completeness: number;
+    workStatus?: 'in-progress' | 'completed' | 'failed' | 'urgent' | 'on-hold' | 'unknown';
+    lastUpdated?: string;
   };
 }
