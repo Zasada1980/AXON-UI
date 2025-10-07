@@ -28,6 +28,7 @@ import GlobalProjectSettings from './components/GlobalProjectSettings';
 import IntelligenceGathering from './components/IntelligenceGathering';
 import SourceCredibilityAssessment from './components/SourceCredibilityAssessment';
 import ProjectRequirementsTracker from './components/ProjectRequirementsTracker';
+import AuthenticationSystem from './components/AuthenticationSystem';
 import NotificationSystem, { 
   notifyTaskCompleted, 
   notifyBlockerDetected, 
@@ -2775,6 +2776,10 @@ Return as JSON with property "recommendations" containing array of recommendatio
                       <Gear size={14} />
                       Global Settings
                     </TabsTrigger>
+                    <TabsTrigger value="authentication" className="flex items-center gap-2">
+                      <Shield size={14} />
+                      {language === 'ru' ? 'Аутентификация' : 'Authentication'}
+                    </TabsTrigger>
                     <TabsTrigger value="requirements-tracker" className="flex items-center gap-2">
                       <ListChecks size={14} />
                       {language === 'ru' ? 'ТЗ Трекер' : 'Requirements'}
@@ -4130,6 +4135,25 @@ Return as JSON with property "recommendations" containing array of recommendatio
                   }}
                   onAnalyticsReportGenerated={(report) => {
                     toast.success(currentLanguage === 'ru' ? `Отчёт аналитики создан: ${report.title}` : `Analytics report generated: ${report.title}`);
+                  }}
+                />
+              </TabsContent>
+
+              {/* Authentication Tab */}
+              <TabsContent value="authentication" className="space-y-6">
+                <AuthenticationSystem
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onUserAuthenticated={(user) => {
+                    toast.success(`User authenticated: ${user.username}`);
+                  }}
+                  onSecurityEvent={(event) => {
+                    if (event.riskLevel === 'critical' || event.riskLevel === 'high') {
+                      toast.warning(`Security event: ${event.eventType}`);
+                    }
+                  }}
+                  onPermissionChanged={(userId, permissions) => {
+                    toast.info(`Permissions updated for user ${userId}`);
                   }}
                 />
               </TabsContent>
