@@ -34,6 +34,9 @@ import SourceCredibilityAssessment from './components/SourceCredibilityAssessmen
 import ProjectRequirementsTracker from './components/ProjectRequirementsTracker';
 import AuthenticationSystem from './components/AuthenticationSystem';
 import TaskIntegrationTracker from './components/TaskIntegrationTracker';
+import AIOrchestrator from './components/AIOrchestrator';
+import AdvancedCognitiveAnalysis from './components/AdvancedCognitiveAnalysis';
+import CollaborativeAnalysis from './components/CollaborativeAnalysis';
 import NotificationSystem, { 
   notifyTaskCompleted, 
   notifyBlockerDetected, 
@@ -90,7 +93,8 @@ import {
   MicrophoneSlash,
   Headphones,
   Bell,
-  MagnifyingGlass
+  MagnifyingGlass,
+  Cpu
 } from '@phosphor-icons/react';
 
 // Declare global spark object
@@ -2922,6 +2926,18 @@ Return as JSON with property "recommendations" containing array of recommendatio
                       <Target size={14} />
                       {language === 'ru' ? 'Блоки Задач' : 'Task Blocks'}
                     </TabsTrigger>
+                    <TabsTrigger value="ai-orchestrator" className="flex items-center gap-2">
+                      <Cpu size={14} />
+                      {language === 'ru' ? 'ИИ Оркестратор' : 'AI Orchestrator'}
+                    </TabsTrigger>
+                    <TabsTrigger value="cognitive-analysis" className="flex items-center gap-2">
+                      <Brain size={14} />
+                      {language === 'ru' ? 'Когнитивный Анализ' : 'Cognitive Analysis'}
+                    </TabsTrigger>
+                    <TabsTrigger value="collaboration" className="flex items-center gap-2">
+                      <Users size={14} />
+                      {language === 'ru' ? 'Совместная Работа' : 'Collaboration'}
+                    </TabsTrigger>
                     <TabsTrigger value="settings" className="flex items-center gap-2">
                       <Gear size={14} />
                       {t('settings')}
@@ -4513,6 +4529,61 @@ Return as JSON with property "recommendations" containing array of recommendatio
                   onBlockerDetected={(blocker, taskId) => {
                     toast.warning(`Blocker detected: ${blocker}`);
                     notifyBlockerDetected(`Task blocked: ${blocker}`, project.id);
+                  }}
+                />
+              </TabsContent>
+
+              {/* AI Orchestrator Tab */}
+              <TabsContent value="ai-orchestrator" className="space-y-6">
+                <AIOrchestrator
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onWorkflowCompleted={(workflow) => {
+                    toast.success(`AI workflow completed: ${workflow.name}`);
+                    notifyTaskCompleted(`AI Orchestration workflow completed: ${workflow.name}`, project.id);
+                  }}
+                  onAgentResponse={(agentId, response) => {
+                    toast.info(`Agent ${agentId} completed task`);
+                  }}
+                  onError={(error) => {
+                    toast.error(`AI Orchestrator error: ${error}`);
+                    notifyBlockerDetected(`AI Orchestration error: ${error}`, project.id);
+                  }}
+                />
+              </TabsContent>
+
+              {/* Advanced Cognitive Analysis Tab */}
+              <TabsContent value="cognitive-analysis" className="space-y-6">
+                <AdvancedCognitiveAnalysis
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onAnalysisCompleted={(session) => {
+                    toast.success(`Cognitive analysis completed: ${session.title}`);
+                    notifyTaskCompleted(`Cognitive analysis session completed: ${session.title}`, project.id);
+                  }}
+                  onPatternDetected={(pattern) => {
+                    toast.info(`New cognitive pattern detected: ${pattern.name}`);
+                  }}
+                  onInsightGenerated={(insight) => {
+                    toast.success('New insight generated from cognitive analysis');
+                  }}
+                />
+              </TabsContent>
+
+              {/* Collaborative Analysis Tab */}
+              <TabsContent value="collaboration" className="space-y-6">
+                <CollaborativeAnalysis
+                  language={currentLanguage}
+                  projectId={project.id}
+                  onSessionCreated={(session) => {
+                    toast.success(`Collaboration session created: ${session.name}`);
+                  }}
+                  onParticipantJoined={(participant) => {
+                    toast.info(`${participant.name} joined the collaboration`);
+                  }}
+                  onConsensusReached={(consensus) => {
+                    toast.success(`Consensus reached: ${consensus.topic}`);
+                    notifyTaskCompleted(`Team consensus reached: ${consensus.topic}`, project.id);
                   }}
                 />
               </TabsContent>
