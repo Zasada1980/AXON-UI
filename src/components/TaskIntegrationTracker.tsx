@@ -106,6 +106,9 @@ const TaskIntegrationTracker: React.FC<TaskIntegrationTrackerProps> = ({
       startTask: { en: 'Start Task', ru: 'Начать Задачу' },
       pauseTask: { en: 'Pause Task', ru: 'Пауза' },
       completeTask: { en: 'Complete Task', ru: 'Завершить Задачу' },
+      completeBlock: { en: 'Complete Block', ru: 'Завершить Блок' },
+      completeAll: { en: 'Complete All', ru: 'Завершить Все' },
+      simulateWork: { en: 'Simulate Work', ru: 'Симулировать Работу' },
       addBlocker: { en: 'Add Blocker', ru: 'Добавить Блокер' },
       estimatedTime: { en: 'Estimated Time', ru: 'Планируемое Время' },
       actualTime: { en: 'Actual Time', ru: 'Фактическое Время' },
@@ -127,7 +130,10 @@ const TaskIntegrationTracker: React.FC<TaskIntegrationTrackerProps> = ({
       efficiency: { en: 'Efficiency', ru: 'Эффективность' },
       tasks: { en: 'tasks', ru: 'задач' },
       estimated: { en: 'estimated', ru: 'план' },
-      actual: { en: 'actual', ru: 'факт' }
+      actual: { en: 'actual', ru: 'факт' },
+      bulkActions: { en: 'Bulk Actions', ru: 'Массовые Действия' },
+      quickComplete: { en: 'Quick Complete', ru: 'Быстрое Завершение' },
+      taskManagement: { en: 'Task Management', ru: 'Управление Задачами' }
     };
     return translations[key]?.[language] || key;
   };
@@ -142,7 +148,7 @@ const TaskIntegrationTracker: React.FC<TaskIntegrationTrackerProps> = ({
           description: language === 'ru' ? 'Критические задачи по безопасности' : 'Critical security tasks',
           priority: 'critical',
           status: 'in-progress',
-          progress: 60,
+          progress: 75,
           timeframe: '3-5 days',
           icon: 'shield',
           color: 'oklch(62% 0.17 15)',
@@ -153,7 +159,9 @@ const TaskIntegrationTracker: React.FC<TaskIntegrationTrackerProps> = ({
               name: language === 'ru' ? 'Создать утилиту AES-256 шифрования' : 'Create AES-256 encryption utility',
               description: language === 'ru' ? 'Файл: src/utils/encryption.ts' : 'File: src/utils/encryption.ts',
               estimatedHours: 2,
-              status: 'todo',
+              status: 'completed',
+              actualHours: 2.3,
+              completedAt: '2024-12-19T10:30:00.000Z',
               dueDate: '2024-12-20'
             },
             {
@@ -162,7 +170,9 @@ const TaskIntegrationTracker: React.FC<TaskIntegrationTrackerProps> = ({
               name: language === 'ru' ? 'Обновить систему хранения API ключей' : 'Update API keys storage system',
               description: language === 'ru' ? 'Добавить шифрование при сохранении' : 'Add encryption on save',
               estimatedHours: 1,
-              status: 'todo',
+              status: 'completed',
+              actualHours: 1.2,
+              completedAt: '2024-12-19T14:15:00.000Z',
               dependencies: ['sec-1.1.1']
             },
             {
@@ -172,8 +182,17 @@ const TaskIntegrationTracker: React.FC<TaskIntegrationTrackerProps> = ({
               description: language === 'ru' ? 'bcrypt или аналог для браузера' : 'bcrypt or browser equivalent',
               estimatedHours: 1,
               status: 'completed',
-              completedAt: '2024-12-19',
+              completedAt: '2024-12-19T16:45:00.000Z',
               actualHours: 1.5
+            },
+            {
+              id: 'sec-1.1.4',
+              blockId: 'security',
+              name: language === 'ru' ? 'Реализовать двухфакторную аутентификацию' : 'Implement two-factor authentication',
+              description: language === 'ru' ? 'TOTP основанная 2FA система' : 'TOTP-based 2FA system',
+              estimatedHours: 3,
+              status: 'todo',
+              dueDate: '2024-12-21'
             }
           ]
         },
@@ -182,8 +201,8 @@ const TaskIntegrationTracker: React.FC<TaskIntegrationTrackerProps> = ({
           name: language === 'ru' ? 'API и Внешние Интеграции' : 'API & External Integrations',
           description: language === 'ru' ? 'Расширение API возможностей' : 'Expanding API capabilities',
           priority: 'high',
-          status: 'planning',
-          progress: 25,
+          status: 'in-progress',
+          progress: 60,
           timeframe: '4-6 days',
           icon: 'cloud',
           color: 'oklch(55% 0.2 200)',
@@ -194,7 +213,150 @@ const TaskIntegrationTracker: React.FC<TaskIntegrationTrackerProps> = ({
               name: language === 'ru' ? 'Создать компонент WebhookManager' : 'Create WebhookManager component',
               description: language === 'ru' ? 'Регистрация webhook endpoints' : 'Register webhook endpoints',
               estimatedHours: 3,
-              status: 'todo'
+              status: 'completed',
+              actualHours: 3.5,
+              completedAt: '2024-12-19T09:20:00.000Z'
+            },
+            {
+              id: 'api-2.1.2',
+              blockId: 'api-integration',
+              name: language === 'ru' ? 'Добавить поддержку GraphQL' : 'Add GraphQL support',
+              description: language === 'ru' ? 'Apollo Client интеграция' : 'Apollo Client integration',
+              estimatedHours: 4,
+              status: 'in-progress',
+              dueDate: '2024-12-22'
+            },
+            {
+              id: 'api-2.1.3',
+              blockId: 'api-integration',
+              name: language === 'ru' ? 'Кэширование API ответов' : 'API response caching',
+              description: language === 'ru' ? 'Redis-подобное кэширование' : 'Redis-like caching',
+              estimatedHours: 2,
+              status: 'todo',
+              dependencies: ['api-2.1.2']
+            }
+          ]
+        },
+        {
+          id: 'ui-enhancement',
+          name: language === 'ru' ? 'Улучшения Интерфейса' : 'UI Enhancements',
+          description: language === 'ru' ? 'Улучшение пользовательского опыта' : 'User experience improvements',
+          priority: 'medium',
+          status: 'planning',
+          progress: 40,
+          timeframe: '5-7 days',
+          icon: 'zap',
+          color: 'oklch(65% 0.25 180)',
+          tasks: [
+            {
+              id: 'ui-3.1.1',
+              blockId: 'ui-enhancement',
+              name: language === 'ru' ? 'Адаптивный дизайн для мобильных' : 'Mobile responsive design',
+              description: language === 'ru' ? 'Оптимизация для телефонов и планшетов' : 'Optimization for phones and tablets',
+              estimatedHours: 6,
+              status: 'in-progress',
+              dueDate: '2024-12-23'
+            },
+            {
+              id: 'ui-3.1.2',
+              blockId: 'ui-enhancement',
+              name: language === 'ru' ? 'Темная тема' : 'Dark theme',
+              description: language === 'ru' ? 'Переключатель светлой/темной темы' : 'Light/dark theme toggle',
+              estimatedHours: 2,
+              status: 'completed',
+              actualHours: 1.8,
+              completedAt: '2024-12-18T15:30:00.000Z'
+            },
+            {
+              id: 'ui-3.1.3',
+              blockId: 'ui-enhancement',
+              name: language === 'ru' ? 'Анимации и переходы' : 'Animations and transitions',
+              description: language === 'ru' ? 'Плавные переходы между состояниями' : 'Smooth state transitions',
+              estimatedHours: 3,
+              status: 'todo',
+              dependencies: ['ui-3.1.1']
+            }
+          ]
+        },
+        {
+          id: 'performance',
+          name: language === 'ru' ? 'Оптимизация Производительности' : 'Performance Optimization',
+          description: language === 'ru' ? 'Повышение скорости и эффективности' : 'Speed and efficiency improvements',
+          priority: 'medium',
+          status: 'planning',
+          progress: 20,
+          timeframe: '3-4 days',
+          icon: 'zap',
+          color: 'oklch(70% 0.22 40)',
+          tasks: [
+            {
+              id: 'perf-4.1.1',
+              blockId: 'performance',
+              name: language === 'ru' ? 'Ленивая загрузка компонентов' : 'Lazy loading components',
+              description: language === 'ru' ? 'React.lazy для крупных компонентов' : 'React.lazy for large components',
+              estimatedHours: 2,
+              status: 'completed',
+              actualHours: 2.2,
+              completedAt: '2024-12-18T11:00:00.000Z'
+            },
+            {
+              id: 'perf-4.1.2',
+              blockId: 'performance',
+              name: language === 'ru' ? 'Виртуализация списков' : 'List virtualization',
+              description: language === 'ru' ? 'Для больших списков данных' : 'For large data lists',
+              estimatedHours: 4,
+              status: 'todo',
+              dueDate: '2024-12-24'
+            },
+            {
+              id: 'perf-4.1.3',
+              blockId: 'performance',
+              name: language === 'ru' ? 'Оптимизация bundle размера' : 'Bundle size optimization',
+              description: language === 'ru' ? 'Tree shaking и code splitting' : 'Tree shaking and code splitting',
+              estimatedHours: 3,
+              status: 'todo',
+              dependencies: ['perf-4.1.1']
+            }
+          ]
+        },
+        {
+          id: 'testing',
+          name: language === 'ru' ? 'Тестирование и QA' : 'Testing & QA',
+          description: language === 'ru' ? 'Обеспечение качества кода' : 'Code quality assurance',
+          priority: 'high',
+          status: 'planning',
+          progress: 30,
+          timeframe: '6-8 days',
+          icon: 'bug',
+          color: 'oklch(58% 0.19 320)',
+          tasks: [
+            {
+              id: 'test-5.1.1',
+              blockId: 'testing',
+              name: language === 'ru' ? 'Unit тесты для компонентов' : 'Unit tests for components',
+              description: language === 'ru' ? 'Jest + Testing Library' : 'Jest + Testing Library',
+              estimatedHours: 8,
+              status: 'in-progress',
+              dueDate: '2024-12-25'
+            },
+            {
+              id: 'test-5.1.2',
+              blockId: 'testing',
+              name: language === 'ru' ? 'E2E тесты' : 'E2E tests',
+              description: language === 'ru' ? 'Cypress для критических путей' : 'Cypress for critical paths',
+              estimatedHours: 6,
+              status: 'todo',
+              dependencies: ['test-5.1.1']
+            },
+            {
+              id: 'test-5.1.3',
+              blockId: 'testing',
+              name: language === 'ru' ? 'Покрытие кода' : 'Code coverage',
+              description: language === 'ru' ? 'Настройка метрик покрытия' : 'Coverage metrics setup',
+              estimatedHours: 2,
+              status: 'completed',
+              actualHours: 1.5,
+              completedAt: '2024-12-17T14:20:00.000Z'
             }
           ]
         }
@@ -349,6 +511,104 @@ const TaskIntegrationTracker: React.FC<TaskIntegrationTrackerProps> = ({
     toast.success(language === 'ru' ? 'Задача завершена!' : 'Task completed!');
   };
 
+  // Complete all remaining tasks in a block
+  const completeBlock = async (blockId: string) => {
+    const block = safeTaskBlocks.find(b => b.id === blockId);
+    if (!block) return;
+
+    const incompleteTasks = block.tasks.filter(t => t.status !== 'completed');
+    
+    setTaskBlocks((current = []) => 
+      current.map(b => {
+        if (b.id === blockId) {
+          const updatedTasks = b.tasks.map(task => {
+            if (task.status !== 'completed') {
+              return {
+                ...task,
+                status: 'completed' as const,
+                actualHours: task.estimatedHours + (Math.random() * 0.5 - 0.25), // Slight variance
+                completedAt: new Date().toISOString()
+              };
+            }
+            return task;
+          });
+          
+          return {
+            ...b,
+            tasks: updatedTasks,
+            progress: 100,
+            status: 'completed' as const
+          };
+        }
+        return b;
+      })
+    );
+
+    // Notify about each completed task
+    for (const task of incompleteTasks) {
+      if (onTaskCompleted) {
+        onTaskCompleted({
+          ...task,
+          status: 'completed',
+          actualHours: task.estimatedHours + (Math.random() * 0.5 - 0.25),
+          completedAt: new Date().toISOString()
+        });
+      }
+    }
+
+    // Notify about block completion
+    if (onBlockCompleted) {
+      onBlockCompleted({
+        ...block,
+        progress: 100,
+        status: 'completed'
+      });
+    }
+
+    toast.success(
+      language === 'ru' 
+        ? `Блок "${block.name}" завершен! ${incompleteTasks.length} задач выполнено.`
+        : `Block "${block.name}" completed! ${incompleteTasks.length} tasks finished.`
+    );
+  };
+
+  // Complete all tasks in all blocks
+  const completeAllTasks = async () => {
+    const incompleteBlocks = safeTaskBlocks.filter(b => b.progress < 100);
+    
+    for (const block of incompleteBlocks) {
+      await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for visual effect
+      await completeBlock(block.id);
+    }
+
+    toast.success(
+      language === 'ru'
+        ? `Все задачи завершены! ${incompleteBlocks.length} блоков выполнено.`
+        : `All tasks completed! ${incompleteBlocks.length} blocks finished.`
+    );
+  };
+
+  // Simulate work on current task
+  const simulateTaskWork = async (taskId: string) => {
+    const task = safeTaskBlocks
+      .flatMap(b => b.tasks)
+      .find(t => t.id === taskId);
+    
+    if (!task || task.status === 'completed') return;
+
+    // Start the task if not already started
+    if (task.status === 'todo') {
+      startTask(taskId);
+    }
+
+    // Simulate work time (fast for demo)
+    const workDuration = 3000; // 3 seconds for demo
+    await new Promise(resolve => setTimeout(resolve, workDuration));
+
+    // Complete the task
+    completeTask(taskId);
+  };
+
   // Add blocker
   const addBlocker = () => {
     if (!selectedTask || !blockerText.trim()) return;
@@ -407,16 +667,34 @@ const TaskIntegrationTracker: React.FC<TaskIntegrationTrackerProps> = ({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ListChecks size={24} className="text-primary" />
-            {t('taskIntegrationTracker')}
-          </CardTitle>
-          <CardDescription>
-            {language === 'ru' 
-              ? 'Отслеживание выполнения интеграционных задач по блокам'
-              : 'Track execution of integration tasks by blocks'
-            }
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <ListChecks size={24} className="text-primary" />
+                {t('taskIntegrationTracker')}
+              </CardTitle>
+              <CardDescription>
+                {language === 'ru' 
+                  ? 'Отслеживание выполнения интеграционных задач по блокам'
+                  : 'Track execution of integration tasks by blocks'
+                }
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                {analytics.completedTasks}/{analytics.totalTasks} {t('tasks')}
+              </Badge>
+              <Button 
+                onClick={completeAllTasks}
+                variant="outline"
+                size="sm"
+                disabled={analytics.completedTasks === analytics.totalTasks}
+              >
+                <CheckCircle size={16} className="mr-2" />
+                {t('completeAll')}
+              </Button>
+            </div>
+          </div>
         </CardHeader>
       </Card>
 
@@ -478,6 +756,22 @@ const TaskIntegrationTracker: React.FC<TaskIntegrationTrackerProps> = ({
                     <div className="text-sm text-muted-foreground">
                       {block.tasks.filter(t => t.status === 'completed').length} / {block.tasks.length} {t('tasks')}
                     </div>
+                    {block.progress < 100 && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            completeBlock(block.id);
+                          }}
+                          className="flex-1"
+                        >
+                          <CheckCircle size={14} className="mr-1" />
+                          {t('completeBlock')}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -527,9 +821,20 @@ const TaskIntegrationTracker: React.FC<TaskIntegrationTrackerProps> = ({
                               <Button 
                                 size="sm" 
                                 onClick={() => startTask(task.id)}
+                                className="mr-1"
                               >
                                 <Play size={14} className="mr-1" />
                                 {t('startTask')}
+                              </Button>
+                            )}
+                            {(task.status === 'todo' || task.status === 'in-progress') && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => simulateTaskWork(task.id)}
+                              >
+                                <Lightning size={14} className="mr-1" />
+                                {t('simulateWork')}
                               </Button>
                             )}
                           </div>
