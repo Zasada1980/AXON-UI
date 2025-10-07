@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useKV } from '@github/spark/hooks';
+import KiplingQuestionnaire from './components/KiplingQuestionnaire';
+import KiplingQuestionPreview from './components/KiplingQuestionPreview';
+import QuestionnaireResults from './components/QuestionnaireResults';
 import SystemDiagnostics from './components/SystemDiagnostics';
 import StepByStepExecutor from './components/StepByStepExecutor';
 import AutoRecovery from './components/AutoRecovery';
@@ -767,6 +770,11 @@ function App() {
     errorCount: 0,
     lastUpdated: new Date().toISOString()
   });
+
+  // Questionnaire state
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [questionnaireData, setQuestionnaireData] = useState<any>(null);
+  const [showQuestionnaireResults, setShowQuestionnaireResults] = useState(false);
 
   // Chat UI state
   const [chatInput, setChatInput] = useState('');
@@ -2972,6 +2980,140 @@ Return as JSON with property "recommendations" containing array of recommendatio
 
               {/* Intelligence Gathering Tab */}
               <TabsContent value="intelligence" className="space-y-6">
+                {!showQuestionnaire && !showQuestionnaireResults && (
+                  <KiplingQuestionPreview
+                    language={currentLanguage}
+                    onStartQuestionnaire={() => setShowQuestionnaire(true)}
+                  />
+                )}
+
+                {showQuestionnaire && !showQuestionnaireResults && (
+                  <KiplingQuestionnaire
+                    language={currentLanguage}
+                    onQuestionnaireComplete={(data) => {
+                      setQuestionnaireData(data);
+                      setShowQuestionnaire(false);
+                      setShowQuestionnaireResults(true);
+                      
+                      toast.success(
+                        currentLanguage === 'ru' 
+                          ? 'Анкета завершена! Просмотрите результаты.'
+                          : 'Questionnaire completed! Review your results.'
+                      );
+                    }}
+                    onProgressUpdate={(progress) => {
+                      // Показываем прогресс в реальном времени
+                      if (progress % 20 === 0 && progress > 0) {
+                        toast.info(
+                          currentLanguage === 'ru'
+                            ? `Прогресс: ${Math.round(progress)}%`
+                            : `Progress: ${Math.round(progress)}%`
+                        );
+                      }
+                    }}
+                  />
+                )}
+
+                {showQuestionnaireResults && questionnaireData && (
+                  <QuestionnaireResults
+                    language={currentLanguage}
+                    questionnaireData={questionnaireData}
+                    onApplyToProject={(data) => {
+                      // Автоматически заполняем измерения Киплинга на основе ответов
+                      const { responses, ikrMapping } = data;
+                      
+                      // Маппинг ответов на измерения
+                      const dimensionUpdates: Record<string, string> = {};
+                      
+                      Object.entries(responses).forEach(([questionId, answer]) => {
+                        const question = questionId.split('-')[0]; // who, what, when, where, why, how
+                        if (!dimensionUpdates[question]) {
+                          dimensionUpdates[question] = '';
+                        }
+                        dimensionUpdates[question] += `${answer}\n\n`;
+                      });
+                      
+                      // Обновляем проект с новыми данными
+                      setProjects(current => 
+                        (current || []).map(p => 
+                          p.id === project.id 
+                            ? {
+                                ...p,
+                                lastModified: new Date().toISOString(),
+                                dimensions: p.dimensions.map(d => ({
+                                  ...d,
+                                  content: dimensionUpdates[d.id] ? dimensionUpdates[d.id].trim() : d.content,
+                                  completeness: dimensionUpdates[d.id] ? Math.min(100, dimensionUpdates[d.id].length / 10) : d.completeness
+                                })),
+                                ikrDirective: {
+                                  intelligence: ikrMapping.intelligence.map((q: any) => responses[q.id]).join('\n\n'),
+                                  knowledge: ikrMapping.knowledge.map((q: any) => responses[q.id]).join('\n\n'),
+                                  reasoning: ikrMapping.reasoning.map((q: any) => responses[q.id]).join('\n\n')
+                                }
+                              }
+                            : p
+                        )
+                      );
+                      
+                      // Переключаемся на обзор проекта
+                      setActiveTab('overview');
+                      setShowQuestionnaireResults(false);
+                      setQuestionnaireData(null);
+                      
+                      toast.success(
+                        currentLanguage === 'ru' 
+                          ? 'Данные успешно применены к проекту!'
+                          : 'Data successfully applied to project!'
+                      );
+                    }}
+                    onGenerateReport={() => {
+                      // Генерируем отчёт по анкете
+                      const reportData = {
+                        questionnaire: questionnaireData,
+                        project: project,
+                        timestamp: new Date().toISOString()
+                      };
+                      
+                      const blob = new Blob([JSON.stringify(reportData, null, 2)], { 
+                        type: 'application/json' 
+                      });
+                      
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `kipling-questionnaire-${project.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                      
+                      toast.success(
+                        currentLanguage === 'ru'
+                          ? 'Отчёт по анкете скачан!'
+                          : 'Questionnaire report downloaded!'
+                      );
+                    }}
+                  />
+                )}
+                
+                {/* Reset/Back buttons */}
+                {(showQuestionnaire || showQuestionnaireResults) && (
+                  <div className="flex justify-start">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowQuestionnaire(false);
+                        setShowQuestionnaireResults(false);
+                        setQuestionnaireData(null);
+                      }}
+                    >
+                      {currentLanguage === 'ru' ? 'Начать заново' : 'Start over'}
+                    </Button>
+                  </div>
+                )}
+                
+                <Separator />
+                
                 <IntelligenceGathering
                   language={currentLanguage}
                   projectId={project.id}
