@@ -195,6 +195,80 @@ export default function DebateLogManager({
   // Состояния для управления логами дебатов
   // Use distinct KV key to avoid schema collision with DebatePage's session store
   const [debateSessions, setDebateSessions] = useKV<DebateSession[]>(`debate-log-sessions-${projectId}`, []);
+  // Access DebatePage session store to provision read-only sessions on demand
+  type DebatePageMessage = {
+    id: string;
+    agentId: string;
+    content: string;
+    type: 'argument' | 'counterargument' | 'question' | 'summary' | 'conclusion';
+    timestamp: string;
+    reactions: { thumbsUp: number; thumbsDown: number; insightful: number };
+    confidence: number;
+  }
+  type DebatePageSession = {
+    id: string;
+    title: string;
+    topic: string;
+    description: string;
+    participants: string[];
+    moderator?: string;
+    status: 'setup' | 'active' | 'paused' | 'completed' | 'archived';
+    createdAt: string;
+    startedAt?: string;
+    completedAt?: string;
+    messages: DebatePageMessage[];
+    currentRound: number;
+    maxRounds: number;
+    rules: { timePerRound: number; maxArgumentLength: number; allowInterruptions: boolean; requireConsensus: boolean };
+  }
+  const [debatePageSessions, setDebatePageSessions] = useKV<DebatePageSession[]>(`debate-sessions-${projectId}`, []);
+
+  const mapLogTypeToMessageType = (t: string): DebatePageMessage['type'] => {
+    switch (t) {
+      case 'argument':
+        return 'argument'
+      case 'counter-argument':
+        return 'counterargument'
+      case 'synthesis':
+        return 'summary'
+      case 'question':
+        return 'question'
+      case 'conclusion':
+        return 'conclusion'
+      default:
+        return 'argument'
+    }
+  }
+
+  const ensureDebatePageSession = (session: DebateSession) => {
+    const exists = (debatePageSessions || []).some(s => s.id === session.id)
+    if (exists) return
+    const mapped: DebatePageSession = {
+      id: session.id,
+      title: session.topic,
+      topic: session.topic,
+      description: '',
+      participants: session.participants,
+      moderator: undefined,
+      status: session.status === 'running' ? 'active' : session.status === 'completed' ? 'completed' : 'paused',
+      createdAt: session.startTime,
+      startedAt: session.startTime,
+      completedAt: session.endTime,
+      messages: (session.logs || []).map(l => ({
+        id: `import-${l.id}`,
+        agentId: l.agentId,
+        content: l.message,
+        type: mapLogTypeToMessageType(l.messageType),
+        timestamp: l.timestamp,
+        reactions: { thumbsUp: 0, thumbsDown: 0, insightful: 0 },
+        confidence: l.confidence,
+      })),
+      currentRound: session.currentRound,
+      maxRounds: session.totalRounds,
+      rules: { timePerRound: 5, maxArgumentLength: 500, allowInterruptions: false, requireConsensus: false },
+    }
+    setDebatePageSessions(current => [ ...(current || []), mapped ])
+  }
   const [selectedSession, setSelectedSession] = useState<DebateSession | null>(null);
   const [extractionProgress, setExtractionProgress] = useState<{
     sessionId: string;
@@ -558,6 +632,19 @@ export default function DebateLogManager({
                           <Eye size={14} className="mr-1" />
                           {t('viewDetails')}
                         </Button>
+                        <Button size="sm" variant="outline" onClick={() => {
+                          ensureDebatePageSession(session)
+                          if (typeof window !== 'undefined') {
+                            // Notify DebatePage to import this session if needed
+                            window.dispatchEvent(new CustomEvent('debate:open-session', { detail: session }))
+                            window.location.hash = `#session=${encodeURIComponent(session.id)}`
+                            window.dispatchEvent(new HashChangeEvent('hashchange'))
+                            toast.success(language==='ru'?'Открываю сессию в Дебатах':'Opening session in Debate')
+                          }
+                        }}>
+                          <PaperPlaneTilt size={14} className="mr-1" />
+                          {language==='ru' ? 'Открыть в Дебатах' : 'Open in Debate'}
+                        </Button>
                         <Button size="sm" variant="outline" onClick={() => downloadJSON(session.logs, `${session.id}-logs.json`)}>
                           <Download size={14} className="mr-1" />
                           {t('downloadLogs')}
@@ -641,6 +728,18 @@ export default function DebateLogManager({
                         }}>
                           <Eye size={14} className="mr-1" />
                           {t('viewDetails')}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => {
+                          ensureDebatePageSession(session)
+                          if (typeof window !== 'undefined') {
+                            window.dispatchEvent(new CustomEvent('debate:open-session', { detail: session }))
+                            window.location.hash = `#session=${encodeURIComponent(session.id)}`
+                            window.dispatchEvent(new HashChangeEvent('hashchange'))
+                            toast.success(language==='ru'?'Открываю сессию в Дебатах':'Opening session in Debate')
+                          }
+                        }}>
+                          <PaperPlaneTilt size={14} className="mr-1" />
+                          {language==='ru' ? 'Открыть в Дебатах' : 'Open in Debate'}
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => downloadJSON(session.logs, `${session.id}-logs.json`)}>
                           <Download size={14} className="mr-1" />
