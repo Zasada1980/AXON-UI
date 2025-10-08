@@ -175,3 +175,4 @@
   - IKR: добавлен unit-тест создания анализа `ikr.create-analysis.test.tsx` (открытие диалога, ввод Title/Description, сохранение, проверка отображения обзора и карточек I/K/R). Исправлена неоднозначность выборки кнопки через scoping внутри диалога.
   - Локальная проверка: Tests PASS (7/7), Typecheck PASS, Lint — без ошибок (только предупреждения), Build PASS.
   - Контекст PR #18: ветка `feat/ikr-phase1` обновлена (push выполнен). Готово к рассмотрению и слиянию: гейты (tests/typecheck/build) — PASS.
+  - Конфликты PR #18: разрешены (src/App.tsx, src/pages/IKRDirectivePage.tsx, vitest.setup.ts). Повторная проверка: Tests PASS, Lint — WARN only, Build PASS.
