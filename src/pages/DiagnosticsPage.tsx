@@ -1,7 +1,13 @@
 import React from 'react';
 import SystemDiagnostics from '../components/SystemDiagnostics';
+import ErrorMonitoring from '@/components/ErrorMonitoring';
+import AutoRecovery from '@/components/AutoRecovery';
+import AutoBackupSystem from '@/components/AutoBackupSystem';
+import CheckpointSystem from '@/components/CheckpointSystem';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from '@phosphor-icons/react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
+import { ArrowLeft, Activity, Wrench, FloppyDisk, Database } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 
 type Language = 'en' | 'ru';
@@ -21,7 +27,7 @@ const translations: Record<string, { en: string; ru: string }> = {
   }
 };
 
-export default function DiagnosticsPage({ language, onNavigate }: Props) {
+export default function DiagnosticsPage({ language, projectId, onNavigate }: Props) {
   const t = (key: string): string => {
     return translations[key]?.[language] || key;
   };
@@ -43,16 +49,71 @@ export default function DiagnosticsPage({ language, onNavigate }: Props) {
         </Button>
       </div>
 
-      {/* System Diagnostics Component */}
-      <SystemDiagnostics
-        language={language}
-        onIssueDetected={(issue) => {
-          toast.warning(`System issue detected: ${issue.description}`);
-        }}
-        onTaskCompleted={(task) => {
-          toast.success(`Task completed: ${task.title}`);
-        }}
-      />
+      {/* Diagnostics Suite */}
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Activity size={16} /> Overview
+          </TabsTrigger>
+          <TabsTrigger value="recovery" className="flex items-center gap-2">
+            <Wrench size={16} /> Monitoring & Recovery
+          </TabsTrigger>
+          <TabsTrigger value="backups" className="flex items-center gap-2">
+            <FloppyDisk size={16} /> Backups
+          </TabsTrigger>
+          <TabsTrigger value="checkpoints" className="flex items-center gap-2">
+            <Database size={16} /> Checkpoints
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Overview: metrics + issues + microtasks */}
+        <TabsContent value="overview" className="mt-4">
+          <SystemDiagnostics
+            language={language}
+            onIssueDetected={(issue) => {
+              toast.warning(`System issue detected: ${issue.description}`);
+            }}
+            onTaskCompleted={(task) => {
+              toast.success(`Task completed: ${task.title}`);
+            }}
+          />
+        </TabsContent>
+
+        {/* Recovery: Error monitoring + Auto recovery side by side */}
+        <TabsContent value="recovery" className="mt-4">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardContent className="pt-6">
+                <ErrorMonitoring language={language} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <AutoRecovery language={language} />
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Backups: auto backup system */}
+        <TabsContent value="backups" className="mt-4">
+          <AutoBackupSystem
+            language={language}
+            projectId={projectId}
+            onBackupCreated={() => {
+              toast.success('Backup created');
+            }}
+            onRestoreCompleted={() => {
+              toast.success('Restore completed');
+            }}
+          />
+        </TabsContent>
+
+        {/* Checkpoints */}
+        <TabsContent value="checkpoints" className="mt-4">
+          <CheckpointSystem language={language} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
