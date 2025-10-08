@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useKV } from '@github/spark/hooks';
+import { axon } from '@/services/axonAdapter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -251,7 +252,6 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
     setAnalysisResult('');
     setAnalysisError('');
     try {
-      const { axon } = await import('@/services/axonAdapter');
       const prompt = currentAnalysisData?.description || '';
       const req = {
         projectId,
