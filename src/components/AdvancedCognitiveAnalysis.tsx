@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import type { Spark } from '@/types/spark';
+import React, { useState, useEffect, useCallback } from 'react';
+import { axon } from '@/services/axonAdapter';
 import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,34 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import {
   Brain,
   Graph,
-  Target,
   Eye,
   Lightbulb,
-  Users,
-  FileText,
-  ChartLine,
   Play,
-  Pause,
-  CheckCircle,
-  Warning,
-  Clock,
   ArrowRight,
   Plus,
-  Gear,
-  Shield,
-  Robot,
   FloppyDisk
 } from '@phosphor-icons/react';
 
-// Access global spark typed via shared declaration
-const spark = (globalThis as any).spark as Spark;
+// All heavy logic delegated to AXON backend via adapter
 
 interface CognitiveFramework {
   id: string;
@@ -100,31 +86,23 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
   onPatternDetected,
   onInsightGenerated
 }) => {
-  const t = (key: string) => key; // Simplified translation function
+  const _t = (key: string) => key; // Simplified translation function (unused for now)
 
   // State management
   const [frameworks, setFrameworks] = useKV<CognitiveFramework[]>('cognitive-frameworks', []);
   const [analysisSessions, setAnalysisSessions] = useKV<AnalysisSession[]>('analysis-sessions', []);
   const [cognitivePatterns, setCognitivePatterns] = useKV<CognitivePattern[]>('cognitive-patterns', []);
   
-  const [activeSession, setActiveSession] = useState<string | null>(null);
-  const [selectedFramework, setSelectedFramework] = useState<string>('');
+  const [_activeSession, setActiveSession] = useState<string | null>(null);
   const [sessionBuilder, setSessionBuilder] = useState({
     title: '',
     description: '',
     frameworkId: ''
   });
-  const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [_isCreatingSession, setIsCreatingSession] = useState(false);
   const [analysisDepth, setAnalysisDepth] = useState<'surface' | 'deep' | 'comprehensive'>('deep');
 
-  // Initialize default cognitive frameworks
-  useEffect(() => {
-    if (!frameworks || frameworks.length === 0) {
-      initializeDefaultFrameworks();
-    }
-  }, []);
-
-  const initializeDefaultFrameworks = () => {
+  const initializeDefaultFrameworks = useCallback(() => {
     const defaultFrameworks: CognitiveFramework[] = [
       {
         id: 'systems-thinking',
@@ -282,7 +260,14 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
     ];
 
     setFrameworks(defaultFrameworks);
-  };
+  }, [setFrameworks]);
+
+  // Initialize default cognitive frameworks
+  useEffect(() => {
+    if (!frameworks || frameworks.length === 0) {
+      initializeDefaultFrameworks();
+    }
+  }, [frameworks, initializeDefaultFrameworks]);
 
   // Create a new analysis session
   const createAnalysisSession = async () => {
@@ -290,7 +275,6 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
       toast.error('Session title is required');
       return;
     }
-
     if (!sessionBuilder.frameworkId) {
       toast.error('Please select a cognitive framework');
       return;
@@ -432,31 +416,33 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
       projectContext: projectId
     };
 
-    const prompt = spark.llmPrompt`You are an expert cognitive analyst using advanced analytical frameworks.
-
-Framework: ${framework.name}
-Methodology: ${framework.methodology}
-Current Dimension: ${dimension.name}
-
-Question to analyze: ${dimension.question}
-Analysis Method: ${dimension.analysisMethod}
-Analysis Depth: ${depth}
-
-Context: ${JSON.stringify(contextualData, null, 2)}
-
-Please provide a comprehensive analysis for this dimension. Structure your response as JSON with the following format:
-{
-  "analysis": "detailed analysis response",
-  "key_findings": ["finding 1", "finding 2", "finding 3"],
-  "confidence": 85,
-  "patterns": ["pattern 1", "pattern 2"],
-  "implications": ["implication 1", "implication 2"],
-  "next_steps": ["step 1", "step 2"]
-}`;
+    const prompt = [
+      'You are an expert cognitive analyst using advanced analytical frameworks.',
+      '',
+      `Framework: ${framework.name}`,
+      `Methodology: ${framework.methodology}`,
+      `Current Dimension: ${dimension.name}`,
+      '',
+      `Question to analyze: ${dimension.question}`,
+      `Analysis Method: ${dimension.analysisMethod}`,
+      `Analysis Depth: ${depth}`,
+      '',
+      `Context: ${JSON.stringify(contextualData, null, 2)}`,
+      '',
+      'Please provide a comprehensive analysis for this dimension. Structure your response as JSON with the following format:',
+      '{',
+      '  "analysis": "detailed analysis response",',
+      '  "key_findings": ["finding 1", "finding 2", "finding 3"],',
+      '  "confidence": 85,',
+      '  "patterns": ["pattern 1", "pattern 2"],',
+      '  "implications": ["implication 1", "implication 2"],',
+      '  "next_steps": ["step 1", "step 2"]',
+      '}'
+    ].join('\n');
 
     try {
-      const response = await spark.llm(prompt, 'gpt-4o', true);
-      const result = JSON.parse(response);
+      const res = await axon.analyze({ projectId, prompt, mode: 'general', language: (language === 'ru' ? 'ru' : 'en') });
+      const result = safeParseJSON(res.content);
 
       // Update session with dimension results
       setAnalysisSessions(current => 
@@ -494,29 +480,31 @@ Please provide a comprehensive analysis for this dimension. Structure your respo
     const framework = frameworks?.find(f => f.id === session.frameworkId);
     if (!framework) return;
 
-    const synthesisPrompt = spark.llmPrompt`You are a master analyst synthesizing complex cognitive analysis results.
-
-Framework: ${framework.name}
-Analysis Results: ${JSON.stringify(session.results, null, 2)}
-
-Please synthesize these findings into:
-1. Key insights that emerge from the analysis
-2. Strategic recommendations
-3. Areas requiring further investigation
-4. Overall confidence assessment
-
-Provide response as JSON:
-{
-  "insights": ["insight 1", "insight 2", "insight 3"],
-  "recommendations": ["recommendation 1", "recommendation 2"],
-  "further_investigation": ["area 1", "area 2"],
-  "overall_confidence": 88,
-  "synthesis_summary": "comprehensive summary"
-}`;
+    const synthesisPrompt = [
+      'You are a master analyst synthesizing complex cognitive analysis results.',
+      '',
+      `Framework: ${framework.name}`,
+      `Analysis Results: ${JSON.stringify(session.results, null, 2)}`,
+      '',
+      'Please synthesize these findings into:',
+      '1. Key insights that emerge from the analysis',
+      '2. Strategic recommendations',
+      '3. Areas requiring further investigation',
+      '4. Overall confidence assessment',
+      '',
+      'Provide response as JSON:',
+      '{',
+      '  "insights": ["insight 1", "insight 2", "insight 3"],',
+      '  "recommendations": ["recommendation 1", "recommendation 2"],',
+      '  "further_investigation": ["area 1", "area 2"],',
+      '  "overall_confidence": 88,',
+      '  "synthesis_summary": "comprehensive summary"',
+      '}'
+    ].join('\n');
 
     try {
-      const response = await spark.llm(synthesisPrompt, 'gpt-4o', true);
-      const synthesis = JSON.parse(response);
+  const res = await axon.analyze({ projectId, prompt: synthesisPrompt, mode: 'general', language: (language === 'ru' ? 'ru' : 'en') });
+  const synthesis = safeParseJSON(res.content);
 
       // Update session with synthesis
       setAnalysisSessions(current => 
@@ -957,3 +945,12 @@ Provide response as JSON:
 };
 
 export default AdvancedCognitiveAnalysis;
+
+// Local util: parse JSON or fallback to object with content
+function safeParseJSON(text: string): any {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { content: text };
+  }
+}
