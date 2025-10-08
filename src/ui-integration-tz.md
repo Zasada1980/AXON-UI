@@ -31,6 +31,15 @@
 - Включено: deep-link на сессию дебатов (`#session=<id>`) с read-only режимом и кнопкой копирования ссылки; покрыт тестом `debate.deep-link.readonly.test.tsx`.
 - Гейты (перед merge): Tests PASS (22/22), Typecheck PASS, Build PASS.
 
+### 2025-10-08 — PR #24 смержен (follow-up)
+
+- Ссылка: https://github.com/Zasada1980/AXON-UI/pull/24
+- Включено: кросс‑ссылка из `DebateLogManager` → `DebatePage`:
+  - Кнопка “Open in Debate” устанавливает `#session=<id>` и диспатчит событие `debate:open-session`,
+    `DebatePage` импортирует сессию при необходимости и открывает её в read-only.
+  - Тест: `src/__tests__/debate.logmanager.open-in-debate.test.tsx`.
+- Гейты (перед merge): Tests PASS (23/23), Typecheck PASS, Build PASS.
+
 ## 2025-10-08 — IKR Phase 1: Backend-only wiring for ACA/MTE
 
 - AdvancedCognitiveAnalysis and MicroTaskExecutor refactored to call AXON via `axon.analyze` (static adapter import). UI remains thin; all heavy logic server-side per ТЗ.
