@@ -295,3 +295,9 @@
   - IKR: в `IKRDirectivePage` встроены связанные модули — `IntelligenceGathering`, `KiplingQuestionnaire`, `AdvancedCognitiveAnalysis`, `MicroTaskExecutor` (projectId-скоуп, коллбеки без побочных эффектов).
   - Добавлены минимальные smoke-тесты для IKR tools: `src/__tests__/ikr.tools.smoke.test.tsx` (рендер на EN/RU). Локально: Tests PASS (9/9), Build PASS.
   - Добавлен presence-тест для IKR-инструментов после создания анализа: `src/__tests__/ikr.tools.presence.test.tsx` (проверка заголовков Intelligence Gathering / Kipling Questionnaire / Micro-Task Executor / Advanced Cognitive Analysis). Локально: Tests PASS (10/10), Build PASS.
+
+- 2025-10-08 (Checkpoint 2 — процесс):
+  - Подготовлены процессные артефакты: `.github/pull_request_template.md`, `CONTRIBUTING.md`, `docs/IKR_CHECKPOINTS.md`.
+  - Журнал интеграции дополнен сведениями о смерженной последней ветке (#29) и требовании поддерживать зелёные гейты.
+  - Изменения нейтральны к контрактам UI — только документация и процессы.
+  - Гейты (локально): Typecheck PASS, Build PASS, Tests PASS. Будут продублированы в теле PR.
