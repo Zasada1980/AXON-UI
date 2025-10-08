@@ -691,6 +691,19 @@ const DebatePage: React.FC<DebatePageProps> = ({
                           {session.participants.length} {t('participants')}
                         </span>
                       </div>
+                      <div className="flex items-center justify-between">
+                        {(() => {
+                          const turnsTotal = Math.max(session.participants.length, 1)
+                          const turnsDone = session.messages.length % turnsTotal
+                          const turnsDisplay = turnsDone === 0 && session.messages.length > 0 ? turnsTotal : turnsDone
+                          return (
+                            <span className="text-xs text-muted-foreground">
+                              {language === 'ru' ? 'Ходов в раунде' : 'Turns in round'}: {turnsDisplay}/{turnsTotal}
+                            </span>
+                          )
+                        })()}
+                        <span />
+                      </div>
                       
                       <div className="flex items-center gap-1">
                         {session.participants.slice(0, 3).map(participantId => {
@@ -735,7 +748,7 @@ const DebatePage: React.FC<DebatePageProps> = ({
         )}
         
         {activeView === 'debate' && currentSessionData && (
-          <div className="space-y-6">
+          <div className="space-y-6" data-session-id={currentSessionData.id}>
             {/* Session Header */}
             <Card>
               <CardHeader>
@@ -866,6 +879,13 @@ const DebatePage: React.FC<DebatePageProps> = ({
                 <div className="mt-4 flex gap-2">
                   <Button size="sm" variant="secondary" onClick={async () => {
                     if (!currentSessionData) return;
+                    const turnsInRound = currentSessionData.participants.length
+                    const turnsDoneInCurrentRound = currentSessionData.messages.length % turnsInRound
+                    const canProceed = (currentSessionData.currentRound < currentSessionData.maxRounds) ||
+                      (currentSessionData.currentRound === currentSessionData.maxRounds && turnsDoneInCurrentRound !== 0)
+                    if (!canProceed) {
+                      return
+                    }
                     const lastAgentId = currentSessionData.participants[(currentSessionData.messages.length) % currentSessionData.participants.length]
                     const history = currentSessionData.messages.slice(-6).map(m => ({ role: 'user' as const, content: m.content }))
                     try {
@@ -880,7 +900,13 @@ const DebatePage: React.FC<DebatePageProps> = ({
                         reactions: { thumbsUp: 0, thumbsDown: 0, insightful: 0 },
                         confidence: 70,
                       }
-                      setDebateSessions(current => (current || []).map(s => s.id === currentSessionData.id ? { ...s, messages: [...s.messages, msg] } : s))
+                      setDebateSessions(current => (current || []).map(s => {
+                        if (s.id !== currentSessionData.id) return s
+                        const turns = s.participants.length
+                        const willCompleteRound = ((s.messages.length + 1) % turns) === 0
+                        const nextRound = willCompleteRound ? Math.min(s.currentRound + 1, s.maxRounds) : s.currentRound
+                        return { ...s, messages: [...s.messages, msg], currentRound: nextRound }
+                      }))
                     } catch (e: any) {
                       toast.error(language==='ru'?'Ошибка генерации аргумента':'Failed to generate argument', { description: String(e?.message || e) })
                     }

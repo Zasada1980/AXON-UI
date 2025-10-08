@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,16 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
   ChatCircle,
   Users,
-  Clock,
+  
   Archive,
   Download,
   Eye,
@@ -26,11 +22,12 @@ import {
   Play,
   Stop,
   PaperPlaneTilt,
-  Robot,
+  
   Gear
 } from '@phosphor-icons/react';
 
 import { DebateLog, MemoryEntry } from '../types/memory';
+import { downloadJSON } from '@/utils/jsonExport';
 
 interface DebateLogManagerProps {
   language: 'en' | 'ru';
@@ -196,7 +193,8 @@ export default function DebateLogManager({
   const t = (key: keyof typeof debateLogTranslations.en) => debateLogTranslations[language][key];
 
   // Состояния для управления логами дебатов
-  const [debateSessions, setDebateSessions] = useKV<DebateSession[]>(`debate-sessions-${projectId}`, []);
+  // Use distinct KV key to avoid schema collision with DebatePage's session store
+  const [debateSessions, setDebateSessions] = useKV<DebateSession[]>(`debate-log-sessions-${projectId}`, []);
   const [selectedSession, setSelectedSession] = useState<DebateSession | null>(null);
   const [extractionProgress, setExtractionProgress] = useState<{
     sessionId: string;
@@ -560,6 +558,10 @@ export default function DebateLogManager({
                           <Eye size={14} className="mr-1" />
                           {t('viewDetails')}
                         </Button>
+                        <Button size="sm" variant="outline" onClick={() => downloadJSON(session.logs, `${session.id}-logs.json`)}>
+                          <Download size={14} className="mr-1" />
+                          {t('downloadLogs')}
+                        </Button>
                         <Button size="sm" variant="outline" onClick={() => stopDebateSession(session.id)}>
                           <Stop size={14} className="mr-1" />
                           {t('stopSession')}
@@ -640,7 +642,7 @@ export default function DebateLogManager({
                           <Eye size={14} className="mr-1" />
                           {t('viewDetails')}
                         </Button>
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => downloadJSON(session.logs, `${session.id}-logs.json`)}>
                           <Download size={14} className="mr-1" />
                           {t('downloadLogs')}
                         </Button>

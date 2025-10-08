@@ -38,3 +38,16 @@ This project is a minimal Spark Template designed for rapid prototyping and exte
 
 ---
 For questions, review the markdown docs in `src/` or ask for examples from existing components.
+
+## Agent Policy (VS Copilot)
+
+- Do not ask the user to push or create PRs manually. The agent must perform git operations itself or clearly state why it is blocked (permissions, CI policy) and await approval.
+- Do not instruct the user to manually edit files or run scripts. The agent must apply patches and run commands directly within the workspace.
+- Prefer automated changes via repository tools (apply patches, run tests/build) and ensure green gates before proposing merges.
+- After each successful merge, the agent must update indicators in the journals per the IKR protocol.
+- If a process or permission blocks an operation, report the exact constraint and pause further PR actions until explicitly unblocked.
+
+### Directive: Full PR Push Rights
+
+- АГЕНТ ИМЕЕТ ПОЛНЫЕ ПРАВА ПУШИТЬ PR (ветки и Pull Requests создаются и обновляются агентом программно).
+- Agent has full rights to push branches and open/update Pull Requests programmatically.
