@@ -313,6 +313,22 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
     toast.success(language === 'ru' ? 'Результат AXON применён' : 'AXON result applied');
   };
 
+  // Helpers: update I/K/R components based on tool outputs
+  const updateIKRComponentByType = (type: 'intelligence'|'knowledge'|'reasoning', append: string) => {
+    const analysis = currentAnalysisData;
+    if (!analysis) return;
+    const updatedComponents = analysis.components.map(comp => {
+      if (comp.type !== type) return comp;
+      const newContent = [comp.content || '', append].filter(Boolean).join('\n\n');
+      const completeness = Math.min(100, Math.max(comp.completeness, Math.round(Math.min(100, (newContent.length / 500) * 100))));
+      const status: IKRComponent['status'] = completeness >= 80 ? 'completed' : 'in-progress';
+      return { ...comp, content: newContent, completeness, status, lastUpdated: new Date().toISOString() };
+    });
+    const overallCompleteness = Math.round(updatedComponents.reduce((sum, c) => sum + c.completeness, 0) / updatedComponents.length);
+    const updatedAnalysis: IKRAnalysis = { ...analysis, components: updatedComponents, overallCompleteness, lastModified: new Date().toISOString() };
+    setIkrAnalyses(current => current?.map(a => a.id === currentAnalysis ? updatedAnalysis : a) || []);
+  };
+
   return (
     <div className="module-ikr min-h-screen bg-background">
       {/* Header */}
@@ -576,7 +592,9 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                   <IntelligenceGathering
                     language={language}
                     projectId={projectId}
-                    onIntelligenceGathered={(_data) => {
+                    onIntelligenceGathered={(data) => {
+                      const text = typeof data === 'string' ? data : JSON.stringify(data)
+                      updateIKRComponentByType('intelligence', text)
                       toast.success(language==='ru' ? 'Разведданные собраны' : 'Intelligence gathered')
                     }}
                     onGapIdentified={(gap) => {
@@ -589,8 +607,9 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                 <div className="border rounded p-4">
                   <KiplingQuestionnaire
                     language={language}
-                    onQuestionnaireComplete={(_data) => {
-                      // Optionally map results into I/K/R content
+                    onQuestionnaireComplete={(data) => {
+                      const text = typeof data === 'string' ? data : JSON.stringify(data)
+                      updateIKRComponentByType('knowledge', text)
                       toast.success(language==='ru' ? 'Анкета Киплинга завершена' : 'Kipling questionnaire completed')
                     }}
                     onProgressUpdate={(_progress) => {}}
@@ -602,6 +621,14 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                   <AdvancedCognitiveAnalysis
                     language={language}
                     projectId={projectId}
+                    onAnalysisCompleted={(session) => {
+                      const summary = [
+                        ...(session.insights || []).map(s => `• ${s}`),
+                        ...(session.recommendations || []).map(r => `→ ${r}`),
+                        `confidence: ${session.confidence}%`
+                      ].join('\n')
+                      updateIKRComponentByType('reasoning', summary)
+                    }}
                   />
                 </div>
 
