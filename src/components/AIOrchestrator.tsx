@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,26 +15,19 @@ import { toast } from 'sonner';
 import {
   Brain,
   Robot,
-  Gear,
-  Play,
-  Pause,
-  Stop,
-  CheckCircle,
-  Warning,
-  Clock,
-  Users,
-  Target,
-  Lightbulb,
-  Graph,
-  FileText,
-  ChartLine,
-  Shield,
-  ArrowRight,
   Cpu,
   Eye,
   PaperPlaneTilt,
   ListChecks,
-  Plus
+  Plus,
+  FileText,
+  Graph,
+  Target,
+  Shield,
+  Users,
+  Play,
+  Stop,
+  CheckCircle
 } from '@phosphor-icons/react';
 import { axon } from '@/services/axonAdapter'
 
@@ -82,14 +75,7 @@ interface WorkflowStep {
   maxRetries: number;
 }
 
-interface CognitiveCapability {
-  id: string;
-  name: string;
-  description: string;
-  complexity: number;
-  requiredAgents: string[];
-  outputType: 'text' | 'structured' | 'analysis' | 'recommendation';
-}
+// removed unused CognitiveCapability interface
 
 interface AIOrchestrator {
   language: string;
@@ -100,20 +86,18 @@ interface AIOrchestrator {
 }
 
 const AIOrchestrator: React.FC<AIOrchestrator> = ({
-  language,
+  language: _language,
   projectId,
   onWorkflowCompleted,
   onAgentResponse,
   onError
 }) => {
-  const t = (key: string) => key; // Simplified translation function
 
   // State management
   const [agentTemplates] = useKV<AgentTemplate[]>('ai-orchestrator-agents', []);
   const [workflows, setWorkflows] = useKV<OrchestrationWorkflow[]>('ai-orchestrator-workflows', []);
-  const [cognitiveCapabilities] = useKV<CognitiveCapability[]>('cognitive-capabilities', []);
   
-  const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null);
+  const [, setActiveWorkflow] = useState<string | null>(null);
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [workflowBuilder, setWorkflowBuilder] = useState<{
     name: string;
@@ -124,101 +108,10 @@ const AIOrchestrator: React.FC<AIOrchestrator> = ({
     description: '',
     priority: 'medium'
   });
-  const [isCreatingWorkflow, setIsCreatingWorkflow] = useState(false);
+  const [, setIsCreatingWorkflow] = useState(false);
   const [orchestrationMode, setOrchestrationMode] = useState<'sequential' | 'parallel' | 'conditional'>('sequential');
 
-  // Initialize default agent templates
-  useEffect(() => {
-    if (!agentTemplates || agentTemplates.length === 0) {
-      initializeDefaultAgents();
-    }
-  }, []);
-
-  const initializeDefaultAgents = () => {
-    const defaultAgents: AgentTemplate[] = [
-      {
-        id: 'intelligence-analyst',
-        name: 'Intelligence Analyst',
-        role: 'Primary Analyst',
-        description: 'Specializes in systematic intelligence analysis using structured methodologies',
-        capabilities: ['kipling-analysis', 'ikr-processing', 'pattern-recognition', 'threat-assessment'],
-        systemPrompt: 'You are an expert intelligence analyst. Use systematic methodologies like the Kipling protocol (Who, What, When, Where, Why, How) and IKR directive (Intelligence-Knowledge-Reasoning) to analyze complex situations. Provide structured, actionable insights.',
-        model: 'gpt-4o',
-        temperature: 0.3,
-        maxTokens: 2000,
-        tools: ['search', 'analysis', 'synthesis'],
-        specialization: 'analysis'
-      },
-      {
-        id: 'research-synthesizer',
-        name: 'Research Synthesizer',
-        role: 'Information Researcher',
-        description: 'Gathers and synthesizes information from multiple sources',
-        capabilities: ['information-gathering', 'source-verification', 'data-synthesis', 'trend-analysis'],
-        systemPrompt: 'You are a research synthesizer agent. Your role is to gather information from multiple perspectives, verify sources, and synthesize findings into coherent knowledge structures. Focus on identifying patterns and connections across different data points.',
-        model: 'gpt-4o-mini',
-        temperature: 0.4,
-        maxTokens: 1500,
-        tools: ['search', 'verification', 'synthesis'],
-        specialization: 'research'
-      },
-      {
-        id: 'strategic-advisor',
-        name: 'Strategic Advisor',
-        role: 'Strategic Planner',
-        description: 'Provides strategic recommendations and future scenario planning',
-        capabilities: ['strategic-planning', 'scenario-analysis', 'risk-assessment', 'decision-support'],
-        systemPrompt: 'You are a strategic advisor agent. Analyze situations from a strategic perspective, considering long-term implications, risk factors, and alternative scenarios. Provide actionable recommendations with clear reasoning.',
-        model: 'gpt-4o',
-        temperature: 0.2,
-        maxTokens: 2500,
-        tools: ['analysis', 'planning', 'modeling'],
-        specialization: 'synthesis'
-      },
-      {
-        id: 'critical-evaluator',
-        name: 'Critical Evaluator',
-        role: 'Quality Assurance',
-        description: 'Critically evaluates analysis quality and identifies potential biases',
-        capabilities: ['bias-detection', 'quality-assessment', 'logical-verification', 'gap-identification'],
-        systemPrompt: 'You are a critical evaluator agent. Your role is to rigorously examine analysis for logical inconsistencies, potential biases, missing information, and alternative interpretations. Challenge assumptions and strengthen conclusions.',
-        model: 'claude-3-haiku',
-        temperature: 0.1,
-        maxTokens: 1800,
-        tools: ['evaluation', 'verification', 'critique'],
-        specialization: 'critique'
-      },
-      {
-        id: 'execution-coordinator',
-        name: 'Execution Coordinator',
-        role: 'Implementation Manager',
-        description: 'Coordinates execution of recommendations and monitors progress',
-        capabilities: ['task-coordination', 'progress-monitoring', 'resource-allocation', 'timeline-management'],
-        systemPrompt: 'You are an execution coordinator agent. Focus on converting analysis and recommendations into actionable plans with clear timelines, responsibilities, and success metrics. Monitor progress and adapt plans as needed.',
-        model: 'gpt-4o-mini',
-        temperature: 0.3,
-        maxTokens: 1200,
-        tools: ['planning', 'coordination', 'monitoring'],
-        specialization: 'execution'
-      },
-      {
-        id: 'meta-monitor',
-        name: 'Meta Monitor',
-        role: 'System Overseer',
-        description: 'Monitors overall system performance and agent coordination',
-        capabilities: ['system-monitoring', 'performance-analysis', 'coordination-optimization', 'error-detection'],
-        systemPrompt: 'You are a meta monitor agent. Oversee the entire analysis process, monitor agent performance, identify coordination issues, and optimize overall system effectiveness. Focus on the meta-level patterns and system health.',
-        model: 'gpt-4o',
-        temperature: 0.2,
-        maxTokens: 1000,
-        tools: ['monitoring', 'optimization', 'coordination'],
-        specialization: 'monitoring'
-      }
-    ];
-
-    // Update agent templates
-    // setAgentTemplates(defaultAgents);
-  };
+  // removed unused default agent initialization (unreachable without setter)
 
   // Create a new orchestration workflow
   const createWorkflow = async () => {
