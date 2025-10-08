@@ -7,6 +7,7 @@
           "dev": "scripts/force-exit.sh 14400 -- vite",
         "kill": "fuser -k 5000/tcp",
         "build": "scripts/force-exit.sh 1800 -- sh -lc 'tsc -b --noCheck && vite build'",
+                "typecheck": "tsc -b --noEmit",
         "lint": "scripts/force-exit.sh 900 -- eslint .",
         "optimize": "scripts/force-exit.sh 900 -- vite optimize",
         "preview": "scripts/force-exit.sh 3600 -- vite preview",
