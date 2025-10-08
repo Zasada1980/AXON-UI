@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,8 @@ import {
   Eye,
   Lightbulb
 } from '@phosphor-icons/react';
+import { axon } from '@/services/axonAdapter'
+import { toast } from 'sonner'
 
 interface ProjectDashboardProps {
   language: 'en' | 'ru';
@@ -143,6 +145,21 @@ const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
   };
 
   const nextSteps = getNextSteps();
+  const [isAxonChecking, setIsAxonChecking] = useState(false)
+  const [axonOnline, setAxonOnline] = useState<boolean | null>(null)
+  const checkAxon = async () => {
+    setIsAxonChecking(true)
+    try {
+      const h = await axon.health()
+      setAxonOnline(!!h.ok)
+      toast[h.ok ? 'success' : 'error'](h.ok ? (language==='ru'?'AXON доступен':'AXON online') : (language==='ru'?'AXON недоступен':'AXON offline'))
+    } catch (e) {
+      setAxonOnline(false)
+      toast.error(language==='ru'?'AXON недоступен':'AXON offline')
+    } finally {
+      setIsAxonChecking(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -183,6 +200,24 @@ const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                 completeness >= 80 ? 'bg-green-500' :
                 completeness >= 60 ? 'bg-yellow-500' : 'bg-red-500'
               }`} />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">AXON</p>
+                <p className={`text-2xl font-bold ${axonOnline ? 'text-green-500' : axonOnline===false ? 'text-red-500' : 'text-muted-foreground'}`}>
+                  {axonOnline===null ? (language==='ru'?'не проверен':'unknown') : (axonOnline ? 'online' : 'offline')}
+                </p>
+              </div>
+              <Shield size={16} className={axonOnline ? 'text-green-500' : 'text-muted-foreground'} />
+            </div>
+            <div className="mt-3">
+              <Button size="sm" variant="outline" onClick={checkAxon} disabled={isAxonChecking}>
+                {isAxonChecking ? (language==='ru'?'Проверка...':'Checking...') : (language==='ru'?'Проверить':'Check')}
+              </Button>
             </div>
           </CardContent>
         </Card>

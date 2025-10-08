@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import {
   MagnifyingGlass,
@@ -40,14 +40,6 @@ import {
   Bookmark
 } from '@phosphor-icons/react';
 
-declare global {
-  interface Window {
-    spark: {
-      llmPrompt: (strings: TemplateStringsArray, ...values: any[]) => string;
-      llm: (prompt: string, modelName?: string, jsonMode?: boolean) => Promise<string>;
-    };
-  }
-}
 
 interface AdvancedSearchFilterProps {
   language: 'en' | 'ru';
@@ -259,7 +251,7 @@ const AdvancedSearchFilter: React.FC<AdvancedSearchFilterProps> = ({
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Filter mock results based on current filter
-      let filteredResults = mockSearchResults.filter(result => {
+  const filteredResults = mockSearchResults.filter(result => {
         // Apply category filter
         if (searchFilter.categories.length > 0 && !searchFilter.categories.includes(result.module)) {
           return false;

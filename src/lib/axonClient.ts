@@ -1,6 +1,9 @@
 import { AxonHealth, AxonAnalysisRequest, AxonAnalysisResponse, AxonChatRequest, AxonChatResponse } from '@/types/axon'
 
-const AXON_BASE_URL = (import.meta.env.VITE_AXON_BASE_URL as string) || '/api/axon'
+const readEnv = (k: string): string | undefined => {
+  return (import.meta as any)?.env?.[k] ?? (process.env as any)?.[k]
+}
+const AXON_BASE_URL = (readEnv('VITE_AXON_BASE_URL') as string) || '/api/axon'
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${AXON_BASE_URL}${path}`, {
@@ -39,26 +42,4 @@ export const axonClient = {
 }
 
 // Mock fallback utilities for local-only mode
-export const axonMock = {
-  async health(): Promise<AxonHealth> {
-    return { ok: true, service: 'axon-mock', version: '0.0.0', uptime: 1, timestamp: new Date().toISOString() }
-  },
-  async analyze(req: AxonAnalysisRequest): Promise<AxonAnalysisResponse> {
-    return {
-      id: `mock-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      content: `Mock analysis (${req.mode || 'general'}) for project ${req.projectId}:\n${req.prompt.substring(0, 200)}...`,
-      tokens: 128,
-      model: 'mock-ai',
-    }
-  },
-  async chat(req: AxonChatRequest): Promise<AxonChatResponse> {
-    const last = req.messages[req.messages.length - 1]
-    return {
-      id: `mock-chat-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      message: { role: 'assistant', content: `Echo: ${last?.content || ''}` },
-      usage: { promptTokens: 32, completionTokens: 16, totalTokens: 48 },
-    }
-  },
-}
+// No mock export: client is real-only in this setup

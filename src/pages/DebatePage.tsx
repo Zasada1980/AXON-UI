@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { axon } from '@/services/axonAdapter'
 import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -776,15 +777,42 @@ const DebatePage: React.FC<DebatePageProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-4">
-                  <Button size="sm">
+                  <Button size="sm" onClick={async () => {
+                    if (!currentSessionData) return;
+                    try {
+                      const system = { role: 'system', content: `You are participating in a structured multi-agent debate. Topic: ${currentSessionData.topic}. Format concise, evidence-based arguments.` }
+                      const user = { role: 'user', content: currentSessionData.description || 'Start the debate with an opening argument.' }
+                      const res = await axon.chat({ projectId, language, messages: [system as any, user as any] })
+                      const content = res.message.content
+                      const firstParticipant = currentSessionData.participants[0]
+                      const msg: DebateMessage = {
+                        id: `msg-${Date.now()}`,
+                        agentId: firstParticipant,
+                        content,
+                        type: 'argument',
+                        timestamp: new Date().toISOString(),
+                        reactions: { thumbsUp: 0, thumbsDown: 0, insightful: 0 },
+                        confidence: 70,
+                      }
+                      setDebateSessions(current => (current || []).map(s => s.id === currentSessionData.id ? { ...s, messages: [...s.messages, msg], status: 'active', startedAt: s.startedAt || new Date().toISOString() } : s))
+                    } catch (e: any) {
+                      toast.error(language==='ru'?'Не удалось начать дебаты':'Failed to start debate', { description: String(e?.message || e) })
+                    }
+                  }}>
                     <Play size={14} className="mr-2" />
                     {t('startDebate')}
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => {
+                    if (!currentSessionData) return;
+                    setDebateSessions(current => (current || []).map(s => s.id === currentSessionData.id ? { ...s, status: 'paused' } : s))
+                  }}>
                     <Pause size={14} className="mr-2" />
                     {t('pauseDebate')}
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => {
+                    if (!currentSessionData) return;
+                    setDebateSessions(current => (current || []).map(s => s.id === currentSessionData.id ? { ...s, status: 'completed', completedAt: new Date().toISOString() } : s))
+                  }}>
                     <Stop size={14} className="mr-2" />
                     {t('stopDebate')}
                   </Button>
@@ -855,6 +883,32 @@ const DebatePage: React.FC<DebatePageProps> = ({
                     )}
                   </div>
                 </ScrollArea>
+                {/* Quick reply via AXON */}
+                <div className="mt-4 flex gap-2">
+                  <Button size="sm" variant="secondary" onClick={async () => {
+                    if (!currentSessionData) return;
+                    const lastAgentId = currentSessionData.participants[(currentSessionData.messages.length) % currentSessionData.participants.length]
+                    const history = currentSessionData.messages.slice(-6).map(m => ({ role: 'user' as const, content: m.content }))
+                    try {
+                      const system = { role: 'system', content: `Continue the debate on: ${currentSessionData.topic}. Provide concise next argument or counterargument.` }
+                      const res = await axon.chat({ projectId, language, messages: [system as any, ...history] })
+                      const msg: DebateMessage = {
+                        id: `msg-${Date.now()}`,
+                        agentId: lastAgentId,
+                        content: res.message.content,
+                        type: 'counterargument',
+                        timestamp: new Date().toISOString(),
+                        reactions: { thumbsUp: 0, thumbsDown: 0, insightful: 0 },
+                        confidence: 70,
+                      }
+                      setDebateSessions(current => (current || []).map(s => s.id === currentSessionData.id ? { ...s, messages: [...s.messages, msg] } : s))
+                    } catch (e: any) {
+                      toast.error(language==='ru'?'Ошибка генерации аргумента':'Failed to generate argument', { description: String(e?.message || e) })
+                    }
+                  }}>
+                    {language==='ru'?'Сгенерировать ход (AXON)':'Generate turn (AXON)'}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>

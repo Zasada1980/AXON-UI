@@ -2,6 +2,8 @@
 external/
 .env
 .env.*
+.evn
+*.zip
 node_modules/
 dist/
 pnpm-lock.yaml

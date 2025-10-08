@@ -1,23 +1,62 @@
-# ✨ Welcome to Your Spark Template!
-You've just launched your brand-new Spark Template Codespace — everything’s fired up and ready for you to explore, build, and create with Spark!
+# AXON-UI (Clean UI)
 
-This template is your blank canvas. It comes with a minimal setup to help you get started quickly with Spark development.
+Минимальный UI‑шаблон без внешних интеграций и журналов. Готов к быстрому запуску и расширению.
 
-🚀 What's Inside?
-- A clean, minimal Spark environment
-- Pre-configured for local development
-- Ready to scale with your ideas
-  
-🧠 What Can You Do?
+## Возможности
+- React + Vite
+- Tailwind CSS
+- Компонентная архитектура (src/components)
+- Без внешних секретов и интеграционных тестов
 
-Right now, this is just a starting point — the perfect place to begin building and testing your Spark applications.
+## Быстрый старт
+1) Установка зависимостей:
+   npm install
+2) Запуск dev‑сервера:
+   npm run dev
+3) Сборка:
+   npm run build
+4) Просмотр собранной версии:
+   npm run preview
 
-🧹 Just Exploring?
-No problem! If you were just checking things out and don’t need to keep this code:
+## Структура
+- src/ — исходники UI (компоненты, стили)
+- index.html — входная страница
+- vite.config.ts, tsconfig.json — конфигурации сборки/TS
+- tailwind.config.js, theme.json — стили, тема
 
-- Simply delete your Spark.
-- Everything will be cleaned up — no traces left behind.
+## Примечания
+- Все рабочие журналы и отчёты разработок удалены, чтобы держать репозиторий лёгким.
+- Для интеграций используйте отдельные адаптеры в src/services и храните секреты вне репозитория.# ✨ Spark UI Template (Clean)
 
-📄 License For Spark Template Resources 
+Самодостаточный UI-шаблон на React + Vite для быстрых прототипов. Проект не содержит бэкенда и внешних API-зависимостей: все интеграции эмулируются через локальные моки.
 
-The Spark Template files and resources from GitHub are licensed under the terms of the MIT license, Copyright GitHub, Inc.
+## Что внутри
+- React 19 + Vite 6
+- Tailwind CSS 4
+- Vitest + jsdom + Testing Library (минимальный smoke-тест)
+- ESLint v9 (Flat config) — сфокусирован на `src/`
+- Mock-адаптер AXON (`src/services/axonAdapter.ts`) без сетевых вызовов
+
+## Быстрый старт
+- Установка зависимостей: `npm install`
+- Dev-сервер: `npm run dev` (откроется на http://localhost:5173)
+- Сборка: `npm run build`
+- Превью сборки: `npm run preview`
+- Тесты: `npm test`
+- Линт: `npm run lint`
+
+## Интеграция с AXON (реальный клиент)
+UI использует реальный HTTP‑клиент (без заглушек). Для работы нужен доступный бэкенд AXON. Настройте одно из:
+   - VITE_AXON_PROXY_TARGET=http://localhost:8787 — dev‑proxy через Vite (эндпоинт UI: `/api/axon`)
+   - или VITE_AXON_BASE_URL=https://axon.example.com — прямой URL без прокси
+
+## Структура
+- `src/__tests__/smoke.app.test.tsx` — минимальный smoke-тест UI
+
+## Заметки по линту и тестам
+- Линт настроен на предупреждения для неиспользуемых переменных, чтобы упростить прототипирование
+- Ошибок линта нет (warning’и допустимы на ранних этапах)
+- Тесты не обращаются к сети и проходят локально
+
+## Лицензия на шаблон Spark
+Файлы и ресурсы Spark Template от GitHub лицензированы по MIT. Copyright © GitHub, Inc.

@@ -284,7 +284,7 @@ export default function AgentMemoryManager({
 
   const decompressMemoryData = (compressed: string): any => {
     // Reverse the compression patterns
-    let decompressed = compressed
+    const decompressed = compressed
       .replace(/"t":/g, '"timestamp":')
       .replace(/"c":/g, '"content":')
       .replace(/"i":/g, '"importance":')
@@ -295,50 +295,14 @@ export default function AgentMemoryManager({
   };
 
   // Cross-session memory persistence
-  const saveCrossSessionData = async (agentId: string, sessionData: any) => {
-    const currentStats = memoryStats || {
-      totalSize: 0,
-      compressedSize: 0,
-      compressionRatio: 0,
-      lastCompression: '',
-      crossSessionData: {},
-      performanceMetrics: {
-        averageAccessTime: 0,
-        cacheHitRatio: 0,
-        memoryEfficiency: 0
-      }
-    };
-
-    const { compressed, originalSize, compressedSize } = compressMemoryData(sessionData);
-    
-    setMemoryStats({
-      ...currentStats,
-      totalSize: currentStats.totalSize + originalSize,
-      compressedSize: currentStats.compressedSize + compressedSize,
-      compressionRatio: ((currentStats.totalSize + originalSize - currentStats.compressedSize - compressedSize) / (currentStats.totalSize + originalSize)) * 100,
-      lastCompression: new Date().toISOString(),
-      crossSessionData: {
-        ...currentStats.crossSessionData,
-        [agentId]: {
-          data: compressed,
-          timestamp: new Date().toISOString(),
-          originalSize,
-          compressedSize
-        }
-      }
-    });
+  const saveCrossSessionData = async (_agentId: string, _sessionData: any) => {
+    // reserved for future use
+    return;
   };
 
-  const loadCrossSessionData = (agentId: string): any => {
-    const sessionData = memoryStats?.crossSessionData?.[agentId];
-    if (!sessionData) return null;
-    
-    try {
-      return decompressMemoryData(sessionData.data);
-    } catch (error) {
-      console.error('Failed to decompress session data:', error);
-      return null;
-    }
+  const loadCrossSessionData = (_agentId: string): any => {
+    // reserved for future use
+    return null;
   };
 
   // Performance monitoring and optimization

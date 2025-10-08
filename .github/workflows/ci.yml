@@ -30,3 +30,15 @@ jobs:
 
       - name: Lint
         run: npm run lint || true
+
+      - name: Test
+        run: npm run test
+        env:
+          # Optional backend URL to run AXON integration tests without mocks
+          VITE_AXON_BASE_URL: ${{ secrets.VITE_AXON_BASE_URL }}
+          VITE_AXON_MODE: auto
+          VITE_AXON_STRICT: 1
+          RUN_AXON_ANALYZE_TEST: ${{ secrets.RUN_AXON_ANALYZE_TEST || '0' }}
+          # Optional direct OpenAI test (runs only when enabled)
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RUN_OPENAI_TEST: ${{ secrets.RUN_OPENAI_TEST || '0' }}

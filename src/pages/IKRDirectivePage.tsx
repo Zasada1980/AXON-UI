@@ -271,7 +271,7 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
       const req = {
         projectId,
         prompt,
-        mode: 'ikr' as 'ikr',
+        mode: 'ikr' as const,
         language,
       };
       const res = await axon.analyze(req);
@@ -282,6 +282,46 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  // Apply AXON analysis result to I/K/R components
+  const applyAxonResult = () => {
+    if (!currentAnalysisData || !analysisResult) return;
+    const text = analysisResult.trim();
+    const segments = text.split(/\n{2,}/).filter(Boolean);
+    const [intel, know, reason] = [
+      segments[0] || text.slice(0, Math.ceil(text.length / 3)),
+      segments[1] || text.slice(Math.ceil(text.length / 3), Math.ceil((2 * text.length) / 3)),
+      segments[2] || text.slice(Math.ceil((2 * text.length) / 3))
+    ];
+
+    const updatesByType: Record<'intelligence'|'knowledge'|'reasoning', string> = {
+      intelligence: intel,
+      knowledge: know,
+      reasoning: reason,
+    };
+
+    const updatedComponents = currentAnalysisData.components.map(c => {
+      const add = updatesByType[c.type as keyof typeof updatesByType] || '';
+      const newContent = [c.content || '', add].filter(Boolean).join('\n\n');
+      const completeness = Math.min(100, Math.max(c.completeness, Math.round(Math.min(100, (newContent.length / 500) * 100))));
+      const status: IKRComponent['status'] = completeness >= 80 ? 'completed' : 'in-progress';
+      return { ...c, content: newContent, completeness, status, validationNotes: c.validationNotes };
+    });
+
+    const overallCompleteness = Math.round(
+      updatedComponents.reduce((sum, comp) => sum + comp.completeness, 0) / updatedComponents.length
+    );
+
+    const updatedAnalysis: IKRAnalysis = {
+      ...currentAnalysisData,
+      components: updatedComponents,
+      overallCompleteness,
+      lastModified: new Date().toISOString()
+    };
+
+    setIkrAnalyses(current => current?.map(a => a.id === currentAnalysis ? updatedAnalysis : a) || []);
+    toast.success(language === 'ru' ? 'Результат AXON применён' : 'AXON result applied');
   };
 
   return (
@@ -463,6 +503,11 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                       <div className="mt-2 p-3 rounded bg-green-50 text-green-900 text-sm whitespace-pre-line border border-green-200">
                         <b>Результат AXON:</b>
                         <div>{analysisResult}</div>
+                        <div className="mt-3">
+                          <Button size="sm" onClick={applyAxonResult}>
+                            {language==='ru'?'Применить к I/K/R':'Apply to I/K/R'}
+                          </Button>
+                        </div>
                       </div>
                     )}
                     {analysisError && (
