@@ -12,6 +12,16 @@
   - Kept `useKV` project scoping; no changes to keys besides existing prefixes.
   - Next: unskip ACA UI test once Radix Tabs interaction is stabilized in tests and/or add data-testid hooks.
 
+## 2025-10-08 — Тесты стабилизированы (ACA UI unskip)
+
+- В `AdvancedCognitiveAnalysis` добавлены data-testid для вкладок, карточек сессий и кнопок запуска.
+- Тест `ACA starts analysis...` переписан на userEvent, создаёт сессию в builder (framework подставляется автоматически) и запускает анализ — без взаимодействия с Radix Select.
+- MTE тест переведён на userEvent, предупреждения act снижены.
+- Итог гейтов:
+  - Tests: PASS (12/12)
+  - Typecheck: PASS
+  - Build: PASS
+
 # ТЗ: Пошаговая интеграция модулей в AXON-UI
 
 Документ описывает фазовый план интеграции файлов проекта (модулей) в UI, требования к качеству, критерии приемки, тестирование и риски. Ориентирован на стек: React 19 + Vite 6, Tailwind 4, Vitest 3, ESLint 9, реальный клиент AXON через `/v1/chat/completions` и `/health`.

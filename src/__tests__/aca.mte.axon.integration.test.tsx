@@ -1,6 +1,7 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { useKV } from '@github/spark/hooks'
 import AdvancedCognitiveAnalysis from '@/components/AdvancedCognitiveAnalysis'
 import MicroTaskExecutor from '@/components/MicroTaskExecutor'
@@ -16,7 +17,7 @@ describe('ACA & MTE use AXON analyze', () => {
     global.fetch = originalFetch as any
   })
 
-  it.skip('ACA starts analysis and posts to /v1/chat/completions', async () => {
+  it('ACA starts analysis and posts to /v1/chat/completions', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ id: '1', created: Math.floor(Date.now() / 1000), choices: [{ message: { content: '{"analysis":"ok","key_findings":[],"confidence":80,"patterns":[],"implications":[],"next_steps":[]}' } }] }),
@@ -40,16 +41,20 @@ describe('ACA & MTE use AXON analyze', () => {
       return <>{children}</>
     }
 
-    const { container } = render(
+    render(
       <Primer>
         <AdvancedCognitiveAnalysis language="en" projectId="p1" />
       </Primer>
     )
 
-  // Wait for sessions list presence and click the Start button
-  await screen.findByText(/Active Analysis Sessions/i)
-  const startBtn = await screen.findByRole('button', { name: /Start Analysis/i })
-    fireEvent.click(startBtn)
+  // Создаем сессию через builder (framework подставится автоматически), затем запускаем анализ
+  await userEvent.click(screen.getByTestId('aca-tab-builder'))
+  await userEvent.type(screen.getByTestId('aca-session-title'), 'S1')
+  await userEvent.click(screen.getByTestId('aca-create-session'))
+  await userEvent.click(screen.getByTestId('aca-tab-sessions'))
+  const card = await screen.findByTestId('aca-session-card')
+  const startBtn = within(card).getByTestId('aca-start-analysis')
+  await userEvent.click(startBtn)
 
     expect(fetchMock).toHaveBeenCalled()
     const [url, init] = fetchMock.mock.calls[0]
@@ -64,15 +69,15 @@ describe('ACA & MTE use AXON analyze', () => {
     })
     global.fetch = fetchMock as any
 
-    render(<MicroTaskExecutor language="en" projectId="p2" />)
+  render(<MicroTaskExecutor language="en" projectId="p2" />)
 
-    const trigger = screen.getByRole('button', { name: /Create Breakdown/i })
-    fireEvent.click(trigger)
+  const trigger = screen.getByRole('button', { name: /Create Breakdown/i })
+  await userEvent.click(trigger)
     const dialog = await screen.findByRole('dialog')
-    fireEvent.change(within(dialog).getByLabelText(/Title/i), { target: { value: 'Big Task' } })
-    fireEvent.change(within(dialog).getByLabelText(/Description/i), { target: { value: 'Desc' } })
+  await userEvent.type(within(dialog).getByLabelText(/Title/i), 'Big Task')
+  await userEvent.type(within(dialog).getByLabelText(/Description/i), 'Desc')
     const genBtn = within(dialog).getByRole('button', { name: /Generate Breakdown/i })
-    fireEvent.click(genBtn)
+  await userEvent.click(genBtn)
 
     expect(fetchMock).toHaveBeenCalled()
     const [url, init] = fetchMock.mock.calls[0]
