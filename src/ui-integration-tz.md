@@ -178,3 +178,4 @@
   - Конфликты PR #18: разрешены (src/App.tsx, src/pages/IKRDirectivePage.tsx, vitest.setup.ts). Повторная проверка: Tests PASS, Lint — WARN only, Build PASS.
   - IKR: в `IKRDirectivePage` встроены связанные модули — `IntelligenceGathering`, `KiplingQuestionnaire`, `AdvancedCognitiveAnalysis`, `MicroTaskExecutor` (projectId-скоуп, коллбеки без побочных эффектов).
   - Добавлены минимальные smoke-тесты для IKR tools: `src/__tests__/ikr.tools.smoke.test.tsx` (рендер на EN/RU). Локально: Tests PASS (9/9), Build PASS.
+  - Добавлен presence-тест для IKR-инструментов после создания анализа: `src/__tests__/ikr.tools.presence.test.tsx` (проверка заголовков Intelligence Gathering / Kipling Questionnaire / Micro-Task Executor / Advanced Cognitive Analysis). Локально: Tests PASS (10/10), Build PASS.
