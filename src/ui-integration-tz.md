@@ -22,6 +22,19 @@
   - Typecheck: PASS
   - Build: PASS
 
+## 2025-10-08 — UX-флаг для ACA, детали/экспорт
+
+- UX-флаг auto-pick вынесен в глобальные настройки проекта: `GlobalProjectSettings` → `ux.acaAutoPickFramework` (persist через `useKV`).
+- `AdvancedCognitiveAnalysis` читает флаг из `project-settings-<projectId>` и использует его как дефолт для авто‑выбора фреймворка.
+- Добавлен UX на «View Details» и «Export Results»:
+  - Диалог с деталями сессии (инсайты, confidence, результаты).
+  - Экспорт результатов в JSON через общий `src/utils/jsonExport.ts`.
+- Тесты: добавлен интеграционный тест для стадии synthesizing (инсайты и `overall_confidence`), вся матрица зелёная.
+- Гейты:
+  - Tests: PASS (13/13)
+  - Typecheck: PASS
+  - Build: PASS (CSS предупреждения не блокируют)
+
 # ТЗ: Пошаговая интеграция модулей в AXON-UI
 
 Документ описывает фазовый план интеграции файлов проекта (модулей) в UI, требования к качеству, критерии приемки, тестирование и риски. Ориентирован на стек: React 19 + Vite 6, Tailwind 4, Vitest 3, ESLint 9, реальный клиент AXON через `/v1/chat/completions` и `/health`.
