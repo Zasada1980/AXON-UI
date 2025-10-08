@@ -20,6 +20,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+pr-8
+import { Brain, Plus, ChartLine, ArrowRight, Globe, List } from '@phosphor-icons/react';
+import { axon } from '@/services/axonAdapter';
+=======
 import {
   Brain,
   Plus,
@@ -28,6 +32,7 @@ import {
   Globe,
   List,
 } from '@phosphor-icons/react';
+ main
 
 // Types
 type Language = 'en' | 'ru';
@@ -126,6 +131,7 @@ function App() {
     };
     lastCheck: string;
     issues: string[];
+    axon?: { ok: boolean; service?: string; version?: string };
   }>('system-health', {
     overall: 100,
     components: { storage: 100, ai: 100, ui: 100, memory: 100 },
@@ -146,9 +152,18 @@ function App() {
     const storageHealth = projects ? Math.min(100, projects.length < 50 ? 100 : 100 - (projects.length - 50) * 2) : 100;
     if (storageHealth < 80) issues.push('High storage usage detected');
 
-    // Check AI connectivity (mock)
-    const aiHealth = Math.random() > 0.1 ? 100 : 60;
-    if (aiHealth < 80) issues.push('AI service connectivity issues');
+    // Check AXON health via adapter
+    let aiHealth = 100;
+    try {
+      const h = await axon.health();
+      if (!h.ok) {
+        aiHealth = 60;
+        issues.push('AXON backend not healthy');
+      }
+    } catch {
+      aiHealth = 60;
+      issues.push('AXON backend unreachable');
+    }
 
     // Check UI responsiveness
     const endTime = performance.now();
@@ -182,7 +197,7 @@ function App() {
   // Run health checks periodically
   useEffect(() => {
     runSystemHealthCheck();
-    const healthCheckInterval = setInterval(runSystemHealthCheck, 60000); // Every minute
+    const healthCheckInterval = setInterval(runSystemHealthCheck, 60000);
     return () => clearInterval(healthCheckInterval);
   }, [runSystemHealthCheck]);
 
@@ -427,6 +442,11 @@ function App() {
                   <span className="text-xs text-muted-foreground">
                     System: {systemHealth.overall}%
                   </span>
+                  {systemHealth.axon && (
+                    <span className="text-xs text-muted-foreground">
+                      AXON: {systemHealth.axon.ok ? 'Online' : 'Offline'}
+                    </span>
+                  )}
                 </div>
               )}
 
