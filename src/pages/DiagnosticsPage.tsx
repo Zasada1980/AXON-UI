@@ -24,7 +24,11 @@ const translations: Record<string, { en: string; ru: string }> = {
   diagnosticsDescription: { 
     en: 'Monitor system health and performance metrics', 
     ru: 'Мониторинг состояния системы и метрик производительности' 
-  }
+  },
+  tabOverview: { en: 'Overview', ru: 'Обзор' },
+  tabRecovery: { en: 'Monitoring & Recovery', ru: 'Мониторинг и Восстановление' },
+  tabBackups: { en: 'Backups', ru: 'Резервные копии' },
+  tabCheckpoints: { en: 'Checkpoints', ru: 'Контрольные точки' }
 };
 
 export default function DiagnosticsPage({ language, projectId, onNavigate }: Props) {
@@ -53,16 +57,16 @@ export default function DiagnosticsPage({ language, projectId, onNavigate }: Pro
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="flex items-center gap-2">
-            <Activity size={16} /> Overview
+            <Activity size={16} /> {t('tabOverview')}
           </TabsTrigger>
           <TabsTrigger value="recovery" className="flex items-center gap-2">
-            <Wrench size={16} /> Monitoring & Recovery
+            <Wrench size={16} /> {t('tabRecovery')}
           </TabsTrigger>
           <TabsTrigger value="backups" className="flex items-center gap-2">
-            <FloppyDisk size={16} /> Backups
+            <FloppyDisk size={16} /> {t('tabBackups')}
           </TabsTrigger>
           <TabsTrigger value="checkpoints" className="flex items-center gap-2">
-            <Database size={16} /> Checkpoints
+            <Database size={16} /> {t('tabCheckpoints')}
           </TabsTrigger>
         </TabsList>
 
