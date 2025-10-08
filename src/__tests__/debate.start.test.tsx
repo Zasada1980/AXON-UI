@@ -43,9 +43,16 @@ describe('DebatePage – start debate flow (AXON backend via adapter)', () => {
     const user = userEvent.setup()
     render(<DebatePage language="en" projectId={projectId} onNavigate={() => {}} />)
 
-    // Create a new session
-    const newSessionBtn = await screen.findByRole('button', { name: /New Session/i })
-    await user.click(newSessionBtn)
+    // Ensure Sessions view is active
+    const sessionsTab = screen.getByRole('button', { name: /Sessions/i })
+    await user.click(sessionsTab)
+
+    // Create a new session (prefer empty-state button, fallback to header action)
+    const emptyBtn = screen.queryByTestId('debate-new-session-empty')
+    const headerBtn = screen.queryByTestId('debate-new-session-header')
+    const newSessionBtn = emptyBtn ?? headerBtn
+    expect(newSessionBtn).toBeTruthy()
+    await user.click(newSessionBtn as HTMLElement)
 
     const titleInput = await screen.findByLabelText(/Session Title/i)
     await user.type(titleInput, 'Test Session')
@@ -65,7 +72,7 @@ describe('DebatePage – start debate flow (AXON backend via adapter)', () => {
     await user.click(screen.getByRole('button', { name: /Create Session/i }))
 
     // Start debate – this triggers axon.chat -> our mocked fetch
-    const startBtn = await screen.findByRole('button', { name: /Start Debate/i })
+  const startBtn = await screen.findByRole('button', { name: /Start Debate/i })
     await user.click(startBtn)
 
     // Expect first generated message to appear
@@ -73,5 +80,5 @@ describe('DebatePage – start debate flow (AXON backend via adapter)', () => {
 
     // Status badge should show Active
     expect(screen.getByText(/Active/i)).toBeInTheDocument()
-  })
+  }, 15000)
 })

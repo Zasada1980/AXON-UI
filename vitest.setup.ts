@@ -97,3 +97,13 @@ class ResizeObserverMock implements ResizeObserver {
 ;(globalThis as unknown as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver =
 	(globalThis as unknown as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver ||
 	(ResizeObserverMock as unknown as typeof ResizeObserver)
+
+// Some Radix/Dialog internals may rely on MutationObserver in jsdom; provide a no-op polyfill
+class MutationObserverMock implements MutationObserver {
+	constructor() {}
+	observe(): void {}
+	disconnect(): void {}
+	takeRecords(): MutationRecord[] { return [] }
+}
+;(globalThis as unknown as { MutationObserver?: typeof MutationObserver }).MutationObserver =
+	MutationObserverMock as unknown as typeof MutationObserver
