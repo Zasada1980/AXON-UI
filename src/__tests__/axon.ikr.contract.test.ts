@@ -30,11 +30,13 @@ describe('AXON IKR contract', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [url, init] = fetchMock.mock.calls[0]
-  expect(String(url)).toContain('/v1/chat/completions')
+    expect(String(url)).toContain('/v1/chat/completions')
     expect((init as RequestInit)?.method).toBe('POST')
     const body = JSON.parse(String((init as RequestInit)?.body))
-    expect(body.mode).toBe('ikr')
-    expect(body.projectId).toBe('test-project')
-    expect(body.prompt).toBe('Run IKR')
+    expect(Array.isArray(body.messages)).toBe(true)
+    expect(body.messages[0].role).toBe('system')
+    expect(String(body.messages[0].content)).toContain('mode=ikr')
+    expect(body.messages[1].role).toBe('user')
+    expect(String(body.messages[1].content)).toBe('Run IKR')
   })
 })

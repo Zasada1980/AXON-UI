@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import type { Spark } from '@/types/spark';
 import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,17 +41,8 @@ import {
   Clock
 } from '@phosphor-icons/react';
 
-// Declare global spark object
-declare global {
-  interface Window {
-    spark: {
-      llmPrompt: (strings: TemplateStringsArray, ...values: any[]) => string;
-      llm: (prompt: string, modelName?: string, jsonMode?: boolean) => Promise<string>;
-    };
-  }
-}
-
-const spark = (globalThis as any).spark;
+// Access global spark typed via shared declaration
+const spark = (globalThis as any).spark as Spark;
 
 type Language = 'en' | 'ru';
 
