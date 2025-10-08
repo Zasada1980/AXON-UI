@@ -35,6 +35,17 @@
   - Typecheck: PASS
   - Build: PASS (CSS предупреждения не блокируют)
 
+## 2025-10-08 — IKR flow integration тест
+
+- Добавлен интеграционный тест потока IKR `src/__tests__/ikr.flow.integration.test.tsx`,
+  который мокает `AdvancedCognitiveAnalysis` и проверяет, что по коллбеку `onAnalysisCompleted`
+  раздел Reasoning внутри `IKRDirectivePage` обновляется с инсайтами и confidence.
+- Тест стабилен: матчер на инсайт переведён на regex, т.к. UI добавляет маркер "• ".
+- Гейты после добавления:
+  - Tests: PASS (14/14)
+  - Typecheck: PASS
+  - Build: PASS
+
 # ТЗ: Пошаговая интеграция модулей в AXON-UI
 
 Документ описывает фазовый план интеграции файлов проекта (модулей) в UI, требования к качеству, критерии приемки, тестирование и риски. Ориентирован на стек: React 19 + Vite 6, Tailwind 4, Vitest 3, ESLint 9, реальный клиент AXON через `/v1/chat/completions` и `/health`.
