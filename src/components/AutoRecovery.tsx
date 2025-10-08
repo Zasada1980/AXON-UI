@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Shield, 
@@ -14,8 +13,6 @@ import {
   ArrowClockwise,
   Activity,
   Wrench,
-  FloppyDisk,
-  CloudArrowUp,
   Database,
   Cpu,
   Globe,
@@ -97,7 +94,7 @@ const AutoRecovery: React.FC<AutoRecoveryProps> = ({
   };
 
   // Инициализация компонентов системы
-  const initializeComponents = (): SystemComponent[] => {
+  const initializeComponents = useCallback((): SystemComponent[] => {
     return [
       {
         id: 'memory-manager',
@@ -188,13 +185,99 @@ const AutoRecovery: React.FC<AutoRecoveryProps> = ({
         repairs: []
       }
     ];
-  };
+  }, [language]);
 
   // Инициализация компонентов
   useEffect(() => {
     setComponents(initializeComponents());
     setLastScan(new Date().toLocaleTimeString());
-  }, [language]);
+  }, [initializeComponents]);
+
+  // Выполнение ремонта (мемоизировано)
+  const executeRepair = useCallback(async (repairId: string) => {
+    const repair = repairActions.find(r => r.id === repairId);
+    if (!repair) return;
+
+    // Начало выполнения
+    setRepairActions(prev => prev.map(r =>
+      r.id === repairId
+        ? { ...r, status: 'executing', startTime: new Date().toISOString() }
+        : r
+    ));
+
+    try {
+      // Симуляция выполнения ремонта с прогрессом
+      for (let progress = 0; progress <= 100; progress += 10) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setRepairActions(prev => prev.map(r =>
+          r.id === repairId ? { ...r, progress } : r
+        ));
+      }
+
+      // Успешное завершение
+      setRepairActions(prev => prev.map(r =>
+        r.id === repairId
+          ? {
+              ...r,
+              status: 'completed',
+              endTime: new Date().toISOString(),
+              result: language === 'ru' ? 'Успешно восстановлено' : 'Successfully repaired'
+            }
+          : r
+      ));
+
+      // Улучшение здоровья компонента
+      setComponents(prev => prev.map(comp =>
+        comp.id === repair.componentId
+          ? {
+              ...comp,
+              health: Math.min(100, comp.health + 20 + Math.random() * 20),
+              status: 'healthy',
+              issues: comp.issues.slice(0, -1)
+            }
+          : comp
+      ));
+
+      onRepairCompleted?.(repair);
+
+    } catch {
+      // Ошибка выполнения
+      setRepairActions(prev => prev.map(r =>
+        r.id === repairId
+          ? {
+              ...r,
+              status: 'failed',
+              endTime: new Date().toISOString(),
+              result: language === 'ru' ? 'Ошибка восстановления' : 'Repair failed'
+            }
+          : r
+      ));
+    }
+  }, [language, onRepairCompleted, repairActions, setComponents, setRepairActions]);
+
+  // Планирование ремонта (мемоизировано)
+  const scheduleRepair = useCallback((componentId: string) => {
+    const component = components.find(c => c.id === componentId);
+    if (!component || component.repairs.length === 0) return;
+
+    // Проверяем, нет ли уже активного ремонта для этого компонента
+    const existingRepair = repairActions.find(
+      action => action.componentId === componentId && action.status === 'executing'
+    );
+    if (existingRepair) return;
+
+    const repairAction: RepairAction = {
+      id: `repair-${Date.now()}-${componentId}`,
+      componentId,
+      action: component.repairs[0],
+      description: `${language === 'ru' ? 'Автоматическое восстановление' : 'Auto repair'}: ${component.name}`,
+      status: 'pending',
+      progress: 0
+    };
+
+    setRepairActions(prev => [...prev, repairAction]);
+    setTimeout(() => executeRepair(repairAction.id), 1000);
+  }, [components, language, repairActions, executeRepair, setRepairActions]);
 
   // Автоматический мониторинг
   useEffect(() => {
@@ -229,7 +312,7 @@ const AutoRecovery: React.FC<AutoRecoveryProps> = ({
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isMonitoring, autoRecoveryEnabled]);
+  }, [isMonitoring, autoRecoveryEnabled, scheduleRepair]);
 
   // Подсчет общего здоровья системы
   useEffect(() => {
@@ -240,94 +323,7 @@ const AutoRecovery: React.FC<AutoRecoveryProps> = ({
     }
   }, [components, onSystemHealthUpdated]);
 
-  // Планирование ремонта
-  const scheduleRepair = (componentId: string) => {
-    const component = components.find(c => c.id === componentId);
-    if (!component || component.repairs.length === 0) return;
-
-    // Проверяем, нет ли уже активного ремонта для этого компонента
-    const existingRepair = repairActions.find(
-      action => action.componentId === componentId && action.status === 'executing'
-    );
-    if (existingRepair) return;
-
-    const repairAction: RepairAction = {
-      id: `repair-${Date.now()}-${componentId}`,
-      componentId,
-      action: component.repairs[0],
-      description: `${language === 'ru' ? 'Автоматическое восстановление' : 'Auto repair'}: ${component.name}`,
-      status: 'pending',
-      progress: 0
-    };
-
-    setRepairActions(prev => [...prev, repairAction]);
-    
-    // Запуск ремонта
-    setTimeout(() => executeRepair(repairAction.id), 1000);
-  };
-
-  // Выполнение ремонта
-  const executeRepair = async (repairId: string) => {
-    const repair = repairActions.find(r => r.id === repairId);
-    if (!repair) return;
-
-    // Начало выполнения
-    setRepairActions(prev => prev.map(r =>
-      r.id === repairId
-        ? { ...r, status: 'executing', startTime: new Date().toISOString() }
-        : r
-    ));
-
-    try {
-      // Симуляция выполнения ремонта с прогрессом
-      for (let progress = 0; progress <= 100; progress += 10) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        setRepairActions(prev => prev.map(r =>
-          r.id === repairId ? { ...r, progress } : r
-        ));
-      }
-
-      // Успешное завершение
-      setRepairActions(prev => prev.map(r =>
-        r.id === repairId
-          ? {
-              ...r,
-              status: 'completed',
-              endTime: new Date().toISOString(),
-              result: language === 'ru' ? 'Успешно восстановлено' : 'Successfully repaired'
-            }
-          : r
-      ));
-
-      // Улучшение здоровья компонента
-      setComponents(prev => prev.map(comp =>
-        comp.id === repair.componentId
-          ? {
-              ...comp,
-              health: Math.min(100, comp.health + 20 + Math.random() * 20),
-              status: 'healthy',
-              issues: comp.issues.slice(0, -1) // Удаляем одну проблему
-            }
-          : comp
-      ));
-
-      onRepairCompleted?.(repair);
-
-    } catch (error) {
-      // Ошибка выполнения
-      setRepairActions(prev => prev.map(r =>
-        r.id === repairId
-          ? {
-              ...r,
-              status: 'failed',
-              endTime: new Date().toISOString(),
-              result: language === 'ru' ? 'Ошибка восстановления' : 'Repair failed'
-            }
-          : r
-      ));
-    }
-  };
+  // функции ремонта мемоизированы выше
 
   // Ручное сканирование системы
   const scanSystem = () => {

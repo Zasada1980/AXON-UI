@@ -6,31 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// Removed unused imports to reduce lint noise
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import {
-  Shield,
-  Robot,
-  CheckCircle,
-  Warning,
-  X,
-  Clock,
-  Play,
-  Pause,
-  Stop,
-  Plus,
-  Eye,
-  ArrowRight,
-  Target,
-  Brain,
-  ListChecks,
-  Cpu,
-  Bug
-} from '@phosphor-icons/react';
+import { Shield, Robot, CheckCircle, Play, Plus, Eye, Target, Brain, ListChecks, Bug } from '@phosphor-icons/react';
 
 interface AuditPageProps {
   language: 'en' | 'ru';
@@ -83,16 +64,16 @@ interface AuditResult {
 const AuditPage: React.FC<AuditPageProps> = ({
   language,
   projectId,
-  onNavigate
+  onNavigate: _onNavigate
 }) => {
   // Persistent storage
   const [auditAgents, setAuditAgents] = useKV<AuditAgent[]>(`audit-agents-${projectId}`, []);
-  const [auditSessions, setAuditSessions] = useKV<AuditSession[]>(`audit-sessions-${projectId}`, []);
+  const [_auditSessions, _setAuditSessions] = useKV<AuditSession[]>(`audit-sessions-${projectId}`, []);
   
   // UI state
   const [isCreatingAgent, setIsCreatingAgent] = useState(false);
-  const [isCreatingSession, setIsCreatingSession] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<string | null>(null);
+  const [_isCreatingSession, _setIsCreatingSession] = useState(false);
+  const [_selectedSession, _setSelectedSession] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'agents' | 'sessions' | 'results'>('agents');
   
   // Form state

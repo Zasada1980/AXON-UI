@@ -6,11 +6,18 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+ pr-8
+=======
+// Removed unused Separator and ScrollArea
+ main
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Target, Brain, MagnifyingGlass, Lightbulb, ArrowRight, Plus, PencilSimple, Eye } from '@phosphor-icons/react';
+pr-8
 import { axon } from '@/services/axonAdapter';
+=======
+ main
 
 interface IKRDirectiveProps {
   language: 'en' | 'ru';
@@ -210,7 +217,11 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
     );
 
     toast.success(t('componentUpdated'));
+pr-8
     _setIsEditingComponent(null);
+=======
+  _setIsEditingComponent(null);
+ main
   };
 
   // Get component icon

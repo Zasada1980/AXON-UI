@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+// removed unused Badge import
 import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
@@ -13,10 +12,8 @@ import {
   Clock, 
   CheckCircle, 
   Warning,
-  Users,
   Target,
   ChartLine,
-  Calendar,
   Download,
   ArrowsCounterClockwise,
   FileText

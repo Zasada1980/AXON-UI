@@ -7,33 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import {
-  Users,
-  ChatCircle,
-  Play,
-  Pause,
-  Stop,
-  Plus,
-  Eye,
-  ArrowRight,
-  ThumbsUp,
-  ThumbsDown,
-  Clock,
-  Target,
-  CheckCircle,
-  Warning,
-  Lightbulb,
-  Brain,
-  Robot,
-  Microphone,
-  MicrophoneSlash
-} from '@phosphor-icons/react';
+import { Users, ChatCircle, Play, Pause, Stop, Plus, ArrowRight, ThumbsUp, ThumbsDown, Clock, Lightbulb, Robot, Microphone, MicrophoneSlash } from '@phosphor-icons/react';
 
 interface DebatePageProps {
   language: 'en' | 'ru';

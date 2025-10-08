@@ -20,8 +20,19 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+pr-8
 import { Brain, Plus, ChartLine, ArrowRight, Globe, List } from '@phosphor-icons/react';
 import { axon } from '@/services/axonAdapter';
+=======
+import {
+  Brain,
+  Plus,
+  ChartLine,
+  ArrowRight,
+  Globe,
+  List,
+} from '@phosphor-icons/react';
+ main
 
 // Types
 type Language = 'en' | 'ru';
