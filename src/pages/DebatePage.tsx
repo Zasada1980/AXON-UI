@@ -79,7 +79,7 @@ interface DebateSession {
 const DebatePage: React.FC<DebatePageProps> = ({
   language,
   projectId,
-  onNavigate
+  onNavigate: _onNavigate,
 }) => {
   // Persistent storage
   const [debateAgents, setDebateAgents] = useKV<DebateAgent[]>(`debate-agents-${projectId}`, []);
@@ -497,7 +497,7 @@ const DebatePage: React.FC<DebatePageProps> = ({
             {activeView === 'sessions' && (
               <Dialog open={isCreatingSession} onOpenChange={setIsCreatingSession}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button data-testid="debate-new-session-header">
                     <Plus size={16} className="mr-2" />
                     {t('newSession')}
                   </Button>
@@ -725,7 +725,7 @@ const DebatePage: React.FC<DebatePageProps> = ({
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                   {t('createFirstSession')}
                 </p>
-                <Button size="lg" onClick={() => setIsCreatingSession(true)}>
+                <Button size="lg" onClick={() => setIsCreatingSession(true)} data-testid="debate-new-session-empty">
                   <Plus size={20} className="mr-2" />
                   {t('newSession')}
                 </Button>
