@@ -77,6 +77,11 @@ interface AdvancedCognitiveAnalysisProps {
   onAnalysisCompleted?: (session: AnalysisSession) => void;
   onPatternDetected?: (pattern: CognitivePattern) => void;
   onInsightGenerated?: (insight: string) => void;
+  /**
+   * If true (default), when user doesn't select a framework explicitly,
+   * the first available framework will be auto-picked during session creation.
+   */
+  autoPickFramework?: boolean;
 }
 
 const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
@@ -84,7 +89,8 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
   projectId,
   onAnalysisCompleted,
   onPatternDetected,
-  onInsightGenerated
+  onInsightGenerated,
+  autoPickFramework = true,
 }) => {
   const _t = (key: string) => key; // Simplified translation function (unused for now)
 
@@ -275,10 +281,12 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
       toast.error('Session title is required');
       return;
     }
-    // If framework not selected, pick the first available (better UX and helps tests)
+    // If framework not selected, pick the first available when allowed (better UX and helps tests)
     let targetFrameworkId = sessionBuilder.frameworkId;
     if (!targetFrameworkId) {
-      targetFrameworkId = frameworks && frameworks.length > 0 ? frameworks[0].id : '';
+      if (autoPickFramework) {
+        targetFrameworkId = frameworks && frameworks.length > 0 ? frameworks[0].id : '';
+      }
       if (!targetFrameworkId) {
         toast.error('Please select a cognitive framework');
         return;
@@ -333,15 +341,14 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
     toast.info(`Starting analysis: ${session.title}`);
 
     try {
+      // Keep a working copy of results to satisfy dependencies deterministically
+  const workingResults: Record<string, any> = { ...(session.results || {}) };
       // Process each dimension
       for (let i = 0; i < framework.dimensions.length; i++) {
         const dimension = framework.dimensions[i];
         
         // Check dependencies
-        const dependenciesMet = dimension.dependencies.every(depId => {
-          const depDimension = framework.dimensions.find(d => d.id === depId);
-          return depDimension && session.results[depId];
-        });
+        const dependenciesMet = (dimension.dependencies || []).every(depId => Boolean(workingResults[depId]));
 
         if (!dependenciesMet && dimension.dependencies.length > 0) {
           toast.warning(`Skipping ${dimension.name} - dependencies not met`);
@@ -357,30 +364,45 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
           )
         );
 
-        // Process dimension
-        await processDimension(sessionId, dimension, framework, analysisDepth);
+        // Process dimension and update local working results
+        const dimRes = await processDimension(sessionId, dimension, framework, analysisDepth, workingResults);
+        if (dimRes) {
+          workingResults[dimension.id] = dimRes;
+        }
       }
 
-      // Generate synthesis
-      await generateSynthesis(sessionId);
+      // Generate synthesis and finalize session in one update to avoid state staleness
+      const synthesis = await generateSynthesis(sessionId, workingResults);
 
-      // Mark as completed
-      setAnalysisSessions(current => 
-        (current || []).map(s => 
+      // Notify insights
+      if (synthesis?.insights && onInsightGenerated) {
+        synthesis.insights.forEach((insight: string) => onInsightGenerated(insight));
+      }
+
+      // Finalize session
+      let finalized: AnalysisSession | undefined;
+      setAnalysisSessions((current) => {
+        const next: AnalysisSession[] = (current || []).map((s): AnalysisSession => 
           s.id === sessionId 
-            ? { 
+            ? ({ 
                 ...s, 
                 status: 'completed', 
                 endTime: new Date().toISOString(),
-                confidence: calculateSessionConfidence(s)
-              }
+                insights: (synthesis?.insights as string[]) || [],
+                recommendations: (synthesis?.recommendations as string[]) || [],
+                confidence: (synthesis && typeof synthesis.overall_confidence === 'number')
+                  ? (synthesis.overall_confidence as number)
+                  : calculateSessionConfidence(s),
+                results: workingResults,
+              } as AnalysisSession)
             : s
-        )
-      );
+        );
+        finalized = next.find(s => s.id === sessionId);
+        return next;
+      });
 
-      const completedSession = analysisSessions?.find(s => s.id === sessionId);
-      if (completedSession && onAnalysisCompleted) {
-        onAnalysisCompleted(completedSession);
+      if (finalized && onAnalysisCompleted) {
+        onAnalysisCompleted(finalized);
       }
 
       toast.success(`Analysis completed: ${session.title}`);
@@ -405,7 +427,8 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
     sessionId: string, 
     dimension: CognitiveDimension, 
     framework: CognitiveFramework,
-    depth: string
+    depth: string,
+    previousResults?: Record<string, any>
   ) => {
     const session = analysisSessions?.find(s => s.id === sessionId);
     if (!session) return;
@@ -416,7 +439,7 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
       dimension: dimension.name,
       question: dimension.question,
       analysisMethod: dimension.analysisMethod,
-      previousResults: session.results,
+  previousResults: previousResults || session.results,
       analysisDepth: depth,
       projectContext: projectId
     };
@@ -469,7 +492,8 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
         await detectCognitivePatterns(result.patterns, sessionId);
       }
 
-      toast.info(`Completed: ${dimension.name}`);
+  toast.info(`Completed: ${dimension.name}`);
+  return result;
 
     } catch (error) {
       console.error(`Error processing dimension ${dimension.name}:`, error);
@@ -478,7 +502,7 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
   };
 
   // Generate synthesis from all dimensions
-  const generateSynthesis = async (sessionId: string) => {
+  const generateSynthesis = async (sessionId: string, results: Record<string, any>) => {
     const session = analysisSessions?.find(s => s.id === sessionId);
     if (!session) return;
 
@@ -489,7 +513,7 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
       'You are a master analyst synthesizing complex cognitive analysis results.',
       '',
       `Framework: ${framework.name}`,
-      `Analysis Results: ${JSON.stringify(session.results, null, 2)}`,
+  `Analysis Results: ${JSON.stringify(results, null, 2)}`,
       '',
       'Please synthesize these findings into:',
       '1. Key insights that emerge from the analysis',
@@ -508,31 +532,9 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
     ].join('\n');
 
     try {
-  const res = await axon.analyze({ projectId, prompt: synthesisPrompt, mode: 'general', language: (language === 'ru' ? 'ru' : 'en') });
-  const synthesis = safeParseJSON(res.content);
-
-      // Update session with synthesis
-      setAnalysisSessions(current => 
-        (current || []).map(s => 
-          s.id === sessionId 
-            ? {
-                ...s,
-                status: 'synthesizing',
-                insights: synthesis.insights || [],
-                recommendations: synthesis.recommendations || [],
-                confidence: synthesis.overall_confidence || 0
-              }
-            : s
-        )
-      );
-
-      // Notify insights
-      if (synthesis.insights && onInsightGenerated) {
-        synthesis.insights.forEach((insight: string) => {
-          onInsightGenerated(insight);
-        });
-      }
-
+      const res = await axon.analyze({ projectId, prompt: synthesisPrompt, mode: 'general', language: (language === 'ru' ? 'ru' : 'en') });
+      const synthesis = safeParseJSON(res.content);
+      return synthesis;
     } catch (error) {
       console.error('Synthesis error:', error);
       throw error;
@@ -700,12 +702,12 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
                               Start Analysis
                             </Button>
                           )}
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" data-testid="aca-view-details">
                             <Eye size={16} className="mr-1" />
                             View Details
                           </Button>
                           {session.status === 'completed' && (
-                            <Button size="sm" variant="outline">
+                            <Button size="sm" variant="outline" data-testid="aca-export-results">
                               <FloppyDisk size={16} className="mr-1" />
                               Export Results
                             </Button>
