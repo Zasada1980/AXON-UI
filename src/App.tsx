@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useKV } from '@github/spark/hooks';
 import NavigationMenu from './components/NavigationMenu';
 import ProjectOverview from './pages/ProjectOverview';
@@ -10,61 +10,18 @@ import IKRDirectivePage from './pages/IKRDirectivePage';
 import AuditPage from './pages/AuditPage';
 import DebatePage from './pages/DebatePage';
 import UnderDevelopmentPage from './pages/UnderDevelopmentPage';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import {
-  Brain,
-  Users,
-  FileText,
-  Calendar,
-  MapPin,
-  Lightbulb,
-  Gear,
-  FloppyDisk,
-  Eye,
-  Download,
-  Plus,
-  ChartLine,
-  Graph,
-  Target,
-  ArrowRight,
-  CheckCircle,
-  Warning,
-  Star,
-  Globe,
-  Robot,
-  Shield,
-  Play,
-  Pause,
-  Stop,
-  ListChecks,
-  Bug,
-  SecurityCamera,
-  Question,
-  Key,
-  CloudArrowUp,
-  ChatCircle,
-  PaperPlaneTilt,
-  Microphone,
-  MicrophoneSlash,
-  Headphones,
-  Bell,
-  MagnifyingGlass,
-  Cpu,
-  Database,
-  List,
-  X
-} from '@phosphor-icons/react';
+import { Brain, Plus, ChartLine, ArrowRight, Globe, List } from '@phosphor-icons/react';
+import { axon } from '@/services/axonAdapter';
 
 // Types
 type Language = 'en' | 'ru';
@@ -163,6 +120,7 @@ function App() {
     };
     lastCheck: string;
     issues: string[];
+    axon?: { ok: boolean; service?: string; version?: string };
   }>('system-health', {
     overall: 100,
     components: { storage: 100, ai: 100, ui: 100, memory: 100 },
@@ -174,7 +132,7 @@ function App() {
   const projectData = projects?.find(p => p.id === currentProject);
 
   // System health check
-  const runSystemHealthCheck = async () => {
+  const runSystemHealthCheck = useCallback(async () => {
     const startTime = performance.now();
     const issues: string[] = [];
     let overallHealth = 100;
@@ -183,9 +141,18 @@ function App() {
     const storageHealth = projects ? Math.min(100, projects.length < 50 ? 100 : 100 - (projects.length - 50) * 2) : 100;
     if (storageHealth < 80) issues.push('High storage usage detected');
 
-    // Check AI connectivity (mock)
-    const aiHealth = Math.random() > 0.1 ? 100 : 60;
-    if (aiHealth < 80) issues.push('AI service connectivity issues');
+    // Check AXON health via adapter
+    let aiHealth = 100;
+    try {
+      const h = await axon.health();
+      if (!h.ok) {
+        aiHealth = 60;
+        issues.push('AXON backend not healthy');
+      }
+    } catch {
+      aiHealth = 60;
+      issues.push('AXON backend unreachable');
+    }
 
     // Check UI responsiveness
     const endTime = performance.now();
@@ -214,14 +181,14 @@ function App() {
     });
 
     return overallHealth;
-  };
+  }, [projects, setSystemHealth]);
 
   // Run health checks periodically
   useEffect(() => {
     runSystemHealthCheck();
-    const healthCheckInterval = setInterval(runSystemHealthCheck, 60000); // Every minute
+    const healthCheckInterval = setInterval(runSystemHealthCheck, 60000);
     return () => clearInterval(healthCheckInterval);
-  }, [projects]);
+  }, [runSystemHealthCheck]);
 
   // Initialize default Kipling dimensions
   const getDefaultDimensions = (lang: Language): KiplingDimension[] => [
@@ -464,6 +431,11 @@ function App() {
                   <span className="text-xs text-muted-foreground">
                     System: {systemHealth.overall}%
                   </span>
+                  {systemHealth.axon && (
+                    <span className="text-xs text-muted-foreground">
+                      AXON: {systemHealth.axon.ok ? 'Online' : 'Offline'}
+                    </span>
+                  )}
                 </div>
               )}
 
