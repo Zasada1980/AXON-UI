@@ -76,6 +76,28 @@ interface DebateSession {
   };
 }
 
+// Minimal shape for DebateLogManager session to allow import on deep-link
+interface LogManagerSession {
+  id: string;
+  topic: string;
+  participants: string[];
+  startTime: string;
+  endTime?: string;
+  status: 'running' | 'completed' | 'stopped' | 'failed';
+  currentRound: number;
+  totalRounds: number;
+  logs: Array<{
+    id: string;
+    agentId: string;
+    message: string;
+    messageType: 'argument' | 'counter-argument' | 'synthesis' | 'question' | 'conclusion';
+    confidence: number;
+    timestamp: string;
+    supportingData: string[];
+    referencedMemories: string[];
+  }>;
+}
+
 const DebatePage: React.FC<DebatePageProps> = ({
   language,
   projectId,
@@ -85,6 +107,8 @@ const DebatePage: React.FC<DebatePageProps> = ({
   const [debateAgents, setDebateAgents] = useKV<DebateAgent[]>(`debate-agents-${projectId}`, []);
   const [debateSessions, setDebateSessions] = useKV<DebateSession[]>(`debate-sessions-${projectId}`, []);
   const [currentSession, setCurrentSession] = useKV<string | null>(`current-debate-${projectId}`, null);
+  // Access log manager store to import a session when deep-linking
+  const [logManagerSessions] = useKV<LogManagerSession[]>(`debate-log-sessions-${projectId}`, []);
   
   // UI state
   const [isCreatingAgent, setIsCreatingAgent] = useState(false);
@@ -200,28 +224,113 @@ const DebatePage: React.FC<DebatePageProps> = ({
 
   // Read deep-link from location.hash: #session=<id>
   useEffect(() => {
+    const onOpenSession = (e: Event) => {
+      const ev = e as CustomEvent<LogManagerSession>
+      const lm = ev.detail
+      if (!lm) return
+      const existsLocal = (debateSessions || []).some(s => s.id === lm.id)
+      if (!existsLocal) {
+        const mapType = (t: LogManagerSession['logs'][number]['messageType']): DebateMessage['type'] => {
+          switch (t) {
+            case 'argument': return 'argument'
+            case 'counter-argument': return 'counterargument'
+            case 'synthesis': return 'summary'
+            case 'question': return 'question'
+            case 'conclusion': return 'conclusion'
+            default: return 'argument'
+          }
+        }
+        const imported: DebateSession = {
+          id: lm.id,
+          title: lm.topic,
+          topic: lm.topic,
+          description: '',
+          participants: lm.participants,
+          moderator: undefined,
+          status: lm.status === 'running' ? 'active' : lm.status === 'completed' ? 'completed' : 'paused',
+          createdAt: lm.startTime,
+          startedAt: lm.startTime,
+          completedAt: lm.endTime,
+          messages: (lm.logs || []).map(l => ({
+            id: `import-${l.id}`,
+            agentId: l.agentId,
+            content: l.message,
+            type: mapType(l.messageType),
+            timestamp: l.timestamp,
+            reactions: { thumbsUp: 0, thumbsDown: 0, insightful: 0 },
+            confidence: l.confidence,
+          })),
+          currentRound: lm.currentRound,
+          maxRounds: lm.totalRounds,
+          rules: { timePerRound: 5, maxArgumentLength: 500, allowInterruptions: false, requireConsensus: false },
+        }
+        setDebateSessions(current => ([...(current || []), imported]))
+      }
+    }
     const applyFromHash = () => {
       if (typeof window === 'undefined') return
       const hash = window.location.hash || ''
       const m = hash.match(/#session=([^&]+)/)
       if (m && m[1]) {
         const id = decodeURIComponent(m[1])
-        // only set if exists in store; otherwise ignore
-        const exists = (debateSessions || []).some(s => s.id === id)
-        if (exists) {
-          setReadOnlySessionId(id)
-          setActiveView('debate')
+        // If session exists locally — open it; otherwise try importing from log manager store
+        const existsLocal = (debateSessions || []).some(s => s.id === id)
+        if (!existsLocal) {
+          const lm = (logManagerSessions || []).find(s => s.id === id)
+          if (lm) {
+            const mapType = (t: LogManagerSession['logs'][number]['messageType']): DebateMessage['type'] => {
+              switch (t) {
+                case 'argument': return 'argument'
+                case 'counter-argument': return 'counterargument'
+                case 'synthesis': return 'summary'
+                case 'question': return 'question'
+                case 'conclusion': return 'conclusion'
+                default: return 'argument'
+              }
+            }
+            const imported: DebateSession = {
+              id: lm.id,
+              title: lm.topic,
+              topic: lm.topic,
+              description: '',
+              participants: lm.participants,
+              moderator: undefined,
+              status: lm.status === 'running' ? 'active' : lm.status === 'completed' ? 'completed' : 'paused',
+              createdAt: lm.startTime,
+              startedAt: lm.startTime,
+              completedAt: lm.endTime,
+              messages: (lm.logs || []).map(l => ({
+                id: `import-${l.id}`,
+                agentId: l.agentId,
+                content: l.message,
+                type: mapType(l.messageType),
+                timestamp: l.timestamp,
+                reactions: { thumbsUp: 0, thumbsDown: 0, insightful: 0 },
+                confidence: l.confidence,
+              })),
+              currentRound: lm.currentRound,
+              maxRounds: lm.totalRounds,
+              rules: { timePerRound: 5, maxArgumentLength: 500, allowInterruptions: false, requireConsensus: false },
+            }
+            setDebateSessions(current => ([...(current || []), imported]))
+          }
         }
+        setReadOnlySessionId(id)
+        setActiveView('debate')
       } else {
         setReadOnlySessionId(null)
       }
     }
     applyFromHash()
     if (typeof window !== 'undefined') {
+      window.addEventListener('debate:open-session', onOpenSession as EventListener)
       window.addEventListener('hashchange', applyFromHash)
-      return () => window.removeEventListener('hashchange', applyFromHash)
+      return () => {
+        window.removeEventListener('hashchange', applyFromHash)
+        window.removeEventListener('debate:open-session', onOpenSession as EventListener)
+      }
     }
-  }, [debateSessions])
+  }, [debateSessions, logManagerSessions, setDebateSessions])
 
   // Initialize default agents if none exist
   useEffect(() => {
