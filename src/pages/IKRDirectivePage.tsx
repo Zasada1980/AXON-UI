@@ -11,6 +11,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Target, Brain, MagnifyingGlass, Lightbulb, ArrowRight, Plus, PencilSimple, Eye } from '@phosphor-icons/react';
+// IKR tools/components
+import IntelligenceGathering from '@/components/IntelligenceGathering';
+import KiplingQuestionnaire from '@/components/KiplingQuestionnaire';
+import AdvancedCognitiveAnalysis from '@/components/AdvancedCognitiveAnalysis';
+import MicroTaskExecutor from '@/components/MicroTaskExecutor';
 
 interface IKRDirectiveProps {
   language: 'en' | 'ru';
@@ -556,6 +561,59 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                 </Card>
               ))}
             </div>
+
+            {/* IKR Tools Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">{language==='ru' ? 'Инструменты IKR' : 'IKR Tools'}</CardTitle>
+                <CardDescription>
+                  {language==='ru' ? 'Связанные модули: сбор разведданных, анкета Киплинга, когнитивный анализ, микро-задачи' : 'Related modules: intelligence gathering, Kipling questionnaire, cognitive analysis, micro-tasks'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Intelligence Gathering */}
+                <div className="border rounded p-4">
+                  <IntelligenceGathering
+                    language={language}
+                    projectId={projectId}
+                    onIntelligenceGathered={(_data) => {
+                      toast.success(language==='ru' ? 'Разведданные собраны' : 'Intelligence gathered')
+                    }}
+                    onGapIdentified={(gap) => {
+                      toast.info((language==='ru' ? 'Выявлен разрыв: ' : 'Gap identified: ') + gap.area)
+                    }}
+                  />
+                </div>
+
+                {/* Kipling Questionnaire */}
+                <div className="border rounded p-4">
+                  <KiplingQuestionnaire
+                    language={language}
+                    onQuestionnaireComplete={(_data) => {
+                      // Optionally map results into I/K/R content
+                      toast.success(language==='ru' ? 'Анкета Киплинга завершена' : 'Kipling questionnaire completed')
+                    }}
+                    onProgressUpdate={(_progress) => {}}
+                  />
+                </div>
+
+                {/* Advanced Cognitive Analysis */}
+                <div className="border rounded p-4">
+                  <AdvancedCognitiveAnalysis
+                    language={language}
+                    projectId={projectId}
+                  />
+                </div>
+
+                {/* Micro Task Executor */}
+                <div className="border rounded p-4">
+                  <MicroTaskExecutor
+                    language={language}
+                    projectId={projectId}
+                  />
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>

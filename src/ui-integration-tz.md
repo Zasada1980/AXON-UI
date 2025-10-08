@@ -176,3 +176,5 @@
   - Локальная проверка: Tests PASS (7/7), Typecheck PASS, Lint — без ошибок (только предупреждения), Build PASS.
   - Контекст PR #18: ветка `feat/ikr-phase1` обновлена (push выполнен). Готово к рассмотрению и слиянию: гейты (tests/typecheck/build) — PASS.
   - Конфликты PR #18: разрешены (src/App.tsx, src/pages/IKRDirectivePage.tsx, vitest.setup.ts). Повторная проверка: Tests PASS, Lint — WARN only, Build PASS.
+  - IKR: в `IKRDirectivePage` встроены связанные модули — `IntelligenceGathering`, `KiplingQuestionnaire`, `AdvancedCognitiveAnalysis`, `MicroTaskExecutor` (projectId-скоуп, коллбеки без побочных эффектов).
+  - Добавлены минимальные smoke-тесты для IKR tools: `src/__tests__/ikr.tools.smoke.test.tsx` (рендер на EN/RU). Локально: Tests PASS (9/9), Build PASS.
