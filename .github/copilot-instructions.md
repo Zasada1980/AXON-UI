@@ -46,3 +46,8 @@ For questions, review the markdown docs in `src/` or ask for examples from exist
 - Prefer automated changes via repository tools (apply patches, run tests/build) and ensure green gates before proposing merges.
 - After each successful merge, the agent must update indicators in the journals per the IKR protocol.
 - If a process or permission blocks an operation, report the exact constraint and pause further PR actions until explicitly unblocked.
+
+### Directive: Full PR Push Rights
+
+- АГЕНТ ИМЕЕТ ПОЛНЫЕ ПРАВА ПУШИТЬ PR (ветки и Pull Requests создаются и обновляются агентом программно).
+- Agent has full rights to push branches and open/update Pull Requests programmatically.
