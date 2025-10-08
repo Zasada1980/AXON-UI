@@ -691,6 +691,19 @@ const DebatePage: React.FC<DebatePageProps> = ({
                           {session.participants.length} {t('participants')}
                         </span>
                       </div>
+                      <div className="flex items-center justify-between">
+                        {(() => {
+                          const turnsTotal = Math.max(session.participants.length, 1)
+                          const turnsDone = session.messages.length % turnsTotal
+                          const turnsDisplay = turnsDone === 0 && session.messages.length > 0 ? turnsTotal : turnsDone
+                          return (
+                            <span className="text-xs text-muted-foreground">
+                              {language === 'ru' ? 'Ходов в раунде' : 'Turns in round'}: {turnsDisplay}/{turnsTotal}
+                            </span>
+                          )
+                        })()}
+                        <span />
+                      </div>
                       
                       <div className="flex items-center gap-1">
                         {session.participants.slice(0, 3).map(participantId => {
