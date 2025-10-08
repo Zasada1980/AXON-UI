@@ -6,26 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// Removed unused Separator and ScrollArea
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import {
-  Target,
-  Brain,
-  MagnifyingGlass,
-  Lightbulb,
-  CheckCircle,
-  Warning,
-  ArrowRight,
-  Plus,
-  PencilSimple,
-  Trash,
-  Download,
-  Upload,
-  Eye
-} from '@phosphor-icons/react';
+import { Target, Brain, MagnifyingGlass, Lightbulb, ArrowRight, Plus, PencilSimple, Eye } from '@phosphor-icons/react';
 
 interface IKRDirectiveProps {
   language: 'en' | 'ru';
@@ -59,7 +44,7 @@ interface IKRAnalysis {
 const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
   language,
   projectId,
-  onNavigate
+  onNavigate: _onNavigate
 }) => {
   // Persistent storage for IKR analyses
   const [ikrAnalyses, setIkrAnalyses] = useKV<IKRAnalysis[]>(`ikr-analyses-${projectId}`, []);
@@ -72,10 +57,10 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
 
   // UI state
   const [isCreatingAnalysis, setIsCreatingAnalysis] = useState(false);
-  const [isEditingComponent, setIsEditingComponent] = useState<string | null>(null);
+  const [_isEditingComponent, _setIsEditingComponent] = useState<string | null>(null);
   const [newAnalysisTitle, setNewAnalysisTitle] = useState('');
   const [newAnalysisDescription, setNewAnalysisDescription] = useState('');
-  const [selectedComponentType, setSelectedComponentType] = useState<'intelligence' | 'knowledge' | 'reasoning'>('intelligence');
+  const [_selectedComponentType, _setSelectedComponentType] = useState<'intelligence' | 'knowledge' | 'reasoning'>('intelligence');
 
   // Translations
   const t = (key: string): string => {
@@ -225,7 +210,7 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
     );
 
     toast.success(t('componentUpdated'));
-    setIsEditingComponent(null);
+  _setIsEditingComponent(null);
   };
 
   // Get component icon
@@ -540,7 +525,7 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setIsEditingComponent(component.id)}
+                        onClick={() => _setIsEditingComponent(component.id)}
                       >
                         <PencilSimple size={14} />
                       </Button>

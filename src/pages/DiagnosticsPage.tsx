@@ -21,7 +21,7 @@ const translations: Record<string, { en: string; ru: string }> = {
   }
 };
 
-export default function DiagnosticsPage({ language, projectId, onNavigate }: Props) {
+export default function DiagnosticsPage({ language, onNavigate }: Props) {
   const t = (key: string): string => {
     return translations[key]?.[language] || key;
   };

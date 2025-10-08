@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useKV } from '@github/spark/hooks';
-import KiplingQuestionnaire from '../components/KiplingQuestionnaire';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';

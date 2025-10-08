@@ -3,7 +3,6 @@
  * Supports OpenAI, Anthropic, Google AI, and Azure OpenAI
  */
 
-import { toast } from 'sonner';
 
 // Provider configurations
 interface ProviderConfig {
@@ -61,11 +60,11 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
   google: {
     name: 'Google AI',
     testEndpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
-    headers: (apiKey) => ({
+    headers: (_apiKey) => ({
       'Content-Type': 'application/json'
     }),
-    validateResponse: (response, data) => {
-      return response.ok && data && data.models && Array.isArray(data.models);
+    validateResponse: (response, _data) => {
+      return response.ok && _data && _data.models && Array.isArray(_data.models);
     },
     formatError: (error) => {
       if (error.status === 403) return 'Invalid API key or access denied';

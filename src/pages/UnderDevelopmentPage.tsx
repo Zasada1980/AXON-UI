@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+// Removed unused Card-related imports to reduce lint noise
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Gear } from '@phosphor-icons/react';
 
@@ -24,7 +24,7 @@ interface PageProps extends Props {
   pageName: string;
 }
 
-export default function UnderDevelopmentPage({ language, projectId, onNavigate, pageName }: PageProps) {
+export default function UnderDevelopmentPage({ language, onNavigate, pageName }: PageProps) {
   const t = (key: string): string => {
     return translations[key]?.[language] || key;
   };
