@@ -27,6 +27,7 @@ import {
 } from '@phosphor-icons/react';
 
 import { DebateLog, MemoryEntry } from '../types/memory';
+import { downloadJSON } from '@/utils/jsonExport';
 
 interface DebateLogManagerProps {
   language: 'en' | 'ru';
@@ -557,6 +558,10 @@ export default function DebateLogManager({
                           <Eye size={14} className="mr-1" />
                           {t('viewDetails')}
                         </Button>
+                        <Button size="sm" variant="outline" onClick={() => downloadJSON(session.logs, `${session.id}-logs.json`)}>
+                          <Download size={14} className="mr-1" />
+                          {t('downloadLogs')}
+                        </Button>
                         <Button size="sm" variant="outline" onClick={() => stopDebateSession(session.id)}>
                           <Stop size={14} className="mr-1" />
                           {t('stopSession')}
@@ -637,7 +642,7 @@ export default function DebateLogManager({
                           <Eye size={14} className="mr-1" />
                           {t('viewDetails')}
                         </Button>
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => downloadJSON(session.logs, `${session.id}-logs.json`)}>
                           <Download size={14} className="mr-1" />
                           {t('downloadLogs')}
                         </Button>
