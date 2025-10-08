@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { downloadJSON } from '@/utils/jsonExport';
 import { toast } from 'sonner';
 import {
   Brain,
@@ -711,7 +712,7 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
                             View Details
                           </Button>
                           {session.status === 'completed' && (
-                            <Button size="sm" variant="outline" data-testid="aca-export-results" onClick={() => exportSession(session)}>
+                            <Button size="sm" variant="outline" data-testid="aca-export-results" onClick={() => downloadJSON(session.results, `${session.title || 'analysis-session'}`)}>
                               <FloppyDisk size={16} className="mr-1" />
                               Export Results
                             </Button>
@@ -1000,22 +1001,5 @@ function safeParseJSON(text: string): any {
     return JSON.parse(text);
   } catch {
     return { content: text };
-  }
-}
-
-// Simple export helper: downloads session as JSON file
-function exportSession(session: any) {
-  try {
-    const blob = new Blob([JSON.stringify(session, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${session.title || 'analysis-session'}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  } catch (e) {
-    console.error('Export failed', e);
   }
 }

@@ -3,6 +3,7 @@ import { useKV } from '@github/spark/hooks';
 import { axon } from '@/services/axonAdapter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -313,6 +314,22 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
     toast.success(language === 'ru' ? 'Результат AXON применён' : 'AXON result applied');
   };
 
+  // Helpers: update I/K/R components based on tool outputs
+  const updateIKRComponentByType = (type: 'intelligence'|'knowledge'|'reasoning', append: string) => {
+    const analysis = currentAnalysisData;
+    if (!analysis) return;
+    const updatedComponents = analysis.components.map(comp => {
+      if (comp.type !== type) return comp;
+      const newContent = [comp.content || '', append].filter(Boolean).join('\n\n');
+      const completeness = Math.min(100, Math.max(comp.completeness, Math.round(Math.min(100, (newContent.length / 500) * 100))));
+      const status: IKRComponent['status'] = completeness >= 80 ? 'completed' : 'in-progress';
+      return { ...comp, content: newContent, completeness, status, lastUpdated: new Date().toISOString() };
+    });
+    const overallCompleteness = Math.round(updatedComponents.reduce((sum, c) => sum + c.completeness, 0) / updatedComponents.length);
+    const updatedAnalysis: IKRAnalysis = { ...analysis, components: updatedComponents, overallCompleteness, lastModified: new Date().toISOString() };
+    setIkrAnalyses(current => current?.map(a => a.id === currentAnalysis ? updatedAnalysis : a) || []);
+  };
+
   return (
     <div className="module-ikr min-h-screen bg-background">
       {/* Header */}
@@ -337,22 +354,40 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
 
             {/* AXON анализ кнопка */}
             {currentAnalysisData && (
-              <Button onClick={runAxonAnalysis} disabled={isAnalyzing} variant="outline">
-                {isAnalyzing ? (
-                  <span className="flex items-center gap-2"><MagnifyingGlass size={16} className="animate-spin" /> Анализ AXON...</span>
-                ) : (
-                  <span className="flex items-center gap-2"><MagnifyingGlass size={16} /> AXON анализ</span>
-                )}
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={runAxonAnalysis} disabled={isAnalyzing} variant="outline">
+                      {isAnalyzing ? (
+                        <span className="flex items-center gap-2"><MagnifyingGlass size={16} className="animate-spin" /> Анализ AXON...</span>
+                      ) : (
+                        <span className="flex items-center gap-2"><MagnifyingGlass size={16} /> AXON анализ</span>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {language==='ru' ? 'Запустить анализ AXON на основе описания' : 'Run AXON analysis from description'}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
 
             <Dialog open={isCreatingAnalysis} onOpenChange={setIsCreatingAnalysis}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus size={16} className="mr-2" />
-                  {t('newAnalysis')}
-                </Button>
-              </DialogTrigger>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus size={16} className="mr-2" />
+                        {t('newAnalysis')}
+                      </Button>
+                    </DialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {language==='ru' ? 'Создать новый IKR анализ' : 'Create new IKR analysis'}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{t('createAnalysis')}</DialogTitle>
@@ -493,9 +528,18 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                         <b>Результат AXON:</b>
                         <div>{analysisResult}</div>
                         <div className="mt-3">
-                          <Button size="sm" onClick={applyAxonResult}>
-                            {language==='ru'?'Применить к I/K/R':'Apply to I/K/R'}
-                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" onClick={applyAxonResult}>
+                                  {language==='ru'?"Применить к I/K/R":"Apply to I/K/R"}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {language==='ru' ? 'Распределить результат по секциям I/K/R' : 'Distribute result into I/K/R sections'}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </div>
                     )}
@@ -576,7 +620,9 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                   <IntelligenceGathering
                     language={language}
                     projectId={projectId}
-                    onIntelligenceGathered={(_data) => {
+                    onIntelligenceGathered={(data) => {
+                      const text = typeof data === 'string' ? data : JSON.stringify(data)
+                      updateIKRComponentByType('intelligence', text)
                       toast.success(language==='ru' ? 'Разведданные собраны' : 'Intelligence gathered')
                     }}
                     onGapIdentified={(gap) => {
@@ -589,8 +635,9 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                 <div className="border rounded p-4">
                   <KiplingQuestionnaire
                     language={language}
-                    onQuestionnaireComplete={(_data) => {
-                      // Optionally map results into I/K/R content
+                    onQuestionnaireComplete={(data) => {
+                      const text = typeof data === 'string' ? data : JSON.stringify(data)
+                      updateIKRComponentByType('knowledge', text)
                       toast.success(language==='ru' ? 'Анкета Киплинга завершена' : 'Kipling questionnaire completed')
                     }}
                     onProgressUpdate={(_progress) => {}}
@@ -602,6 +649,14 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                   <AdvancedCognitiveAnalysis
                     language={language}
                     projectId={projectId}
+                    onAnalysisCompleted={(session) => {
+                      const summary = [
+                        ...(session.insights || []).map(s => `• ${s}`),
+                        ...(session.recommendations || []).map(r => `→ ${r}`),
+                        `confidence: ${session.confidence}%`
+                      ].join('\n')
+                      updateIKRComponentByType('reasoning', summary)
+                    }}
                   />
                 </div>
 
