@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Spark } from '@/types/spark';
+import { axon } from '@/services/axonAdapter';
 import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,10 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
   ListChecks,
@@ -20,22 +18,16 @@ import {
   Warning,
   Play,
   Pause,
-  Stop,
-  ArrowDown,
-  ArrowRight,
+  
   Target,
   Brain,
   Lightbulb,
   Plus,
-  PencilSimple,
-  Trash,
   Timer,
-  Calendar,
-  User
+  
 } from '@phosphor-icons/react';
 
-// Access global spark typed via shared declaration
-const spark = (globalThis as any).spark as Spark;
+// Delegates heavy AI work to AXON backend via adapter
 
 // Типы для системы разбиения задач
 interface MicroTask {
@@ -181,7 +173,7 @@ const MicroTaskExecutor: React.FC<MicroTaskExecutorProps> = ({
   language,
   projectId,
   onTaskCompleted,
-  onSessionCompleted,
+  onSessionCompleted: _onSessionCompleted,
   onBreakdownCreated
 }) => {
   const t = (key: string) => translations[key as keyof typeof translations]?.[language] || key;
@@ -231,47 +223,49 @@ const MicroTaskExecutor: React.FC<MicroTaskExecutorProps> = ({
     setIsGenerating(true);
     
     try {
-      const prompt = spark.llmPrompt`You are an expert project manager specializing in breaking down complex tasks into micro-tasks.
+      const prompt = [
+        'You are an expert project manager specializing in breaking down complex tasks into micro-tasks.',
+        '',
+        'Task to break down:',
+        `Title: ${newTaskTitle}`,
+        `Description: ${newTaskDescription}`,
+        `Estimated total time: ${newTaskHours} hours`,
+        '',
+        'Requirements for micro-tasks:',
+        '1. Each micro-task should be 15-45 minutes maximum',
+        '2. Tasks should be specific and actionable',
+        '3. Include clear acceptance criteria',
+        '4. Identify dependencies between tasks',
+        '5. Categorize by type (analysis, design, implementation, testing, documentation, review)',
+        '6. Assign complexity level (trivial, simple, moderate, complex)',
+        '7. Set appropriate priority',
+        '',
+        'Create a breakdown with 8-15 micro-tasks. Return as JSON with this structure:',
+        '{',
+        '  "microTasks": [',
+        '    {',
+        '      "title": "Task title",',
+        '      "description": "Detailed description with acceptance criteria",',
+        '      "estimatedMinutes": 30,',
+        '      "priority": "high",',
+        '      "category": "implementation", ',
+        '      "complexity": "moderate",',
+        '      "dependencies": ["task-1-id"],',
+        '      "checkpoints": [',
+        '        {',
+        '          "title": "Checkpoint name",',
+        '          "description": "What to verify"',
+        '        }',
+        '      ]',
+        '    }',
+        '  ]',
+        '}',
+        '',
+        'Focus on creating logical, sequential micro-tasks that build upon each other.'
+      ].join('\n');
 
-Task to break down:
-Title: ${newTaskTitle}
-Description: ${newTaskDescription}
-Estimated total time: ${newTaskHours} hours
-
-Requirements for micro-tasks:
-1. Each micro-task should be 15-45 minutes maximum
-2. Tasks should be specific and actionable
-3. Include clear acceptance criteria
-4. Identify dependencies between tasks
-5. Categorize by type (analysis, design, implementation, testing, documentation, review)
-6. Assign complexity level (trivial, simple, moderate, complex)
-7. Set appropriate priority
-
-Create a breakdown with 8-15 micro-tasks. Return as JSON with this structure:
-{
-  "microTasks": [
-    {
-      "title": "Task title",
-      "description": "Detailed description with acceptance criteria",
-      "estimatedMinutes": 30,
-      "priority": "high",
-      "category": "implementation", 
-      "complexity": "moderate",
-      "dependencies": ["task-1-id"],
-      "checkpoints": [
-        {
-          "title": "Checkpoint name",
-          "description": "What to verify"
-        }
-      ]
-    }
-  ]
-}
-
-Focus on creating logical, sequential micro-tasks that build upon each other.`;
-
-      const response = await spark.llm(prompt, 'gpt-4o', true);
-      const aiResult = JSON.parse(response);
+      const res = await axon.analyze({ projectId, prompt, mode: 'general', language });
+      const aiResult = safeParseJSON(res.content);
       
       // Создание разбиения задачи
       const breakdown: TaskBreakdown = {
@@ -399,7 +393,7 @@ Focus on creating logical, sequential micro-tasks that build upon each other.`;
     );
   };
 
-  const addCheckpoint = (taskId: string, title: string, description: string) => {
+  const _addCheckpoint = (taskId: string, title: string, description: string) => {
     const checkpoint: Checkpoint = {
       id: `checkpoint-${Date.now()}`,
       title,
@@ -453,7 +447,7 @@ Focus on creating logical, sequential micro-tasks that build upon each other.`;
     );
   };
 
-  const reportBlocker = (taskId: string, title: string, description: string, severity: Blocker['severity']) => {
+  const _reportBlocker = (taskId: string, title: string, description: string, severity: Blocker['severity']) => {
     const blocker: Blocker = {
       id: `blocker-${Date.now()}`,
       title,
@@ -807,3 +801,12 @@ Focus on creating logical, sequential micro-tasks that build upon each other.`;
 };
 
 export default MicroTaskExecutor;
+
+// Local util: parse JSON or fallback to object with content
+function safeParseJSON(text: string): any {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { content: text };
+  }
+}

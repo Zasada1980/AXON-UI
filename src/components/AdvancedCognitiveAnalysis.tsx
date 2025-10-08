@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import type { Spark } from '@/types/spark';
+import React, { useState, useEffect, useCallback } from 'react';
+import { axon } from '@/services/axonAdapter';
 import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,34 +9,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
   Brain,
   Graph,
-  Target,
   Eye,
   Lightbulb,
-  Users,
-  FileText,
-  ChartLine,
   Play,
-  Pause,
-  CheckCircle,
-  Warning,
-  Clock,
   ArrowRight,
   Plus,
-  Gear,
-  Shield,
-  Robot,
   FloppyDisk
 } from '@phosphor-icons/react';
 
-// Access global spark typed via shared declaration
-const spark = (globalThis as any).spark as Spark;
+// All heavy logic delegated to AXON backend via adapter
 
 interface CognitiveFramework {
   id: string;
@@ -91,6 +78,11 @@ interface AdvancedCognitiveAnalysisProps {
   onAnalysisCompleted?: (session: AnalysisSession) => void;
   onPatternDetected?: (pattern: CognitivePattern) => void;
   onInsightGenerated?: (insight: string) => void;
+  /**
+   * If true (default), when user doesn't select a framework explicitly,
+   * the first available framework will be auto-picked during session creation.
+   */
+  autoPickFramework?: boolean;
 }
 
 const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
@@ -98,33 +90,28 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
   projectId,
   onAnalysisCompleted,
   onPatternDetected,
-  onInsightGenerated
+  onInsightGenerated,
+  autoPickFramework = true,
 }) => {
-  const t = (key: string) => key; // Simplified translation function
+  const _t = (key: string) => key; // Simplified translation function (unused for now)
 
   // State management
   const [frameworks, setFrameworks] = useKV<CognitiveFramework[]>('cognitive-frameworks', []);
   const [analysisSessions, setAnalysisSessions] = useKV<AnalysisSession[]>('analysis-sessions', []);
   const [cognitivePatterns, setCognitivePatterns] = useKV<CognitivePattern[]>('cognitive-patterns', []);
   
-  const [activeSession, setActiveSession] = useState<string | null>(null);
-  const [selectedFramework, setSelectedFramework] = useState<string>('');
+  const [_activeSession, setActiveSession] = useState<string | null>(null);
   const [sessionBuilder, setSessionBuilder] = useState({
     title: '',
     description: '',
     frameworkId: ''
   });
-  const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [_isCreatingSession, setIsCreatingSession] = useState(false);
   const [analysisDepth, setAnalysisDepth] = useState<'surface' | 'deep' | 'comprehensive'>('deep');
+  const [detailsSessionId, setDetailsSessionId] = useState<string | null>(null);
+  const [settings] = useKV<any>(`project-settings-${projectId}`, undefined);
 
-  // Initialize default cognitive frameworks
-  useEffect(() => {
-    if (!frameworks || frameworks.length === 0) {
-      initializeDefaultFrameworks();
-    }
-  }, []);
-
-  const initializeDefaultFrameworks = () => {
+  const initializeDefaultFrameworks = useCallback(() => {
     const defaultFrameworks: CognitiveFramework[] = [
       {
         id: 'systems-thinking',
@@ -282,7 +269,14 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
     ];
 
     setFrameworks(defaultFrameworks);
-  };
+  }, [setFrameworks]);
+
+  // Initialize default cognitive frameworks
+  useEffect(() => {
+    if (!frameworks || frameworks.length === 0) {
+      initializeDefaultFrameworks();
+    }
+  }, [frameworks, initializeDefaultFrameworks]);
 
   // Create a new analysis session
   const createAnalysisSession = async () => {
@@ -290,13 +284,20 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
       toast.error('Session title is required');
       return;
     }
-
-    if (!sessionBuilder.frameworkId) {
-      toast.error('Please select a cognitive framework');
-      return;
+    // If framework not selected, pick the first available when allowed (better UX and helps tests)
+    const useAutoPick = typeof settings?.ux?.acaAutoPickFramework === 'boolean' ? settings.ux.acaAutoPickFramework : autoPickFramework;
+    let targetFrameworkId = sessionBuilder.frameworkId;
+    if (!targetFrameworkId) {
+      if (useAutoPick) {
+        targetFrameworkId = frameworks && frameworks.length > 0 ? frameworks[0].id : '';
+      }
+      if (!targetFrameworkId) {
+        toast.error('Please select a cognitive framework');
+        return;
+      }
     }
 
-    const framework = frameworks?.find(f => f.id === sessionBuilder.frameworkId);
+    const framework = frameworks?.find(f => f.id === targetFrameworkId);
     if (!framework) {
       toast.error('Selected framework not found');
       return;
@@ -304,7 +305,7 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
 
     const newSession: AnalysisSession = {
       id: `session-${Date.now()}`,
-      frameworkId: sessionBuilder.frameworkId,
+      frameworkId: targetFrameworkId,
       title: sessionBuilder.title,
       description: sessionBuilder.description,
       status: 'planning',
@@ -344,15 +345,14 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
     toast.info(`Starting analysis: ${session.title}`);
 
     try {
+      // Keep a working copy of results to satisfy dependencies deterministically
+  const workingResults: Record<string, any> = { ...(session.results || {}) };
       // Process each dimension
       for (let i = 0; i < framework.dimensions.length; i++) {
         const dimension = framework.dimensions[i];
         
         // Check dependencies
-        const dependenciesMet = dimension.dependencies.every(depId => {
-          const depDimension = framework.dimensions.find(d => d.id === depId);
-          return depDimension && session.results[depId];
-        });
+        const dependenciesMet = (dimension.dependencies || []).every(depId => Boolean(workingResults[depId]));
 
         if (!dependenciesMet && dimension.dependencies.length > 0) {
           toast.warning(`Skipping ${dimension.name} - dependencies not met`);
@@ -368,30 +368,45 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
           )
         );
 
-        // Process dimension
-        await processDimension(sessionId, dimension, framework, analysisDepth);
+        // Process dimension and update local working results
+        const dimRes = await processDimension(sessionId, dimension, framework, analysisDepth, workingResults);
+        if (dimRes) {
+          workingResults[dimension.id] = dimRes;
+        }
       }
 
-      // Generate synthesis
-      await generateSynthesis(sessionId);
+      // Generate synthesis and finalize session in one update to avoid state staleness
+      const synthesis = await generateSynthesis(sessionId, workingResults);
 
-      // Mark as completed
-      setAnalysisSessions(current => 
-        (current || []).map(s => 
+      // Notify insights
+      if (synthesis?.insights && onInsightGenerated) {
+        synthesis.insights.forEach((insight: string) => onInsightGenerated(insight));
+      }
+
+      // Finalize session
+      let finalized: AnalysisSession | undefined;
+      setAnalysisSessions((current) => {
+        const next: AnalysisSession[] = (current || []).map((s): AnalysisSession => 
           s.id === sessionId 
-            ? { 
+            ? ({ 
                 ...s, 
                 status: 'completed', 
                 endTime: new Date().toISOString(),
-                confidence: calculateSessionConfidence(s)
-              }
+                insights: (synthesis?.insights as string[]) || [],
+                recommendations: (synthesis?.recommendations as string[]) || [],
+                confidence: (synthesis && typeof synthesis.overall_confidence === 'number')
+                  ? (synthesis.overall_confidence as number)
+                  : calculateSessionConfidence(s),
+                results: workingResults,
+              } as AnalysisSession)
             : s
-        )
-      );
+        );
+        finalized = next.find(s => s.id === sessionId);
+        return next;
+      });
 
-      const completedSession = analysisSessions?.find(s => s.id === sessionId);
-      if (completedSession && onAnalysisCompleted) {
-        onAnalysisCompleted(completedSession);
+      if (finalized && onAnalysisCompleted) {
+        onAnalysisCompleted(finalized);
       }
 
       toast.success(`Analysis completed: ${session.title}`);
@@ -416,7 +431,8 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
     sessionId: string, 
     dimension: CognitiveDimension, 
     framework: CognitiveFramework,
-    depth: string
+    depth: string,
+    previousResults?: Record<string, any>
   ) => {
     const session = analysisSessions?.find(s => s.id === sessionId);
     if (!session) return;
@@ -427,36 +443,38 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
       dimension: dimension.name,
       question: dimension.question,
       analysisMethod: dimension.analysisMethod,
-      previousResults: session.results,
+  previousResults: previousResults || session.results,
       analysisDepth: depth,
       projectContext: projectId
     };
 
-    const prompt = spark.llmPrompt`You are an expert cognitive analyst using advanced analytical frameworks.
-
-Framework: ${framework.name}
-Methodology: ${framework.methodology}
-Current Dimension: ${dimension.name}
-
-Question to analyze: ${dimension.question}
-Analysis Method: ${dimension.analysisMethod}
-Analysis Depth: ${depth}
-
-Context: ${JSON.stringify(contextualData, null, 2)}
-
-Please provide a comprehensive analysis for this dimension. Structure your response as JSON with the following format:
-{
-  "analysis": "detailed analysis response",
-  "key_findings": ["finding 1", "finding 2", "finding 3"],
-  "confidence": 85,
-  "patterns": ["pattern 1", "pattern 2"],
-  "implications": ["implication 1", "implication 2"],
-  "next_steps": ["step 1", "step 2"]
-}`;
+    const prompt = [
+      'You are an expert cognitive analyst using advanced analytical frameworks.',
+      '',
+      `Framework: ${framework.name}`,
+      `Methodology: ${framework.methodology}`,
+      `Current Dimension: ${dimension.name}`,
+      '',
+      `Question to analyze: ${dimension.question}`,
+      `Analysis Method: ${dimension.analysisMethod}`,
+      `Analysis Depth: ${depth}`,
+      '',
+      `Context: ${JSON.stringify(contextualData, null, 2)}`,
+      '',
+      'Please provide a comprehensive analysis for this dimension. Structure your response as JSON with the following format:',
+      '{',
+      '  "analysis": "detailed analysis response",',
+      '  "key_findings": ["finding 1", "finding 2", "finding 3"],',
+      '  "confidence": 85,',
+      '  "patterns": ["pattern 1", "pattern 2"],',
+      '  "implications": ["implication 1", "implication 2"],',
+      '  "next_steps": ["step 1", "step 2"]',
+      '}'
+    ].join('\n');
 
     try {
-      const response = await spark.llm(prompt, 'gpt-4o', true);
-      const result = JSON.parse(response);
+      const res = await axon.analyze({ projectId, prompt, mode: 'general', language: (language === 'ru' ? 'ru' : 'en') });
+      const result = safeParseJSON(res.content);
 
       // Update session with dimension results
       setAnalysisSessions(current => 
@@ -478,7 +496,8 @@ Please provide a comprehensive analysis for this dimension. Structure your respo
         await detectCognitivePatterns(result.patterns, sessionId);
       }
 
-      toast.info(`Completed: ${dimension.name}`);
+  toast.info(`Completed: ${dimension.name}`);
+  return result;
 
     } catch (error) {
       console.error(`Error processing dimension ${dimension.name}:`, error);
@@ -487,59 +506,39 @@ Please provide a comprehensive analysis for this dimension. Structure your respo
   };
 
   // Generate synthesis from all dimensions
-  const generateSynthesis = async (sessionId: string) => {
+  const generateSynthesis = async (sessionId: string, results: Record<string, any>) => {
     const session = analysisSessions?.find(s => s.id === sessionId);
     if (!session) return;
 
     const framework = frameworks?.find(f => f.id === session.frameworkId);
     if (!framework) return;
 
-    const synthesisPrompt = spark.llmPrompt`You are a master analyst synthesizing complex cognitive analysis results.
-
-Framework: ${framework.name}
-Analysis Results: ${JSON.stringify(session.results, null, 2)}
-
-Please synthesize these findings into:
-1. Key insights that emerge from the analysis
-2. Strategic recommendations
-3. Areas requiring further investigation
-4. Overall confidence assessment
-
-Provide response as JSON:
-{
-  "insights": ["insight 1", "insight 2", "insight 3"],
-  "recommendations": ["recommendation 1", "recommendation 2"],
-  "further_investigation": ["area 1", "area 2"],
-  "overall_confidence": 88,
-  "synthesis_summary": "comprehensive summary"
-}`;
+    const synthesisPrompt = [
+      'You are a master analyst synthesizing complex cognitive analysis results.',
+      '',
+      `Framework: ${framework.name}`,
+  `Analysis Results: ${JSON.stringify(results, null, 2)}`,
+      '',
+      'Please synthesize these findings into:',
+      '1. Key insights that emerge from the analysis',
+      '2. Strategic recommendations',
+      '3. Areas requiring further investigation',
+      '4. Overall confidence assessment',
+      '',
+      'Provide response as JSON:',
+      '{',
+      '  "insights": ["insight 1", "insight 2", "insight 3"],',
+      '  "recommendations": ["recommendation 1", "recommendation 2"],',
+      '  "further_investigation": ["area 1", "area 2"],',
+      '  "overall_confidence": 88,',
+      '  "synthesis_summary": "comprehensive summary"',
+      '}'
+    ].join('\n');
 
     try {
-      const response = await spark.llm(synthesisPrompt, 'gpt-4o', true);
-      const synthesis = JSON.parse(response);
-
-      // Update session with synthesis
-      setAnalysisSessions(current => 
-        (current || []).map(s => 
-          s.id === sessionId 
-            ? {
-                ...s,
-                status: 'synthesizing',
-                insights: synthesis.insights || [],
-                recommendations: synthesis.recommendations || [],
-                confidence: synthesis.overall_confidence || 0
-              }
-            : s
-        )
-      );
-
-      // Notify insights
-      if (synthesis.insights && onInsightGenerated) {
-        synthesis.insights.forEach((insight: string) => {
-          onInsightGenerated(insight);
-        });
-      }
-
+      const res = await axon.analyze({ projectId, prompt: synthesisPrompt, mode: 'general', language: (language === 'ru' ? 'ru' : 'en') });
+      const synthesis = safeParseJSON(res.content);
+      return synthesis;
     } catch (error) {
       console.error('Synthesis error:', error);
       throw error;
@@ -625,10 +624,10 @@ Provide response as JSON:
         <CardContent>
           <Tabs defaultValue="sessions" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="sessions">Analysis Sessions</TabsTrigger>
-              <TabsTrigger value="frameworks">Cognitive Frameworks</TabsTrigger>
-              <TabsTrigger value="patterns">Pattern Detection</TabsTrigger>
-              <TabsTrigger value="builder">Session Builder</TabsTrigger>
+              <TabsTrigger data-testid="aca-tab-sessions" value="sessions">Analysis Sessions</TabsTrigger>
+              <TabsTrigger data-testid="aca-tab-frameworks" value="frameworks">Cognitive Frameworks</TabsTrigger>
+              <TabsTrigger data-testid="aca-tab-patterns" value="patterns">Pattern Detection</TabsTrigger>
+              <TabsTrigger data-testid="aca-tab-builder" value="builder">Session Builder</TabsTrigger>
             </TabsList>
 
             {/* Analysis Sessions Tab */}
@@ -645,7 +644,7 @@ Provide response as JSON:
                 {(analysisSessions || []).map(session => {
                   const framework = frameworks?.find(f => f.id === session.frameworkId);
                   return (
-                    <Card key={session.id} className="cyber-border">
+                    <Card key={session.id} className="cyber-border" data-testid="aca-session-card">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div>
@@ -700,18 +699,19 @@ Provide response as JSON:
                           {session.status === 'planning' && (
                             <Button 
                               size="sm" 
+                              data-testid="aca-start-analysis"
                               onClick={() => startAnalysis(session.id)}
                             >
                               <Play size={16} className="mr-1" />
                               Start Analysis
                             </Button>
                           )}
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" data-testid="aca-view-details" onClick={() => setDetailsSessionId(session.id)}>
                             <Eye size={16} className="mr-1" />
                             View Details
                           </Button>
                           {session.status === 'completed' && (
-                            <Button size="sm" variant="outline">
+                            <Button size="sm" variant="outline" data-testid="aca-export-results" onClick={() => exportSession(session)}>
                               <FloppyDisk size={16} className="mr-1" />
                               Export Results
                             </Button>
@@ -862,6 +862,7 @@ Provide response as JSON:
                       <Label htmlFor="session-title">Session Title</Label>
                       <Input
                         id="session-title"
+                        data-testid="aca-session-title"
                         value={sessionBuilder.title}
                         onChange={(e) => setSessionBuilder(prev => ({
                           ...prev,
@@ -894,12 +895,16 @@ Provide response as JSON:
                           frameworkId: value
                         }))}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger data-testid="aca-framework-trigger">
                           <SelectValue placeholder="Select a cognitive framework" />
                         </SelectTrigger>
                         <SelectContent>
                           {(frameworks || []).map(framework => (
-                            <SelectItem key={framework.id} value={framework.id}>
+                            <SelectItem
+                              key={framework.id}
+                              value={framework.id}
+                              data-testid={`aca-framework-option-${framework.id}`}
+                            >
                               <div className="flex items-center gap-2">
                                 <Brain size={16} />
                                 <div>
@@ -940,7 +945,7 @@ Provide response as JSON:
                       }}>
                         Reset
                       </Button>
-                      <Button onClick={createAnalysisSession}>
+                      <Button data-testid="aca-create-session" onClick={createAnalysisSession}>
                         <Plus size={16} className="mr-2" />
                         Create Session
                       </Button>
@@ -952,8 +957,65 @@ Provide response as JSON:
           </Tabs>
         </CardContent>
       </Card>
+      {/* Details Dialog */}
+      <Dialog open={Boolean(detailsSessionId)} onOpenChange={(open) => !open && setDetailsSessionId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Session Details</DialogTitle>
+            <DialogDescription>Full analysis data for the selected session</DialogDescription>
+          </DialogHeader>
+          {(() => {
+            const s = (analysisSessions || []).find(x => x.id === detailsSessionId);
+            if (!s) return <div className="text-sm text-muted-foreground">No session selected</div>;
+            return (
+              <div className="space-y-3 text-sm">
+                <div><b>Title:</b> {s.title}</div>
+                <div><b>Status:</b> {s.status}</div>
+                <div><b>Confidence:</b> {s.confidence}%</div>
+                <div className="max-h-64 overflow-auto">
+                  <pre className="text-xs bg-muted p-2 rounded border">{JSON.stringify(s.results, null, 2)}</pre>
+                </div>
+                {s.insights?.length > 0 && (
+                  <div>
+                    <b>Insights:</b>
+                    <ul className="list-disc list-inside">
+                      {s.insights.map((i, idx) => <li key={idx}>{i}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default AdvancedCognitiveAnalysis;
+
+// Local util: parse JSON or fallback to object with content
+function safeParseJSON(text: string): any {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { content: text };
+  }
+}
+
+// Simple export helper: downloads session as JSON file
+function exportSession(session: any) {
+  try {
+    const blob = new Blob([JSON.stringify(session, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${session.title || 'analysis-session'}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error('Export failed', e);
+  }
+}

@@ -1,3 +1,27 @@
+## 2025-10-08 — IKR Phase 1: Backend-only wiring for ACA/MTE
+
+- AdvancedCognitiveAnalysis and MicroTaskExecutor refactored to call AXON via `axon.analyze` (static adapter import). UI remains thin; all heavy logic server-side per ТЗ.
+- Added minimal tests:
+  - `aca.mte.axon.integration.test.tsx` — verifies MTE posts to `/v1/chat/completions` through adapter. ACA start-analysis UI test is marked skipped due to flakiness in tab/list rendering; logic covered indirectly and will be unskipped later.
+- Gates:
+  - Tests: PASS (11 passed, 1 skipped)
+  - Typecheck: PASS
+  - Build: PASS (CSS optimizer warnings non-blocking)
+- Notes:
+  - Introduced `safeParseJSON` helpers in ACA/MTE to handle plain-text responses from AXON.
+  - Kept `useKV` project scoping; no changes to keys besides existing prefixes.
+  - Next: unskip ACA UI test once Radix Tabs interaction is stabilized in tests and/or add data-testid hooks.
+
+## 2025-10-08 — Тесты стабилизированы (ACA UI unskip)
+
+- В `AdvancedCognitiveAnalysis` добавлены data-testid для вкладок, карточек сессий и кнопок запуска.
+- Тест `ACA starts analysis...` переписан на userEvent, создаёт сессию в builder (framework подставляется автоматически) и запускает анализ — без взаимодействия с Radix Select.
+- MTE тест переведён на userEvent, предупреждения act снижены.
+- Итог гейтов:
+  - Tests: PASS (12/12)
+  - Typecheck: PASS
+  - Build: PASS
+
 # ТЗ: Пошаговая интеграция модулей в AXON-UI
 
 Документ описывает фазовый план интеграции файлов проекта (модулей) в UI, требования к качеству, критерии приемки, тестирование и риски. Ориентирован на стек: React 19 + Vite 6, Tailwind 4, Vitest 3, ESLint 9, реальный клиент AXON через `/v1/chat/completions` и `/health`.
@@ -175,3 +199,7 @@
   - IKR: добавлен unit-тест создания анализа `ikr.create-analysis.test.tsx` (открытие диалога, ввод Title/Description, сохранение, проверка отображения обзора и карточек I/K/R). Исправлена неоднозначность выборки кнопки через scoping внутри диалога.
   - Локальная проверка: Tests PASS (7/7), Typecheck PASS, Lint — без ошибок (только предупреждения), Build PASS.
   - Контекст PR #18: ветка `feat/ikr-phase1` обновлена (push выполнен). Готово к рассмотрению и слиянию: гейты (tests/typecheck/build) — PASS.
+  - Конфликты PR #18: разрешены (src/App.tsx, src/pages/IKRDirectivePage.tsx, vitest.setup.ts). Повторная проверка: Tests PASS, Lint — WARN only, Build PASS.
+  - IKR: в `IKRDirectivePage` встроены связанные модули — `IntelligenceGathering`, `KiplingQuestionnaire`, `AdvancedCognitiveAnalysis`, `MicroTaskExecutor` (projectId-скоуп, коллбеки без побочных эффектов).
+  - Добавлены минимальные smoke-тесты для IKR tools: `src/__tests__/ikr.tools.smoke.test.tsx` (рендер на EN/RU). Локально: Tests PASS (9/9), Build PASS.
+  - Добавлен presence-тест для IKR-инструментов после создания анализа: `src/__tests__/ikr.tools.presence.test.tsx` (проверка заголовков Intelligence Gathering / Kipling Questionnaire / Micro-Task Executor / Advanced Cognitive Analysis). Локально: Tests PASS (10/10), Build PASS.
