@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+// import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,30 +19,30 @@ import {
   Trash, 
   Plus, 
   Shield, 
-  Globe, 
+  // Globe, 
   Robot, 
   Terminal, 
-  FileText,
+  // FileText,
   Database,
-  Key,
+  // Key,
   Eye,
   Users,
   ChartLine,
   Play,
-  Stop,
-  Warning,
-  CheckCircle,
+  // Stop,
+  // Warning,
+  // CheckCircle,
   ArrowRight,
   FloppyDisk,
-  Bug,
-  Lightbulb,
-  Target,
-  ListChecks,
-  SecurityCamera,
-  CloudArrowUp,
+  // Bug,
+  // Lightbulb,
+  // Target,
+  // ListChecks,
+  // SecurityCamera,
+  // CloudArrowUp,
   Brain,
   Archive,
-  Graph
+  // Graph
 } from '@phosphor-icons/react';
 
 // Type definitions for global project settings
@@ -84,6 +84,9 @@ interface ProjectSettings {
     autoStartTerminal: boolean;
     autoSnapshot: boolean;
     autoArchiveLogs: boolean;
+  };
+  ux?: {
+    acaAutoPickFramework?: boolean;
   };
 }
 
@@ -142,7 +145,7 @@ const GlobalProjectSettings: React.FC<GlobalProjectSettingsProps> = ({
   projectId,
   onSettingsChanged,
   onAgentTemplateCreated,
-  onKnowledgeBaseUpdated,
+  // onKnowledgeBaseUpdated,
   onAnalyticsReportGenerated
 }) => {
   // State management
@@ -184,11 +187,14 @@ const GlobalProjectSettings: React.FC<GlobalProjectSettingsProps> = ({
       autoStartTerminal: false,
       autoSnapshot: true,
       autoArchiveLogs: true
+    },
+    ux: {
+      acaAutoPickFramework: true,
     }
   });
 
   const [agentTemplates, setAgentTemplates] = useKV<AgentTemplate[]>(`agent-templates-${projectId}`, []);
-  const [knowledgeBases, setKnowledgeBases] = useKV<KnowledgeBase[]>(`knowledge-bases-${projectId}`, []);
+  const [knowledgeBases] = useKV<KnowledgeBase[]>(`knowledge-bases-${projectId}`, []);
   const [analyticsReports, setAnalyticsReports] = useKV<AnalyticsReport[]>(`analytics-reports-${projectId}`, []);
   
   const [terminalHistory, setTerminalHistory] = useKV<Array<{
@@ -200,7 +206,7 @@ const GlobalProjectSettings: React.FC<GlobalProjectSettingsProps> = ({
     agent?: string;
   }>>(`terminal-history-${projectId}`, []);
 
-  const [isTerminalVisible, setIsTerminalVisible] = useState(false);
+  // const [isTerminalVisible, setIsTerminalVisible] = useState(false);
   const [currentCommand, setCurrentCommand] = useState('');
   const [terminalMode, setTerminalMode] = useState<'auto' | 'confirm' | 'readonly'>('confirm');
 
@@ -626,6 +632,28 @@ const GlobalProjectSettings: React.FC<GlobalProjectSettingsProps> = ({
                     onCheckedChange={(checked) => updateSettings('automation', {
                       ...settings.automation,
                       autoStartTerminal: checked
+                    })}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* UX Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">UX</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>ACA: Auto-pick first framework</Label>
+                    <p className="text-sm text-muted-foreground">Автоматически подставлять первый фреймворк, если пользователь не выбрал</p>
+                  </div>
+                  <Switch
+                    checked={Boolean(settings.ux?.acaAutoPickFramework)}
+                    onCheckedChange={(checked) => updateSettings('ux', {
+                      ...(settings.ux || {}),
+                      acaAutoPickFramework: checked
                     })}
                   />
                 </div>

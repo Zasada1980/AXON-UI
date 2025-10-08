@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
   Brain,
@@ -107,6 +108,8 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
   });
   const [_isCreatingSession, setIsCreatingSession] = useState(false);
   const [analysisDepth, setAnalysisDepth] = useState<'surface' | 'deep' | 'comprehensive'>('deep');
+  const [detailsSessionId, setDetailsSessionId] = useState<string | null>(null);
+  const [settings] = useKV<any>(`project-settings-${projectId}`, undefined);
 
   const initializeDefaultFrameworks = useCallback(() => {
     const defaultFrameworks: CognitiveFramework[] = [
@@ -282,9 +285,10 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
       return;
     }
     // If framework not selected, pick the first available when allowed (better UX and helps tests)
+    const useAutoPick = typeof settings?.ux?.acaAutoPickFramework === 'boolean' ? settings.ux.acaAutoPickFramework : autoPickFramework;
     let targetFrameworkId = sessionBuilder.frameworkId;
     if (!targetFrameworkId) {
-      if (autoPickFramework) {
+      if (useAutoPick) {
         targetFrameworkId = frameworks && frameworks.length > 0 ? frameworks[0].id : '';
       }
       if (!targetFrameworkId) {
@@ -702,12 +706,12 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
                               Start Analysis
                             </Button>
                           )}
-                          <Button size="sm" variant="outline" data-testid="aca-view-details">
+                          <Button size="sm" variant="outline" data-testid="aca-view-details" onClick={() => setDetailsSessionId(session.id)}>
                             <Eye size={16} className="mr-1" />
                             View Details
                           </Button>
                           {session.status === 'completed' && (
-                            <Button size="sm" variant="outline" data-testid="aca-export-results">
+                            <Button size="sm" variant="outline" data-testid="aca-export-results" onClick={() => exportSession(session)}>
                               <FloppyDisk size={16} className="mr-1" />
                               Export Results
                             </Button>
@@ -953,6 +957,37 @@ const AdvancedCognitiveAnalysis: React.FC<AdvancedCognitiveAnalysisProps> = ({
           </Tabs>
         </CardContent>
       </Card>
+      {/* Details Dialog */}
+      <Dialog open={Boolean(detailsSessionId)} onOpenChange={(open) => !open && setDetailsSessionId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Session Details</DialogTitle>
+            <DialogDescription>Full analysis data for the selected session</DialogDescription>
+          </DialogHeader>
+          {(() => {
+            const s = (analysisSessions || []).find(x => x.id === detailsSessionId);
+            if (!s) return <div className="text-sm text-muted-foreground">No session selected</div>;
+            return (
+              <div className="space-y-3 text-sm">
+                <div><b>Title:</b> {s.title}</div>
+                <div><b>Status:</b> {s.status}</div>
+                <div><b>Confidence:</b> {s.confidence}%</div>
+                <div className="max-h-64 overflow-auto">
+                  <pre className="text-xs bg-muted p-2 rounded border">{JSON.stringify(s.results, null, 2)}</pre>
+                </div>
+                {s.insights?.length > 0 && (
+                  <div>
+                    <b>Insights:</b>
+                    <ul className="list-disc list-inside">
+                      {s.insights.map((i, idx) => <li key={idx}>{i}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -965,5 +1000,22 @@ function safeParseJSON(text: string): any {
     return JSON.parse(text);
   } catch {
     return { content: text };
+  }
+}
+
+// Simple export helper: downloads session as JSON file
+function exportSession(session: any) {
+  try {
+    const blob = new Blob([JSON.stringify(session, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${session.title || 'analysis-session'}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error('Export failed', e);
   }
 }
