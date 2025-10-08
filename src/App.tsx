@@ -9,6 +9,9 @@ import DiagnosticsPage from './pages/DiagnosticsPage';
 import IKRDirectivePage from './pages/IKRDirectivePage';
 import AuditPage from './pages/AuditPage';
 import DebatePage from './pages/DebatePage';
+import AgentMemoryManager from './components/AgentMemoryManager';
+import DebateLogManager from './components/DebateLogManager';
+import AIOrchestrator from './components/AIOrchestrator';
 import UnderDevelopmentPage from './pages/UnderDevelopmentPage';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -358,6 +361,27 @@ function App() {
             language={currentLanguage}
             projectId={projectData.id}
             onNavigate={handleNavigate}
+          />
+        );
+      case 'memory':
+        return (
+          <AgentMemoryManager
+            language={currentLanguage}
+            projectId={projectData.id}
+          />
+        );
+      case 'debate-logs':
+        return (
+          <DebateLogManager
+            language={currentLanguage}
+            projectId={projectData.id}
+          />
+        );
+      case 'orchestrator':
+        return (
+          <AIOrchestrator
+            language={currentLanguage}
+            projectId={projectData.id}
           />
         );
         
