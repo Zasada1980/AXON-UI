@@ -3,6 +3,7 @@ import { useKV } from '@github/spark/hooks';
 import { axon } from '@/services/axonAdapter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -353,22 +354,40 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
 
             {/* AXON анализ кнопка */}
             {currentAnalysisData && (
-              <Button onClick={runAxonAnalysis} disabled={isAnalyzing} variant="outline">
-                {isAnalyzing ? (
-                  <span className="flex items-center gap-2"><MagnifyingGlass size={16} className="animate-spin" /> Анализ AXON...</span>
-                ) : (
-                  <span className="flex items-center gap-2"><MagnifyingGlass size={16} /> AXON анализ</span>
-                )}
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={runAxonAnalysis} disabled={isAnalyzing} variant="outline">
+                      {isAnalyzing ? (
+                        <span className="flex items-center gap-2"><MagnifyingGlass size={16} className="animate-spin" /> Анализ AXON...</span>
+                      ) : (
+                        <span className="flex items-center gap-2"><MagnifyingGlass size={16} /> AXON анализ</span>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {language==='ru' ? 'Запустить анализ AXON на основе описания' : 'Run AXON analysis from description'}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
 
             <Dialog open={isCreatingAnalysis} onOpenChange={setIsCreatingAnalysis}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus size={16} className="mr-2" />
-                  {t('newAnalysis')}
-                </Button>
-              </DialogTrigger>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus size={16} className="mr-2" />
+                        {t('newAnalysis')}
+                      </Button>
+                    </DialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {language==='ru' ? 'Создать новый IKR анализ' : 'Create new IKR analysis'}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{t('createAnalysis')}</DialogTitle>
@@ -509,9 +528,18 @@ const IKRDirectivePage: React.FC<IKRDirectiveProps> = ({
                         <b>Результат AXON:</b>
                         <div>{analysisResult}</div>
                         <div className="mt-3">
-                          <Button size="sm" onClick={applyAxonResult}>
-                            {language==='ru'?'Применить к I/K/R':'Apply to I/K/R'}
-                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" onClick={applyAxonResult}>
+                                  {language==='ru'?"Применить к I/K/R":"Apply to I/K/R"}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {language==='ru' ? 'Распределить результат по секциям I/K/R' : 'Distribute result into I/K/R sections'}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </div>
                     )}

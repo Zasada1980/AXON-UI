@@ -85,3 +85,15 @@ vi.mock('@github/spark/hooks', () => {
 	}
 	return { useKV }
 })
+
+// --- DOM polyfills for tests ---
+// Radix UI tooltips/popovers rely on ResizeObserver which jsdom doesn't provide
+class ResizeObserverMock implements ResizeObserver {
+	constructor() {}
+	observe(): void {}
+	unobserve(): void {}
+	disconnect(): void {}
+}
+;(globalThis as unknown as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver =
+	(globalThis as unknown as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver ||
+	(ResizeObserverMock as unknown as typeof ResizeObserver)
