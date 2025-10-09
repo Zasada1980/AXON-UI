@@ -23,7 +23,10 @@ import {
   ArrowLeft,
   Upload,
   Question,
-  Key
+  Key,
+  Plugs,
+  Link,
+  Globe
 } from '@phosphor-icons/react';
 
 interface NavigationMenuItem {
@@ -127,6 +130,12 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
       
       secureApiKeyManager: { en: 'API Key Manager', ru: 'Менеджер API Ключей' },
       secureApiKeyManagerDesc: { en: 'Secure storage and management of API keys with encryption', ru: 'Безопасное хранение и управление API ключами с шифрованием' },
+      
+      externalApiIntegrator: { en: 'External API Integrator', ru: 'Интегратор Внешних API' },
+      externalApiIntegratorDesc: { en: 'Connect to external APIs, manage webhooks, and third-party services', ru: 'Подключение к внешним API, управление вебхуками и сторонними сервисами' },
+      
+      crossModuleIntegrator: { en: 'Cross-Module Integrator', ru: 'Межмодульный Интегратор' },
+      crossModuleIntegratorDesc: { en: 'Manage module connections and automation rules', ru: 'Управление соединениями модулей и правилами автоматизации' },
       
       diagnostics: { en: 'System Diagnostics', ru: 'Диагностика Системы' },
       diagnosticsDesc: { en: 'System health and recovery tools', ru: 'Инструменты здоровья и восстановления системы' },
@@ -278,6 +287,22 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
       title: t('secureApiKeyManager'),
       description: t('secureApiKeyManagerDesc'),
       icon: <Key size={20} />,
+      category: 'system',
+      status: 'stable'
+    },
+    {
+      id: 'external-api-integrator',
+      title: t('externalApiIntegrator'),
+      description: t('externalApiIntegratorDesc'),
+      icon: <Plugs size={20} />,
+      category: 'system',
+      status: 'stable'
+    },
+    {
+      id: 'cross-module-integrator',
+      title: t('crossModuleIntegrator'),
+      description: t('crossModuleIntegratorDesc'),
+      icon: <Link size={20} />,
       category: 'system',
       status: 'stable'
     },
