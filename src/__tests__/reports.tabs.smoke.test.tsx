@@ -14,7 +14,7 @@ describe('ProjectReportsPage tabs smoke', () => {
 
     // Work Status
     await user.click(screen.getByRole('tab', { name: /Work Status/i }))
-    expect(await screen.findByText(/Overall Progress/i)).toBeInTheDocument()
+    expect(await screen.findByText(/Enhanced Work Metrics/i)).toBeInTheDocument()
 
     // Journal
     await user.click(screen.getByRole('tab', { name: /Master Journal/i }))

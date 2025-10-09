@@ -35,6 +35,7 @@ import {
   Book,
   Gear
 } from '@phosphor-icons/react';
+import { WorkStatusMetricsSchema, type WorkStatusMetrics } from '@/utils/reportSchemas';
 
 // Access global spark typed via shared declaration
 const spark = (globalThis as any).spark as Spark;
@@ -322,6 +323,65 @@ const ProjectWorkStatusReport: React.FC<ProjectWorkStatusReportProps> = ({
     
     return translations[key]?.[language] || key;
   };
+
+  // Calculate enhanced work status metrics
+  const calculateWorkStatusMetrics = (): WorkStatusMetrics => {
+    const specs = specifications || [];
+    const reports = agentReports || [];
+
+    // Task metrics
+    const tasksTotal = specs.length;
+    const tasksCompleted = specs.filter(s => s.status === 'completed').length;
+    const tasksInProgress = specs.filter(s => s.status === 'in_progress').length;
+    const tasksPending = specs.filter(s => s.status === 'not_started').length;
+    const blockers = specs.reduce((acc, s) => acc + s.blockers.length, 0);
+
+    // Time metrics
+    const totalEstimatedHours = specs.reduce((acc, s) => acc + s.estimatedHours, 0);
+    const totalActualHours = specs.reduce((acc, s) => acc + s.actualHours, 0);
+    const completedSpecs = specs.filter(s => s.status === 'completed');
+    const averageCompletionTime = completedSpecs.length > 0 
+      ? completedSpecs.reduce((acc, s) => acc + s.actualHours, 0) / completedSpecs.length 
+      : 0;
+
+    // Velocity (completed tasks per week) - approximation based on recent reports
+    const recentReports = reports.filter(r => {
+      const reportDate = new Date(r.reportDate);
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      return reportDate >= oneWeekAgo;
+    });
+    const velocityPerWeek = recentReports.reduce((acc, r) => acc + r.tasksCompleted.length, 0);
+
+    // Burndown rate (percentage of work completed vs estimated)
+    const burndownRate = totalEstimatedHours > 0 ? (totalActualHours / totalEstimatedHours) * 100 : 0;
+
+    // Team utilization (based on recent agent reports)
+    const activeAgents = new Set(recentReports.map(r => r.agentId)).size;
+    const totalAgents = new Set(reports.map(r => r.agentId)).size || 1;
+    const teamUtilization = totalAgents > 0 ? (activeAgents / totalAgents) * 100 : 0;
+
+    // Quality score (average from completed tasks in recent reports)
+    const recentCompletedTasks = recentReports.flatMap(r => r.tasksCompleted);
+    const qualityScore = recentCompletedTasks.length > 0
+      ? recentCompletedTasks.reduce((acc, t) => acc + (t.qualityScore || 0), 0) / recentCompletedTasks.length
+      : 0;
+
+    return {
+      tasksTotal,
+      tasksCompleted,
+      tasksInProgress,
+      tasksPending,
+      averageCompletionTime,
+      velocityPerWeek,
+      burndownRate: Math.min(burndownRate, 100),
+      blockers,
+      teamUtilization,
+      qualityScore
+    };
+  };
+
+  const workMetrics = calculateWorkStatusMetrics();
 
   // Create new technical specification
   const createSpecification = () => {
@@ -921,6 +981,77 @@ Execution time: ${new Date().toLocaleString()}`,
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
+          {/* Enhanced Work Status Metrics */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendUp size={20} />
+                {language === 'ru' ? 'Расширенные Метрики Работы' : 'Enhanced Work Metrics'}
+              </CardTitle>
+              <CardDescription>
+                {language === 'ru' ? 'Детальная аналитика производительности и прогресса команды' : 'Detailed analytics of team performance and progress'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-primary">{workMetrics.velocityPerWeek}</div>
+                  <div className="text-sm text-muted-foreground">{language === 'ru' ? 'Задач/неделя' : 'Tasks/week'}</div>
+                  <div className="text-xs mt-1">{language === 'ru' ? 'Скорость' : 'Velocity'}</div>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-blue-500">{workMetrics.teamUtilization.toFixed(1)}%</div>
+                  <div className="text-sm text-muted-foreground">{language === 'ru' ? 'Загрузка' : 'Utilization'}</div>
+                  <div className="text-xs mt-1">{language === 'ru' ? 'Команды' : 'Team'}</div>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-green-500">{workMetrics.qualityScore.toFixed(1)}%</div>
+                  <div className="text-sm text-muted-foreground">{language === 'ru' ? 'Качество' : 'Quality'}</div>
+                  <div className="text-xs mt-1">{language === 'ru' ? 'Код/Работа' : 'Code/Work'}</div>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-purple-500">{workMetrics.averageCompletionTime.toFixed(1)}h</div>
+                  <div className="text-sm text-muted-foreground">{language === 'ru' ? 'Среднее время' : 'Avg. time'}</div>
+                  <div className="text-xs mt-1">{language === 'ru' ? 'Завершения' : 'Completion'}</div>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-red-500">{workMetrics.blockers}</div>
+                  <div className="text-sm text-muted-foreground">{language === 'ru' ? 'Блокеры' : 'Blockers'}</div>
+                  <div className="text-xs mt-1">{language === 'ru' ? 'Активные' : 'Active'}</div>
+                </div>
+              </div>
+              
+              {/* Progress bars for detailed metrics */}
+              <Separator className="my-4" />
+              
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>{language === 'ru' ? 'Общий прогресс' : 'Overall Progress'}</span>
+                    <span>{Math.round((workMetrics.tasksCompleted / Math.max(workMetrics.tasksTotal, 1)) * 100)}%</span>
+                  </div>
+                  <Progress value={(workMetrics.tasksCompleted / Math.max(workMetrics.tasksTotal, 1)) * 100} />
+                </div>
+                
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>{language === 'ru' ? 'Burndown Rate' : 'Burndown Rate'}</span>
+                    <span>{workMetrics.burndownRate.toFixed(1)}%</span>
+                  </div>
+                  <Progress value={workMetrics.burndownRate} className={workMetrics.burndownRate > 100 ? 'bg-red-100' : ''} />
+                </div>
+                
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>{language === 'ru' ? 'Качество работы' : 'Work Quality'}</span>
+                    <span>{workMetrics.qualityScore.toFixed(1)}%</span>
+                  </div>
+                  <Progress value={workMetrics.qualityScore} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
           <div className="grid gap-6 md:grid-cols-2">
             {/* Recent Specifications */}
             <Card>
