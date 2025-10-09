@@ -225,7 +225,7 @@ const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
 
   // Initialize default metrics
   useEffect(() => {
-    if (metrics.length === 0) {
+    if (!metrics || metrics.length === 0) {
       const defaultMetrics: PerformanceMetric[] = [
         {
           id: 'response-time',

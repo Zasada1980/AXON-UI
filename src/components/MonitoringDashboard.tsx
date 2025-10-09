@@ -175,7 +175,7 @@ const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({
 
   // Initialize default metrics
   useEffect(() => {
-    if (metrics.length === 0) {
+    if (!metrics || metrics.length === 0) {
       const defaultMetrics: DashboardMetric[] = [
         {
           id: 'cpu-usage',
@@ -280,7 +280,7 @@ const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({
 
   // Initialize default layout
   useEffect(() => {
-    if (layouts.length === 0) {
+    if (!layouts || layouts.length === 0) {
       const defaultLayout: DashboardLayout = {
         id: 'default',
         name: 'Default Dashboard',
@@ -344,7 +344,7 @@ const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({
 
   // Initialize sample alerts
   useEffect(() => {
-    if (alerts.length === 0) {
+    if (!alerts || alerts.length === 0) {
       const sampleAlerts: SystemAlert[] = [
         {
           id: 'alert-1',
