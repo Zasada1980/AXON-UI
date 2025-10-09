@@ -253,7 +253,7 @@ const AuthenticationSystem: React.FC<AuthenticationSystemProps> = ({
 
   // Role-based access control
   const hasPermission = (permission: string): boolean => {
-    return currentUser?.permissions.includes(permission) || false;
+    return currentUser?.permissions?.includes(permission) || false;
   };
 
   const canManageUsers = (): boolean => {

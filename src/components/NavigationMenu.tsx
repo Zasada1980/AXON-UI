@@ -20,7 +20,10 @@ import {
   MagnifyingGlass,
   Play,
   House,
-  ArrowLeft
+  ArrowLeft,
+  Upload,
+  Question,
+  Key
 } from '@phosphor-icons/react';
 
 interface NavigationMenuItem {
@@ -106,6 +109,24 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
       
       files: { en: 'File Management', ru: 'Управление Файлами' },
       filesDesc: { en: 'Document upload and analysis', ru: 'Загрузка и анализ документов' },
+      
+      fileManager: { en: 'File Upload Manager', ru: 'Менеджер Загрузки Файлов' },
+      fileManagerDesc: { en: 'Advanced file upload, validation, and AI analysis', ru: 'Расширенная загрузка, валидация и ИИ анализ файлов' },
+      
+      advancedSearch: { en: 'Advanced Search', ru: 'Расширенный Поиск' },
+      advancedSearchDesc: { en: 'Advanced search filters and result management', ru: 'Расширенные фильтры поиска и управление результатами' },
+      
+      notificationSystem: { en: 'Notification System', ru: 'Система Уведомлений' },
+      notificationSystemDesc: { en: 'User alerts, system notifications, and status updates', ru: 'Оповещения пользователей, системные уведомления и обновления статуса' },
+      
+      navigationGuide: { en: 'Navigation Guide', ru: 'Руководство по Навигации' },
+      navigationGuideDesc: { en: 'Interactive guide and help system for application features', ru: 'Интерактивное руководство и система помощи по функциям приложения' },
+      
+      authenticationSystem: { en: 'Authentication System', ru: 'Система Аутентификации' },
+      authenticationSystemDesc: { en: 'User management, security, and access control', ru: 'Управление пользователями, безопасность и контроль доступа' },
+      
+      secureApiKeyManager: { en: 'API Key Manager', ru: 'Менеджер API Ключей' },
+      secureApiKeyManagerDesc: { en: 'Secure storage and management of API keys with encryption', ru: 'Безопасное хранение и управление API ключами с шифрованием' },
       
       diagnostics: { en: 'System Diagnostics', ru: 'Диагностика Системы' },
       diagnosticsDesc: { en: 'System health and recovery tools', ru: 'Инструменты здоровья и восстановления системы' },
@@ -209,6 +230,54 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
       title: t('files'),
       description: t('filesDesc'),
       icon: <FileText size={20} />,
+      category: 'system',
+      status: 'stable'
+    },
+    {
+      id: 'file-manager',
+      title: t('fileManager'),
+      description: t('fileManagerDesc'),
+      icon: <Upload size={20} />,
+      category: 'system',
+      status: 'stable'
+    },
+    {
+      id: 'advanced-search',
+      title: t('advancedSearch'),
+      description: t('advancedSearchDesc'),
+      icon: <MagnifyingGlass size={20} />,
+      category: 'system',
+      status: 'stable'
+    },
+    {
+      id: 'notification-system',
+      title: t('notificationSystem'),
+      description: t('notificationSystemDesc'),
+      icon: <Bell size={20} />,
+      category: 'system',
+      status: 'stable'
+    },
+    {
+      id: 'navigation-guide',
+      title: t('navigationGuide'),
+      description: t('navigationGuideDesc'),
+      icon: <Question size={20} />,
+      category: 'system',
+      status: 'stable'
+    },
+    {
+      id: 'authentication-system',
+      title: t('authenticationSystem'),
+      description: t('authenticationSystemDesc'),
+      icon: <Shield size={20} />,
+      category: 'system',
+      status: 'stable'
+    },
+    {
+      id: 'secure-api-key-manager',
+      title: t('secureApiKeyManager'),
+      description: t('secureApiKeyManagerDesc'),
+      icon: <Key size={20} />,
       category: 'system',
       status: 'stable'
     },
