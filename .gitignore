@@ -47,4 +47,18 @@ pids
 .file-manifest
 .devcontainer/
 
+# Spark internal files
+.spark-*
+
+# Docker files (development)  
+.dockerignore
+Dockerfile
+docker/
+
+# Development reports
+.reports/
+
+# PowerShell development scripts
+scripts/*.ps1
+
 .spark-workbench-id
