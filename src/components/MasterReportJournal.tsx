@@ -14,6 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { FileText, CheckCircle, Warning, Clock, Database, Target, Play, ArrowRight, Stack, Activity } from '@phosphor-icons/react';
+import { MasterReportJournalSchema } from '@/utils/reportSchemas';
 
 // Access global spark typed via shared declaration
 const spark = (globalThis as any).spark as Spark;
@@ -145,15 +146,35 @@ export default function MasterReportJournal({
   const [completedStages, setCompletedStages] = useKV<Record<string, string[]>>(`completed-stages-${projectId}`, {});
   const [stageProgress, setStageProgress] = useKV<Record<string, number>>(`stage-progress-${projectId}`, {});
 
-  // Simple export with validation
+  // Enhanced export with Zod schema validation
   const validateJournal = (entries: any[]): { ok: boolean; error?: string } => {
-    if (!Array.isArray(entries)) return { ok: false, error: 'Entries must be array' };
-    for (const e of entries) {
-      if (!e || typeof e !== 'object' || !e.id || !e.timestamp || !e.reportType) {
-        return { ok: false, error: 'Invalid entry shape' };
-      }
+    try {
+      const journalData = {
+        projectId,
+        timestamp: new Date().toISOString(),
+        entries: entries.map(entry => ({
+          id: entry.id,
+          timestamp: entry.timestamp,
+          type: entry.reportType === 'system' ? 'milestone' : 'note', // Map reportType to journal type
+          title: entry.title,
+          content: entry.summary,
+          tags: entry.tags || [],
+          priority: entry.priority,
+          status: entry.status === 'completed' ? 'completed' : 'open'
+        })),
+        metadata: {
+          totalEntries: entries.length,
+          lastUpdated: new Date().toISOString(),
+          version: '1.0'
+        }
+      };
+      
+      MasterReportJournalSchema.parse(journalData);
+      return { ok: true };
+    } catch (e: any) {
+      const errorMsg = e?.errors?.[0]?.message || e?.message || 'Schema validation failed';
+      return { ok: false, error: errorMsg };
     }
-    return { ok: true };
   };
 
   const exportJournal = () => {

@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { CheckCircle, Warning, Target, FileText, Cpu, Star, Clock, Shield, TrendUp } from '@phosphor-icons/react';
+import { SystemCompletionReportSchema } from '@/utils/reportSchemas';
 
 // Access global spark typed via shared declaration
 const spark = (globalThis as any).spark as Spark;
@@ -413,18 +414,14 @@ const SystemCompletionReport: React.FC<SystemCompletionReportProps> = ({
 
   const metrics = calculateMetrics();
 
-  // Simple validation for report schema
+  // Enhanced validation for report schema using Zod
   const validateReport = (data: any): { ok: boolean; error?: string } => {
     try {
-      if (!data || typeof data !== 'object') return { ok: false, error: 'Invalid report data' };
-      if (!data.projectId) return { ok: false, error: 'Missing projectId' };
-      if (!data.timestamp) return { ok: false, error: 'Missing timestamp' };
-      if (!data.metrics || typeof data.metrics !== 'object') return { ok: false, error: 'Missing metrics' };
-      if (!Array.isArray(data.modules)) return { ok: false, error: 'Modules must be array' };
-      if (!Array.isArray(data.complianceChecks)) return { ok: false, error: 'Compliance must be array' };
+      SystemCompletionReportSchema.parse(data);
       return { ok: true };
     } catch (e: any) {
-      return { ok: false, error: e?.message || 'Validation error' };
+      const errorMsg = e?.errors?.[0]?.message || e?.message || 'Schema validation failed';
+      return { ok: false, error: errorMsg };
     }
   };
 
