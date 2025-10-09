@@ -18,10 +18,10 @@
 
 ## CP-3 — Фаза 3 (Диагностика/восстановление)
 - Статус: DONE
-- Дата: 2025-10-08
-- Суть: Страница Diagnostics сведена во вкладки (Overview/Recovery/Backups/Checkpoints), починен ErrorFallback (DEV rethrow), добавлены smoke‑тесты действий.
+- Дата: 2025-10-09
+- Суть: Страница Diagnostics сведена во вкладки (Overview/Recovery/Backups/Checkpoints), починен ErrorFallback (DEV rethrow), стабилизированы smoke‑тесты (schedule/manual backup/recovery).
 - Гейты: Tests PASS (включая smoke), Typecheck PASS, Build PASS
-- PR: первый PR (≥50%) открыт; финальный PR на завершение — готов к публикации.
+- PR: финальный PR #33 завершён (мерж), ранее был открыт промежуточный PR (≥50%).
 
 ---
 Формат для следующих чекпоинтов:

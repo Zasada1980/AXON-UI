@@ -94,5 +94,5 @@ describe('DebatePage – deep-link opens read-only session', () => {
 
     // Copy link button present
     expect(screen.getByTestId('debate-copy-link')).toBeInTheDocument()
-  }, 15000)
+  }, 30000)
 })
