@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 // import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { CheckCircle, Warning, Target, FileText, Cpu, Star, Clock } from '@phosphor-icons/react';
+import { CheckCircle, Warning, Target, FileText, Cpu, Star, Clock, Shield, TrendUp } from '@phosphor-icons/react';
 
 // Access global spark typed via shared declaration
 const spark = (globalThis as any).spark as Spark;
