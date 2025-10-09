@@ -20,6 +20,8 @@ import NotificationSystem from './components/NotificationSystem';
 import NavigationGuide from './components/NavigationGuide';
 import AuthenticationSystem from './components/AuthenticationSystem';
 import SecureAPIKeyManager from './components/SecureAPIKeyManager';
+import ExternalAPIIntegrator from './components/ExternalAPIIntegrator';
+import CrossModuleIntegrator from './components/CrossModuleIntegrator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -484,6 +486,30 @@ function App() {
           <SecureAPIKeyManager
             language={currentLanguage}
             projectId={projectData?.id || 'default'}
+          />
+        );
+        
+      case 'external-api-integrator':
+        toast.success(currentLanguage === 'ru' ? 'Интегратор внешних API загружен' : 'External API integrator loaded');
+        return (
+          <ExternalAPIIntegrator
+            language={currentLanguage}
+            projectId={projectData?.id || 'default'}
+            onConnectionEstablished={(connection) => showToast(`Connected to ${connection.name}`, 'success')}
+            onRequestCompleted={(request) => showToast(`Request to ${request.endpoint} completed`, 'info')}
+            onWebhookTriggered={(webhook) => showToast(`Webhook ${webhook.name} triggered`, 'info')}
+          />
+        );
+        
+      case 'cross-module-integrator':
+        toast.success(currentLanguage === 'ru' ? 'Интегратор модулей загружен' : 'Cross-module integrator loaded');
+        return (
+          <CrossModuleIntegrator
+            language={currentLanguage}
+            projectId={projectData?.id || 'default'}
+            currentModule={currentPage}
+            onIntegrationExecuted={(integration) => showToast(`Integration ${integration.fromModule} → ${integration.toModule} executed`, 'success')}
+            onRuleTriggered={(rule) => showToast(`Automation rule "${rule.name}" triggered`, 'info')}
           />
         );
         
