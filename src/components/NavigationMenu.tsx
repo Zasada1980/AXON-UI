@@ -26,7 +26,10 @@ import {
   Key,
   Plugs,
   Link,
-  Globe
+  Globe,
+  Activity,
+  MagicWand,
+  Monitor
 } from '@phosphor-icons/react';
 
 interface NavigationMenuItem {
@@ -136,6 +139,15 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
       
       crossModuleIntegrator: { en: 'Cross-Module Integrator', ru: 'Межмодульный Интегратор' },
       crossModuleIntegratorDesc: { en: 'Manage module connections and automation rules', ru: 'Управление соединениями модулей и правилами автоматизации' },
+      
+      performanceMonitor: { en: 'Performance Monitor', ru: 'Монитор Производительности' },
+      performanceMonitorDesc: { en: 'Real-time system performance monitoring and bottleneck detection', ru: 'Мониторинг производительности системы в реальном времени и обнаружение узких мест' },
+      
+      systemOptimizer: { en: 'System Optimizer', ru: 'Оптимизатор Системы' },
+      systemOptimizerDesc: { en: 'Automated system optimization and resource management', ru: 'Автоматическая оптимизация системы и управление ресурсами' },
+      
+      monitoringDashboard: { en: 'Monitoring Dashboard', ru: 'Панель Мониторинга' },
+      monitoringDashboardDesc: { en: 'Comprehensive monitoring dashboard with real-time metrics and alerts', ru: 'Комплексная панель мониторинга с метриками и оповещениями в реальном времени' },
       
       diagnostics: { en: 'System Diagnostics', ru: 'Диагностика Системы' },
       diagnosticsDesc: { en: 'System health and recovery tools', ru: 'Инструменты здоровья и восстановления системы' },
@@ -303,6 +315,30 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
       title: t('crossModuleIntegrator'),
       description: t('crossModuleIntegratorDesc'),
       icon: <Link size={20} />,
+      category: 'system',
+      status: 'stable'
+    },
+    {
+      id: 'performance-monitor',
+      title: t('performanceMonitor'),
+      description: t('performanceMonitorDesc'),
+      icon: <Activity size={20} />,
+      category: 'system',
+      status: 'stable'
+    },
+    {
+      id: 'system-optimizer',
+      title: t('systemOptimizer'),
+      description: t('systemOptimizerDesc'),
+      icon: <MagicWand size={20} />,
+      category: 'system',
+      status: 'stable'
+    },
+    {
+      id: 'monitoring-dashboard',
+      title: t('monitoringDashboard'),
+      description: t('monitoringDashboardDesc'),
+      icon: <Monitor size={20} />,
       category: 'system',
       status: 'stable'
     },
