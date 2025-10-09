@@ -22,6 +22,9 @@ import AuthenticationSystem from './components/AuthenticationSystem';
 import SecureAPIKeyManager from './components/SecureAPIKeyManager';
 import ExternalAPIIntegrator from './components/ExternalAPIIntegrator';
 import CrossModuleIntegrator from './components/CrossModuleIntegrator';
+import PerformanceMonitor from './components/PerformanceMonitor';
+import SystemOptimizer from './components/SystemOptimizer';
+import MonitoringDashboard from './components/MonitoringDashboard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -510,6 +513,39 @@ function App() {
             currentModule={currentPage}
             onIntegrationExecuted={(integration) => showToast(`Integration ${integration.fromModule} → ${integration.toModule} executed`, 'success')}
             onRuleTriggered={(rule) => showToast(`Automation rule "${rule.name}" triggered`, 'info')}
+          />
+        );
+
+      case 'performance-monitor':
+        toast.success(currentLanguage === 'ru' ? 'Монитор производительности загружен' : 'Performance monitor loaded');
+        return (
+          <PerformanceMonitor
+            language={currentLanguage}
+            projectId={projectData?.id || 'default'}
+            onPerformanceAlert={(alert) => showToast(`Performance Alert: ${alert.title}`, 'error')}
+            onBottleneckDetected={(bottleneck) => showToast(`Bottleneck detected: ${bottleneck.component}`, 'error')}
+          />
+        );
+
+      case 'system-optimizer':
+        toast.success(currentLanguage === 'ru' ? 'Оптимизатор системы загружен' : 'System optimizer loaded');
+        return (
+          <SystemOptimizer
+            language={currentLanguage}
+            projectId={projectData?.id || 'default'}
+            onOptimizationComplete={(history) => showToast(`Optimization completed: ${history.totalImprovementPercentage.toFixed(1)}% improvement`, 'success')}
+            onTaskComplete={(task) => showToast(`Optimization task completed: ${task.name}`, 'info')}
+          />
+        );
+
+      case 'monitoring-dashboard':
+        toast.success(currentLanguage === 'ru' ? 'Панель мониторинга загружена' : 'Monitoring dashboard loaded');
+        return (
+          <MonitoringDashboard
+            language={currentLanguage}
+            projectId={projectData?.id || 'default'}
+            onAlertTriggered={(alert) => showToast(`System Alert: ${alert.title}`, 'error')}
+            onMetricThresholdExceeded={(metric) => showToast(`Metric threshold exceeded: ${metric.name}`, 'error')}
           />
         );
         
