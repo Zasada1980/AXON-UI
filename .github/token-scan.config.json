@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/json",
+  "description": "Patterns and paths for token/secret scanning in repo",
+  "version": 1,
+  "include": ["**/*"],
+  "exclude": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    ".git/**"
+  ],
+  "patterns": [
+    { "id": "github_pat", "regex": "github_pat_[A-Za-z0-9_]{20,}", "severity": "high" },
+    { "id": "ghp_token", "regex": "ghp_[A-Za-z0-9]{20,}", "severity": "high" },
+    { "id": "openai_key", "regex": "sk-[A-Za-z0-9]{16,}", "severity": "high" },
+    { "id": "aws_access_key", "regex": "AKIA[0-9A-Z]{16}", "severity": "high" },
+    { "id": "aws_secret_key", "regex": "(?i)aws_secret_access_key\s*[:=]\s*[A-Za-z0-9/+]{40,}", "severity": "high" },
+    { "id": "bearer_token", "regex": "(?i)bearer\s+[A-Za-z0-9._-]{20,}", "severity": "medium" },
+    { "id": "generic_token", "regex": "(?i)(token|secret|api[-_ ]?key)", "severity": "info" }
+  ]
+}
