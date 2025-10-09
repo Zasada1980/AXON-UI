@@ -5,6 +5,24 @@
 
 import { toast } from 'sonner';
 
+// Generate encryption key from environment or use secure fallback
+const getEncryptionPassword = (): string => {
+  // Try to get from environment variables first
+  if (typeof process !== 'undefined' && process.env?.AXON_ENCRYPTION_KEY) {
+    return process.env.AXON_ENCRYPTION_KEY;
+  }
+  
+  // Fallback: generate from browser fingerprint + timestamp
+  const browserFingerprint = [
+    navigator.userAgent,
+    navigator.language,
+    new Date().toDateString(),
+    'axon-secure-fallback'
+  ].join('-');
+  
+  return btoa(browserFingerprint).substring(0, 32);
+};
+
 // Simple key derivation
 const deriveKey = async (password: string): Promise<CryptoKey> => {
   const encoder = new TextEncoder();
@@ -64,7 +82,7 @@ export const encryptData = async (data: string): Promise<EncryptedData> => {
       throw new Error('Web Crypto API not available');
     }
 
-    const password = 'axon-encryption-key-2024-secure';
+    const password = getEncryptionPassword();
     const encoder = new TextEncoder();
     const iv = crypto.getRandomValues(new Uint8Array(12));
     
@@ -102,7 +120,7 @@ export const decryptData = async (encryptedData: EncryptedData): Promise<string>
       throw new Error('Web Crypto API not available');
     }
 
-    const password = 'axon-encryption-key-2024-secure';
+    const password = getEncryptionPassword();
     const decoder = new TextDecoder();
     
     // Derive decryption key

@@ -77,6 +77,16 @@ interface ProjectSettings {
     allowAgentCreation: boolean;
     ipWhitelist: string[];
     rateLimitEnabled: boolean;
+    // Authentication System settings
+    authenticationEnabled?: boolean;
+    sessionTimeout?: number;
+    twoFactorRequired?: boolean;
+    maxConcurrentSessions?: number;
+    // API Key Management settings
+    encryptionEnabled?: boolean;
+    autoKeyValidation?: boolean;
+    keyRotationEnabled?: boolean;
+    secureKeyStorage?: boolean;
   };
   automation: {
     autoStartAgents: boolean;
@@ -87,6 +97,18 @@ interface ProjectSettings {
   };
   ux?: {
     acaAutoPickFramework?: boolean;
+  };
+  utilities?: {
+    maxFileSize?: number;
+    allowedFileTypes?: string[];
+    autoAnalyzeFiles?: boolean;
+    enableSemanticSearch?: boolean;
+    maxSearchResults?: number;
+    enablePushNotifications?: boolean;
+    enableEmailNotifications?: boolean;
+    notificationFrequency?: 'immediate' | 'hourly' | 'daily';
+    showHelpTips?: boolean;
+    enableGuidedTour?: boolean;
   };
 }
 
@@ -179,7 +201,17 @@ const GlobalProjectSettings: React.FC<GlobalProjectSettingsProps> = ({
       allowSystemCommands: false,
       allowAgentCreation: true,
       ipWhitelist: [],
-      rateLimitEnabled: true
+      rateLimitEnabled: true,
+      // Authentication System defaults
+      authenticationEnabled: true,
+      sessionTimeout: 1440, // 24 hours in minutes
+      twoFactorRequired: false,
+      maxConcurrentSessions: 3,
+      // API Key Management defaults
+      encryptionEnabled: true,
+      autoKeyValidation: true,
+      keyRotationEnabled: false,
+      secureKeyStorage: true,
     },
     automation: {
       autoStartAgents: true,
@@ -239,6 +271,14 @@ const GlobalProjectSettings: React.FC<GlobalProjectSettingsProps> = ({
       security: { en: 'Security & Access', ru: 'Безопасность и Доступ' },
       allowSystemCommands: { en: 'Allow System Commands', ru: 'Разрешить Системные Команды' },
       allowAgentCreation: { en: 'Allow Agent Creation', ru: 'Разрешить Создание Агентов' },
+      authenticationEnabled: { en: 'Authentication Enabled', ru: 'Аутентификация Включена' },
+      sessionTimeout: { en: 'Session Timeout (minutes)', ru: 'Таймаут Сессии (минуты)' },
+      twoFactorRequired: { en: 'Two-Factor Required', ru: 'Обязательная 2FA' },
+      maxConcurrentSessions: { en: 'Max Concurrent Sessions', ru: 'Максимум Одновременных Сессий' },
+      encryptionEnabled: { en: 'Encryption Enabled', ru: 'Шифрование Включено' },
+      autoKeyValidation: { en: 'Auto Key Validation', ru: 'Автопроверка Ключей' },
+      keyRotationEnabled: { en: 'Key Rotation Enabled', ru: 'Ротация Ключей Включена' },
+      secureKeyStorage: { en: 'Secure Key Storage', ru: 'Безопасное Хранение Ключей' },
       
       // Automation
       automation: { en: 'Automation & Defaults', ru: 'Автоматизация и Умолчания' },
@@ -272,6 +312,26 @@ const GlobalProjectSettings: React.FC<GlobalProjectSettingsProps> = ({
       debateAnalysis: { en: 'Debate Analysis', ru: 'Анализ Дебатов' },
       agentTraining: { en: 'Agent Training', ru: 'Обучение Агентов' },
       trendsReports: { en: 'Trends & Reports', ru: 'Тренды и Отчёты' },
+      
+      // Utilities
+      utilities: { en: 'Utilities & Tools', ru: 'Утилиты и Инструменты' },
+      fileUploadSettings: { en: 'File Upload Settings', ru: 'Настройки Загрузки Файлов' },
+      maxFileSize: { en: 'Max File Size (MB)', ru: 'Максимальный Размер Файла (МБ)' },
+      allowedFileTypes: { en: 'Allowed File Types', ru: 'Разрешённые Типы Файлов' },
+      autoAnalyzeFiles: { en: 'Auto-Analyze Uploaded Files', ru: 'Автоанализ Загруженных Файлов' },
+      searchSettings: { en: 'Search & Filter Settings', ru: 'Настройки Поиска и Фильтров' },
+      enableSemanticSearch: { en: 'Enable Semantic Search', ru: 'Включить Семантический Поиск' },
+      maxSearchResults: { en: 'Max Search Results', ru: 'Максимум Результатов Поиска' },
+      notificationSettings: { en: 'Notification Settings', ru: 'Настройки Уведомлений' },
+      enablePushNotifications: { en: 'Enable Push Notifications', ru: 'Включить Push Уведомления' },
+      enableEmailNotifications: { en: 'Enable Email Notifications', ru: 'Включить Email Уведомления' },
+      notificationFrequency: { en: 'Notification Frequency', ru: 'Частота Уведомлений' },
+      immediateNotifications: { en: 'Immediate', ru: 'Немедленно' },
+      hourlyNotifications: { en: 'Hourly', ru: 'Ежечасно' },
+      dailyNotifications: { en: 'Daily', ru: 'Ежедневно' },
+      navigationSettings: { en: 'Navigation & Guide Settings', ru: 'Настройки Навигации и Гида' },
+      showHelpTips: { en: 'Show Help Tips', ru: 'Показывать Подсказки' },
+      enableGuidedTour: { en: 'Enable Guided Tour', ru: 'Включить Интерактивный Тур' },
       
       // Actions
       save: { en: 'Save', ru: 'Сохранить' },
@@ -418,7 +478,7 @@ const GlobalProjectSettings: React.FC<GlobalProjectSettingsProps> = ({
       </Card>
 
       <Tabs defaultValue="project" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="project" className="flex items-center gap-2">
             <Gear size={16} />
             {t('projectSettings')}
@@ -438,6 +498,10 @@ const GlobalProjectSettings: React.FC<GlobalProjectSettingsProps> = ({
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <ChartLine size={16} />
             {t('analytics')}
+          </TabsTrigger>
+          <TabsTrigger value="utilities" className="flex items-center gap-2">
+            <Gear size={16} />
+            {t('utilities')}
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Shield size={16} />
@@ -997,75 +1061,528 @@ const GlobalProjectSettings: React.FC<GlobalProjectSettingsProps> = ({
           </div>
         </TabsContent>
 
+        {/* Utilities Tab */}
+        <TabsContent value="utilities" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* File Upload Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload size={20} />
+                  {t('fileUploadSettings')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="maxFileSize">{t('maxFileSize')}</Label>
+                  <Input
+                    id="maxFileSize"
+                    type="number"
+                    value={settings?.utilities?.maxFileSize || 10}
+                    onChange={(e) => {
+                      const utilities = { ...settings?.utilities, maxFileSize: parseInt(e.target.value) };
+                      updateSettings('utilities', utilities);
+                    }}
+                    min={1}
+                    max={100}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="allowedFileTypes">{t('allowedFileTypes')}</Label>
+                  <Input
+                    id="allowedFileTypes"
+                    value={settings?.utilities?.allowedFileTypes?.join(', ') || 'pdf, doc, txt, md, json, csv'}
+                    onChange={(e) => {
+                      const utilities = { ...settings?.utilities, allowedFileTypes: e.target.value.split(', ').map(t => t.trim()) };
+                      updateSettings('utilities', utilities);
+                    }}
+                    placeholder="pdf, doc, txt, md, json, csv"
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('autoAnalyzeFiles')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Автоматически анализировать загруженные файлы' 
+                        : 'Automatically analyze uploaded files'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings?.utilities?.autoAnalyzeFiles ?? true}
+                    onCheckedChange={(checked) => {
+                      const utilities = { ...settings?.utilities, autoAnalyzeFiles: checked };
+                      updateSettings('utilities', utilities);
+                    }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Search & Filter Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Eye size={20} />
+                  {t('searchSettings')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('enableSemanticSearch')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Включить семантический поиск для улучшения результатов' 
+                        : 'Enable semantic search for better results'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings?.utilities?.enableSemanticSearch ?? true}
+                    onCheckedChange={(checked) => {
+                      const utilities = { ...settings?.utilities, enableSemanticSearch: checked };
+                      updateSettings('utilities', utilities);
+                    }}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="maxSearchResults">{t('maxSearchResults')}</Label>
+                  <Input
+                    id="maxSearchResults"
+                    type="number"
+                    value={settings?.utilities?.maxSearchResults || 50}
+                    onChange={(e) => {
+                      const utilities = { ...settings?.utilities, maxSearchResults: parseInt(e.target.value) };
+                      updateSettings('utilities', utilities);
+                    }}
+                    min={10}
+                    max={500}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Notification Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Robot size={20} />
+                  {t('notificationSettings')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('enablePushNotifications')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Включить push уведомления в браузере' 
+                        : 'Enable browser push notifications'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings?.utilities?.enablePushNotifications ?? false}
+                    onCheckedChange={(checked) => {
+                      const utilities = { ...settings?.utilities, enablePushNotifications: checked };
+                      updateSettings('utilities', utilities);
+                    }}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('enableEmailNotifications')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Включить email уведомления' 
+                        : 'Enable email notifications'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings?.utilities?.enableEmailNotifications ?? false}
+                    onCheckedChange={(checked) => {
+                      const utilities = { ...settings?.utilities, enableEmailNotifications: checked };
+                      updateSettings('utilities', utilities);
+                    }}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="notificationFrequency">{t('notificationFrequency')}</Label>
+                  <Select 
+                    value={settings?.utilities?.notificationFrequency || 'immediate'} 
+                    onValueChange={(value) => {
+                      const utilities = { ...settings?.utilities, notificationFrequency: value as 'immediate' | 'hourly' | 'daily' };
+                      updateSettings('utilities', utilities);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="immediate">{t('immediateNotifications')}</SelectItem>
+                      <SelectItem value="hourly">{t('hourlyNotifications')}</SelectItem>
+                      <SelectItem value="daily">{t('dailyNotifications')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Navigation & Guide Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain size={20} />
+                  {t('navigationSettings')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('showHelpTips')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Показывать контекстные подсказки и советы' 
+                        : 'Show contextual help tips and guidance'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings?.utilities?.showHelpTips ?? true}
+                    onCheckedChange={(checked) => {
+                      const utilities = { ...settings?.utilities, showHelpTips: checked };
+                      updateSettings('utilities', utilities);
+                    }}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('enableGuidedTour')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Включить интерактивный тур для новых пользователей' 
+                        : 'Enable interactive tour for new users'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings?.utilities?.enableGuidedTour ?? true}
+                    onCheckedChange={(checked) => {
+                      const utilities = { ...settings?.utilities, enableGuidedTour: checked };
+                      updateSettings('utilities', utilities);
+                    }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         {/* Security Tab */}
         <TabsContent value="security" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield size={20} />
-                {t('security')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>{t('allowSystemCommands')}</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {language === 'ru' 
-                      ? 'Разрешить выполнение системных команд' 
-                      : 'Allow execution of system commands'}
-                  </p>
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Basic Security Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield size={20} />
+                  {t('security')}
+                </CardTitle>
+                <CardDescription>Basic security and access control settings</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('allowSystemCommands')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Разрешить выполнение системных команд' 
+                        : 'Allow execution of system commands'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.allowSystemCommands}
+                    onCheckedChange={(checked) => updateSettings('security', {
+                      ...settings.security,
+                      allowSystemCommands: checked
+                    })}
+                  />
                 </div>
-                <Switch
-                  checked={settings.security.allowSystemCommands}
-                  onCheckedChange={(checked) => updateSettings('security', {
-                    ...settings.security,
-                    allowSystemCommands: checked
-                  })}
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>{t('allowAgentCreation')}</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {language === 'ru' 
-                      ? 'Разрешить агентам создавать других агентов' 
-                      : 'Allow agents to create other agents'}
-                  </p>
+                
+                <Separator />
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('allowAgentCreation')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Разрешить агентам создавать других агентов' 
+                        : 'Allow agents to create other agents'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.allowAgentCreation}
+                    onCheckedChange={(checked) => updateSettings('security', {
+                      ...settings.security,
+                      allowAgentCreation: checked
+                    })}
+                  />
                 </div>
-                <Switch
-                  checked={settings.security.allowAgentCreation}
-                  onCheckedChange={(checked) => updateSettings('security', {
-                    ...settings.security,
-                    allowAgentCreation: checked
-                  })}
-                />
-              </div>
-              
-              <Separator />
-              
-              <div>
-                <Label>IP Whitelist</Label>
-                <p className="text-sm text-muted-foreground mb-2">
+                
+                <Separator />
+                
+                <div>
+                  <Label>IP Whitelist</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {language === 'ru' 
+                      ? 'Разрешённые IP адреса (по одному на строку)' 
+                      : 'Allowed IP addresses (one per line)'}
+                  </p>
+                  <Textarea
+                    value={settings.security.ipWhitelist.join('\n')}
+                    onChange={(e) => updateSettings('security', {
+                      ...settings.security,
+                      ipWhitelist: e.target.value.split('\n').filter(ip => ip.trim())
+                    })}
+                    placeholder="192.168.1.1\n10.0.0.1"
+                    rows={4}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Authentication System Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users size={20} />
+                  Authentication System
+                </CardTitle>
+                <CardDescription>User authentication and session management</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('authenticationEnabled')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Включить систему аутентификации' 
+                        : 'Enable authentication system'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.authenticationEnabled ?? true}
+                    onCheckedChange={(checked) => updateSettings('security', {
+                      ...settings.security,
+                      authenticationEnabled: checked
+                    })}
+                  />
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <Label>{t('sessionTimeout')}</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {language === 'ru' 
+                      ? 'Время жизни сессии в минутах' 
+                      : 'Session lifetime in minutes'}
+                  </p>
+                  <Input
+                    type="number"
+                    value={settings.security.sessionTimeout ?? 1440}
+                    onChange={(e) => updateSettings('security', {
+                      ...settings.security,
+                      sessionTimeout: parseInt(e.target.value) || 1440
+                    })}
+                    min={5}
+                    max={10080}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('twoFactorRequired')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Обязательная двухфакторная аутентификация' 
+                        : 'Require two-factor authentication'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.twoFactorRequired ?? false}
+                    onCheckedChange={(checked) => updateSettings('security', {
+                      ...settings.security,
+                      twoFactorRequired: checked
+                    })}
+                  />
+                </div>
+                
+                <div>
+                  <Label>{t('maxConcurrentSessions')}</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {language === 'ru' 
+                      ? 'Максимальное количество одновременных сессий' 
+                      : 'Maximum number of concurrent sessions'}
+                  </p>
+                  <Input
+                    type="number"
+                    value={settings.security.maxConcurrentSessions ?? 3}
+                    onChange={(e) => updateSettings('security', {
+                      ...settings.security,
+                      maxConcurrentSessions: parseInt(e.target.value) || 3
+                    })}
+                    min={1}
+                    max={10}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* API Key Management Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Eye size={20} />
+                  API Key Management
+                </CardTitle>
+                <CardDescription>Secure storage and validation of API keys</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('encryptionEnabled')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Шифровать API ключи при хранении' 
+                        : 'Encrypt API keys when storing'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.encryptionEnabled ?? true}
+                    onCheckedChange={(checked) => updateSettings('security', {
+                      ...settings.security,
+                      encryptionEnabled: checked
+                    })}
+                  />
+                </div>
+                
+                <Separator />
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('autoKeyValidation')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Автоматически проверять валидность ключей' 
+                        : 'Automatically validate key validity'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.autoKeyValidation ?? true}
+                    onCheckedChange={(checked) => updateSettings('security', {
+                      ...settings.security,
+                      autoKeyValidation: checked
+                    })}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('keyRotationEnabled')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Включить автоматическую ротацию ключей' 
+                        : 'Enable automatic key rotation'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.keyRotationEnabled ?? false}
+                    onCheckedChange={(checked) => updateSettings('security', {
+                      ...settings.security,
+                      keyRotationEnabled: checked
+                    })}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>{t('secureKeyStorage')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'ru' 
+                        ? 'Использовать безопасное хранилище ключей' 
+                        : 'Use secure key storage backend'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.secureKeyStorage ?? true}
+                    onCheckedChange={(checked) => updateSettings('security', {
+                      ...settings.security,
+                      secureKeyStorage: checked
+                    })}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Security Status Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield size={20} />
+                  Security Status
+                </CardTitle>
+                <CardDescription>Current security configuration overview</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Authentication</span>
+                  <Badge variant={settings.security.authenticationEnabled ? 'default' : 'destructive'}>
+                    {settings.security.authenticationEnabled ? 'Enabled' : 'Disabled'}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Encryption</span>
+                  <Badge variant={settings.security.encryptionEnabled ? 'default' : 'destructive'}>
+                    {settings.security.encryptionEnabled ? 'Enabled' : 'Disabled'}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">2FA Required</span>
+                  <Badge variant={settings.security.twoFactorRequired ? 'default' : 'secondary'}>
+                    {settings.security.twoFactorRequired ? 'Yes' : 'No'}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">System Commands</span>
+                  <Badge variant={settings.security.allowSystemCommands ? 'destructive' : 'default'}>
+                    {settings.security.allowSystemCommands ? 'Allowed' : 'Blocked'}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Session Timeout</span>
+                  <Badge variant="outline">
+                    {Math.floor((settings.security.sessionTimeout ?? 1440) / 60)}h {(settings.security.sessionTimeout ?? 1440) % 60}m
+                  </Badge>
+                </div>
+                
+                <Separator />
+                
+                <div className="text-xs text-muted-foreground">
                   {language === 'ru' 
-                    ? 'Разрешённые IP адреса (по одному на строку)' 
-                    : 'Allowed IP addresses (one per line)'}
-                </p>
-                <Textarea
-                  value={settings.security.ipWhitelist.join('\n')}
-                  onChange={(e) => updateSettings('security', {
-                    ...settings.security,
-                    ipWhitelist: e.target.value.split('\n').filter(ip => ip.trim())
-                  })}
-                  placeholder="192.168.1.1\n10.0.0.1"
-                  rows={4}
-                />
-              </div>
-            </CardContent>
-          </Card>
+                    ? 'Настройки безопасности применяются немедленно' 
+                    : 'Security settings take effect immediately'}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
 

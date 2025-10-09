@@ -14,6 +14,12 @@ import DebateLogManager from './components/DebateLogManager';
 import AIOrchestrator from './components/AIOrchestrator';
 import UnderDevelopmentPage from './pages/UnderDevelopmentPage';
 import ProjectReportsPage from './pages/ProjectReportsPage';
+import FileUploadManager from './components/FileUploadManager';
+import AdvancedSearchFilter from './components/AdvancedSearchFilter';
+import NotificationSystem from './components/NotificationSystem';
+import NavigationGuide from './components/NavigationGuide';
+import AuthenticationSystem from './components/AuthenticationSystem';
+import SecureAPIKeyManager from './components/SecureAPIKeyManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -306,6 +312,11 @@ function App() {
     setShowNavigationMenu(false);
   };
 
+  // Placeholder for toast notifications
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    console.log(`[${type.toUpperCase()}] ${message}`);
+  };
+
   // Render different pages based on current page
   const renderCurrentPage = () => {
     if (!projectData) return null;
@@ -418,6 +429,61 @@ function App() {
             projectId={projectData.id}
             onNavigate={handleNavigate}
             initialTab={'journal'}
+          />
+        );
+        
+      case 'file-manager':
+        return (
+          <FileUploadManager
+            projectId={projectData.id}
+            language={currentLanguage}
+            onFileUploaded={() => showToast('File uploaded successfully', 'success')}
+            onFileAnalyzed={() => showToast('File analysis completed', 'info')}
+          />
+        );
+        
+      case 'advanced-search':
+        return (
+          <AdvancedSearchFilter
+            projectId={projectData.id}
+            language={currentLanguage}
+            onSearchResults={(results) => showToast(`Found ${results.length} search results`, 'info')}
+            onFilterSaved={(filter) => showToast(`Filter "${filter.name}" saved`, 'success')}
+          />
+        );
+        
+      case 'notification-system':
+        return (
+          <NotificationSystem
+            projectId={projectData.id}
+            language={currentLanguage}
+            onNotificationClick={(notification) => showToast(`Opened notification: ${notification.title}`, 'info')}
+          />
+        );
+        
+      case 'navigation-guide':
+        return (
+          <NavigationGuide
+            language={currentLanguage}
+            currentModule={currentPage}
+          />
+        );
+        
+      case 'authentication-system':
+        toast.success(currentLanguage === 'ru' ? 'Система аутентификации загружена' : 'Authentication system loaded');
+        return (
+          <AuthenticationSystem
+            language={currentLanguage}
+            projectId={projectData?.id || 'default'}
+          />
+        );
+        
+      case 'secure-api-key-manager':
+        toast.success(currentLanguage === 'ru' ? 'Менеджер API ключей загружен' : 'API key manager loaded');
+        return (
+          <SecureAPIKeyManager
+            language={currentLanguage}
+            projectId={projectData?.id || 'default'}
           />
         );
         
