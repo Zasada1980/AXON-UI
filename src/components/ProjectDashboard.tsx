@@ -1,27 +1,10 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import {
-  ChartLine,
-  Users,
-  Target,
-  Shield,
-  Brain,
-  FileText,
-  Calendar,
-  Clock,
-  TrendUp,
-  CheckCircle,
-  Warning,
-  Star,
-  ArrowRight,
-  Plus,
-  Eye,
-  Lightbulb
-} from '@phosphor-icons/react';
+// import { Separator } from '@/components/ui/separator';
+import { Users, Shield, Brain, FileText, Calendar, Clock, TrendUp, CheckCircle, Warning, Star, ArrowRight, Lightbulb } from '@phosphor-icons/react';
 import { axon } from '@/services/axonAdapter'
 import { toast } from 'sonner'
 
@@ -77,6 +60,7 @@ const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
       viewDetails: { en: 'View Details', ru: 'Подробнее' },
       runAudit: { en: 'Run Audit', ru: 'Запустить Аудит' },
       openChat: { en: 'Open AI Chat', ru: 'Открыть ИИ Чат' },
+      openReports: { en: 'Project Reports', ru: 'Отчеты Проекта' },
       
       // Status messages
       allSystemsOperational: { en: 'All Systems Operational', ru: 'Все Системы Работают' },
@@ -153,7 +137,7 @@ const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
       const h = await axon.health()
       setAxonOnline(!!h.ok)
       toast[h.ok ? 'success' : 'error'](h.ok ? (language==='ru'?'AXON доступен':'AXON online') : (language==='ru'?'AXON недоступен':'AXON offline'))
-    } catch (e) {
+    } catch {
       setAxonOnline(false)
       toast.error(language==='ru'?'AXON недоступен':'AXON offline')
     } finally {
@@ -321,6 +305,14 @@ const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
             <Button onClick={() => onNavigate('audit')} variant="outline" className="w-full justify-start">
               <Shield size={16} className="mr-2" />
               {t('runAudit')}
+            </Button>
+            <Button onClick={() => onNavigate('reports')} variant="outline" className="w-full justify-start">
+              <FileText size={16} className="mr-2" />
+              {t('openReports')}
+            </Button>
+            <Button onClick={() => onNavigate('reports')} variant="outline" className="w-full justify-start">
+              <FileText size={16} className="mr-2" />
+              {t('openReports')}
             </Button>
             <Button onClick={() => onNavigate('chat')} variant="outline" className="w-full justify-start">
               <Brain size={16} className="mr-2" />

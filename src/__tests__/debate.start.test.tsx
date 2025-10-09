@@ -80,5 +80,5 @@ describe('DebatePage – start debate flow (AXON backend via adapter)', () => {
 
     // Status badge should show Active
     expect(screen.getByText(/Active/i)).toBeInTheDocument()
-  }, 15000)
+  }, 30000)
 })

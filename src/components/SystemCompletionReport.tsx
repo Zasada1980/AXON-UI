@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { Spark } from '@/types/spark';
 import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,29 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import {
-  CheckCircle,
-  Warning,
-  Target,
-  TrendUp,
-  Graph,
-  FileText,
-  Shield,
-  Brain,
-  Users,
-  Cpu,
-  Database,
-  ChartLine,
-  Star,
-  Clock,
-  Download,
-  Eye,
-  ListChecks,
-  Gear
-} from '@phosphor-icons/react';
+import { CheckCircle, Warning, Target, FileText, Cpu, Star, Clock } from '@phosphor-icons/react';
 
 // Access global spark typed via shared declaration
 const spark = (globalThis as any).spark as Spark;
@@ -91,8 +72,8 @@ const SystemCompletionReport: React.FC<SystemCompletionReportProps> = ({
   projectId,
   onReportGenerated
 }) => {
-  const [modules, setModules] = useKV<SystemModule[]>(`system-modules-${projectId}`, getDefaultModules());
-  const [complianceChecks, setComplianceChecks] = useKV<ComplianceCheck[]>(`compliance-${projectId}`, []);
+  const [modules] = useKV<SystemModule[]>(`system-modules-${projectId}`, getDefaultModules());
+  const [complianceChecks] = useKV<ComplianceCheck[]>(`compliance-${projectId}`, []);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [lastReportGenerated, setLastReportGenerated] = useKV<string>(`last-report-${projectId}`, '');
 
@@ -432,6 +413,21 @@ const SystemCompletionReport: React.FC<SystemCompletionReportProps> = ({
 
   const metrics = calculateMetrics();
 
+  // Simple validation for report schema
+  const validateReport = (data: any): { ok: boolean; error?: string } => {
+    try {
+      if (!data || typeof data !== 'object') return { ok: false, error: 'Invalid report data' };
+      if (!data.projectId) return { ok: false, error: 'Missing projectId' };
+      if (!data.timestamp) return { ok: false, error: 'Missing timestamp' };
+      if (!data.metrics || typeof data.metrics !== 'object') return { ok: false, error: 'Missing metrics' };
+      if (!Array.isArray(data.modules)) return { ok: false, error: 'Modules must be array' };
+      if (!Array.isArray(data.complianceChecks)) return { ok: false, error: 'Compliance must be array' };
+      return { ok: true };
+    } catch (e: any) {
+      return { ok: false, error: e?.message || 'Validation error' };
+    }
+  };
+
   // Generate comprehensive completion report
   const generateCompletionReport = async () => {
     setIsGeneratingReport(true);
@@ -444,6 +440,13 @@ const SystemCompletionReport: React.FC<SystemCompletionReportProps> = ({
         modules: modules || [],
         complianceChecks: complianceChecks || []
       };
+
+      const v = validateReport(reportData);
+      if (!v.ok) {
+        toast.error((language === 'ru' ? 'Ошибка валидации: ' : 'Validation error: ') + (v.error || ''));
+        setIsGeneratingReport(false);
+        return;
+      }
 
       const prompt = spark.llmPrompt`Generate a comprehensive system completion report based on this data:
 
@@ -486,7 +489,7 @@ Return as JSON with sections: executive, technical, risks, recommendations, conc
       
       toast.success(language === 'ru' ? 'Отчет сгенерирован' : 'Report generated');
       
-      // Export report automatically
+      // Export report automatically (validated JSON)
       const blob = new Blob([JSON.stringify(report, null, 2)], {
         type: 'application/json'
       });
@@ -506,6 +509,31 @@ Return as JSON with sections: executive, technical, risks, recommendations, conc
     } finally {
       setIsGeneratingReport(false);
     }
+  };
+
+  // Direct export of current report data without LLM generation
+  const exportCurrentReport = () => {
+    const reportData = {
+      projectId,
+      timestamp: new Date().toISOString(),
+      metrics,
+      modules: modules || [],
+      complianceChecks: complianceChecks || []
+    };
+    const v = validateReport(reportData);
+    if (!v.ok) {
+      toast.error((language === 'ru' ? 'Ошибка валидации: ' : 'Validation error: ') + (v.error || ''));
+      return;
+    }
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `system-completion-report-${projectId}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // Get status badge variant
@@ -589,6 +617,14 @@ Return as JSON with sections: executive, technical, risks, recommendations, conc
                   <FileText size={16} />
                 )}
                 {t('generateReport')}
+              </Button>
+              <Button 
+                onClick={exportCurrentReport}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <FileText size={16} />
+                {t('exportReport')}
               </Button>
             </div>
           </div>

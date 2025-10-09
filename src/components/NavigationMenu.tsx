@@ -109,6 +109,8 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
       
       diagnostics: { en: 'System Diagnostics', ru: 'Диагностика Системы' },
       diagnosticsDesc: { en: 'System health and recovery tools', ru: 'Инструменты здоровья и восстановления системы' },
+  reports: { en: 'Project Reports', ru: 'Отчеты Проекта' },
+  reportsDesc: { en: 'Requirements, status, journal, and audits', ru: 'Требования, статусы, журнал и аудиты' },
       
       // Status
       stable: { en: 'Stable', ru: 'Стабильно' },
@@ -258,6 +260,14 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
       title: language === 'ru' ? 'Аналитика' : 'Analytics',
       description: language === 'ru' ? 'Расширенная аналитика проекта' : 'Advanced project analytics',
       icon: <ChartLine size={20} />,
+      category: 'advanced',
+      status: 'stable'
+    },
+    {
+      id: 'reports',
+      title: t('reports'),
+      description: t('reportsDesc'),
+      icon: <FileText size={20} />,
       category: 'advanced',
       status: 'stable'
     },

@@ -3,40 +3,17 @@ import type { Spark } from '@/types/spark';
 import { useKV } from '@github/spark/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+//
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+//
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import {
-  FileText,
-  Calendar,
-  CheckCircle,
-  Warning,
-  Clock,
-  Database,
-  Users,
-  Target,
-  BookOpen,
-  Download,
-  Plus,
-  Play,
-  ArrowRight,
-  Robot,
-  Brain,
-  Eye,
-  Stack,
-  Activity,
-  Gear,
-  ListChecks,
-  CloudArrowUp
-} from '@phosphor-icons/react';
+import { FileText, CheckCircle, Warning, Clock, Database, Target, Play, ArrowRight, Stack, Activity } from '@phosphor-icons/react';
 
 // Access global spark typed via shared declaration
 const spark = (globalThis as any).spark as Spark;
@@ -168,6 +145,34 @@ export default function MasterReportJournal({
   const [completedStages, setCompletedStages] = useKV<Record<string, string[]>>(`completed-stages-${projectId}`, {});
   const [stageProgress, setStageProgress] = useKV<Record<string, number>>(`stage-progress-${projectId}`, {});
 
+  // Simple export with validation
+  const validateJournal = (entries: any[]): { ok: boolean; error?: string } => {
+    if (!Array.isArray(entries)) return { ok: false, error: 'Entries must be array' };
+    for (const e of entries) {
+      if (!e || typeof e !== 'object' || !e.id || !e.timestamp || !e.reportType) {
+        return { ok: false, error: 'Invalid entry shape' };
+      }
+    }
+    return { ok: true };
+  };
+
+  const exportJournal = () => {
+    const v = validateJournal(masterReports || []);
+    if (!v.ok) {
+      toast.error((language === 'ru' ? 'Ошибка валидации журнала: ' : 'Journal validation error: ') + (v.error || ''));
+      return;
+    }
+    const blob = new Blob([JSON.stringify(masterReports, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `master-report-journal-${projectId}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
       masterReportJournal: {
@@ -197,6 +202,10 @@ export default function MasterReportJournal({
       journalAllReports: {
         en: 'Journal All Reports',
         ru: 'Занести Все Отчеты'
+      },
+      exportJournal: {
+        en: 'Export Journal',
+        ru: 'Экспорт Журнала'
       },
       systemAnalysis: {
         en: 'System Analysis',
@@ -808,6 +817,10 @@ export default function MasterReportJournal({
                   {language === 'ru' ? 'Этапов' : 'Stages'}: {Object.keys(completedStages || {}).length}
                 </Badge>
               )}
+              <Button onClick={exportJournal} variant="ghost" className="flex items-center gap-2">
+                <FileText size={16} />
+                {t('exportJournal')}
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -1330,7 +1343,7 @@ export default function MasterReportJournal({
                 <div>
                   <h4 className="font-medium mb-2">Technical Specifications</h4>
                   <div className="space-y-3">
-                    {currentTaskBlock.specifications.map((spec, index) => (
+                    {currentTaskBlock.specifications.map((spec) => (
                       <Card key={spec.id} className="p-3">
                         <div className="flex items-center justify-between mb-2">
                           <h5 className="font-medium text-sm">{spec.title}</h5>

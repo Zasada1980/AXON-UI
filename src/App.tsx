@@ -13,6 +13,7 @@ import AgentMemoryManager from './components/AgentMemoryManager';
 import DebateLogManager from './components/DebateLogManager';
 import AIOrchestrator from './components/AIOrchestrator';
 import UnderDevelopmentPage from './pages/UnderDevelopmentPage';
+import ProjectReportsPage from './pages/ProjectReportsPage';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -400,6 +401,23 @@ function App() {
             language={currentLanguage}
             projectId={projectData.id}
             onNavigate={handleNavigate}
+          />
+        );
+      case 'reports':
+        return (
+          <ProjectReportsPage
+            language={currentLanguage}
+            projectId={projectData.id}
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'journal':
+        return (
+          <ProjectReportsPage
+            language={currentLanguage}
+            projectId={projectData.id}
+            onNavigate={handleNavigate}
+            initialTab={'journal'}
           />
         );
         
