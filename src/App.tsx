@@ -25,6 +25,7 @@ import CrossModuleIntegrator from './components/CrossModuleIntegrator';
 import PerformanceMonitor from './components/PerformanceMonitor';
 import SystemOptimizer from './components/SystemOptimizer';
 import MonitoringDashboard from './components/MonitoringDashboard';
+import FeatureFlagsManager from './components/FeatureFlagsManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -546,6 +547,15 @@ function App() {
             projectId={projectData?.id || 'default'}
             onAlertTriggered={(alert) => showToast(`System Alert: ${alert.title}`, 'error')}
             onMetricThresholdExceeded={(metric) => showToast(`Metric threshold exceeded: ${metric.name}`, 'error')}
+          />
+        );
+
+      case 'feature-flags':
+        toast.success(currentLanguage === 'ru' ? 'Менеджер Feature Flags загружен' : 'Feature flags manager loaded');
+        return (
+          <FeatureFlagsManager
+            projectId={projectData?.id || 'default'}
+            locale={currentLanguage}
           />
         );
         

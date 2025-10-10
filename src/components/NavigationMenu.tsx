@@ -29,7 +29,8 @@ import {
   Globe,
   Activity,
   MagicWand,
-  Monitor
+  Monitor,
+  Flag
 } from '@phosphor-icons/react';
 
 interface NavigationMenuItem {
@@ -339,6 +340,14 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
       title: t('monitoringDashboard'),
       description: t('monitoringDashboardDesc'),
       icon: <Monitor size={20} />,
+      category: 'system',
+      status: 'stable'
+    },
+    {
+      id: 'feature-flags',
+      title: language === 'ru' ? 'Feature Flags' : 'Feature Flags',
+      description: language === 'ru' ? 'Управление feature flags и экспериментами' : 'Feature flags and experiments management',
+      icon: <Flag size={20} />,
       category: 'system',
       status: 'stable'
     },
