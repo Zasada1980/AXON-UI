@@ -309,7 +309,7 @@ export const FeatureFlagsManager: React.FC<FeatureFlagsManagerProps> = ({
       toast.success(text.saveSuccess);
     } else {
       // Create new flag
-      const flagId = `flag-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const flagId = `flag-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
       const createdFlag: FeatureFlag = {
         id: flagId,
         name: newFlag.name!,
@@ -690,7 +690,10 @@ export const FeatureFlagsManager: React.FC<FeatureFlagsManagerProps> = ({
                           value={newFlag.metadata?.owner || ''}
                           onChange={(e) => setNewFlag({ 
                             ...newFlag, 
-                            metadata: { ...newFlag.metadata, owner: e.target.value } as any
+                            metadata: { 
+                              ...(newFlag.metadata || { createdAt: '', updatedAt: '', createdBy: '', owner: '' }), 
+                              owner: e.target.value 
+                            }
                           })}
                           placeholder="team-name or user-email"
                         />
@@ -704,7 +707,10 @@ export const FeatureFlagsManager: React.FC<FeatureFlagsManagerProps> = ({
                           value={newFlag.metadata?.jiraTicket || ''}
                           onChange={(e) => setNewFlag({ 
                             ...newFlag, 
-                            metadata: { ...newFlag.metadata, jiraTicket: e.target.value } as any
+                            metadata: { 
+                              ...(newFlag.metadata || { createdAt: '', updatedAt: '', createdBy: '', owner: '' }), 
+                              jiraTicket: e.target.value 
+                            }
                           })}
                           placeholder="PROJ-123"
                         />
@@ -719,7 +725,10 @@ export const FeatureFlagsManager: React.FC<FeatureFlagsManagerProps> = ({
                           value={newFlag.metadata?.expiresAt || ''}
                           onChange={(e) => setNewFlag({ 
                             ...newFlag, 
-                            metadata: { ...newFlag.metadata, expiresAt: e.target.value } as any
+                            metadata: { 
+                              ...(newFlag.metadata || { createdAt: '', updatedAt: '', createdBy: '', owner: '' }), 
+                              expiresAt: e.target.value 
+                            }
                           })}
                         />
                       </div>
