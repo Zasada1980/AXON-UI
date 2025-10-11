@@ -90,11 +90,16 @@
         "@types/node": "^24.7.1",
         "@types/react": "^19.2.2",
         "@types/react-dom": "^19.0.4",
+dependabot/npm_and_yarn/vitejs/plugin-react-swc-4.1.0
         "@vitejs/plugin-react": "^4.3.4",
         "@vitejs/plugin-react-swc": "^4.1.0",
+=======
+        "@vitejs/plugin-react": "^5.0.4",
+        "@vitejs/plugin-react-swc": "^3.10.1",
+ main
         "@vitest/coverage-v8": "^3.2.4",
         "eslint": "^9.28.0",
-        "eslint-plugin-react-hooks": "^6.1.1",
+        "eslint-plugin-react-hooks": "^7.0.0",
         "eslint-plugin-react-refresh": "^0.4.23",
         "globals": "^16.0.0",
         "jsdom": "^27.0.0",
